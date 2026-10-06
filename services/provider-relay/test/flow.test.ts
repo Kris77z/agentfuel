@@ -213,7 +213,7 @@ test("unpaid recovery preserves its cursor; later and refunded payments still ne
   }
 });
 
-test("injected upstream preserves paid fallback/replay and borrowed RPC ownership", { timeout: 30_000 }, async () => {
+test("injected upstream preserves explicitly rejected fallback/replay and borrowed RPC ownership", { timeout: 30_000 }, async () => {
   const directory = await mkdtemp(join(tmpdir(), "agentfuel-relay-provider-"));
   let child: ChildProcess | undefined;
   let f: Awaited<ReturnType<typeof fixture>> | undefined;
@@ -233,7 +233,7 @@ test("injected upstream preserves paid fallback/replay and borrowed RPC ownershi
       assert.equal(init!.method, "POST");
       assert.equal(new Headers(init!.headers).get("authorization"), `Bearer synthetic-${index === 0 ? "primary" : "fallback"}`);
       assert.ok(init!.signal instanceof AbortSignal);
-      if (index === 0) throw new Error("controlled transport failure");
+      if (index === 0) return Response.json({ error: "controlled auth rejection" }, { status: 401 });
       return Response.json({ choices: [{ message: { role: "assistant", content: "injected result" } }], usage: { total_tokens: 3 } });
     };
     relay = new Relay(config, { provider: f.provider, upstreamFetch });
@@ -273,7 +273,7 @@ async function upstream() {
     const input = JSON.parse(content); control.seen.push(input);
     const primary = req.url === "/primary/chat/completions";
     if (primary) control.primary++; else control.fallback++;
-    if (primary || control.failAll) { res.writeHead(503); res.end('{"error":"controlled failure"}'); return; }
+    if (primary || control.failAll) { res.writeHead(429); res.end('{"error":"controlled quota rejection"}'); return; }
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ id: "controlled-completion", model: input.model,
       choices: [{ message: { role: "assistant", content: "deterministic result" } }], usage: { prompt_tokens: 3, completion_tokens: 7, total_tokens: 10 } }));

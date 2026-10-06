@@ -2,7 +2,7 @@
 
 InferCredit 用已托管的任务报酬支持 Agent 购买推理：现金不足时，按任务获取授信，把借款直接支付给白名单 Provider；任务通过独立验收后，在一笔交易中还清本金与费用，剩余收入进入 Agent 现金账本。真实还款与违约写回 ERC-8004 声誉，供后续授信使用。
 
-仓库采用 npm workspaces、TypeScript、ethers v6、Foundry 和 Next.js。当前是 Hackathon P0 与已落地扩展的实现，不是长期架构文档中所有功能的集合。**截至 2026-10-05 的完成状态与证据边界，以 [implementation-status](docs/implementation-status.md) 为入口。**
+仓库采用 npm workspaces、TypeScript、ethers v6、Foundry 和 Next.js。当前是 Hackathon P0 与已落地扩展的实现，不是长期架构文档中所有功能的集合。**截至 2026-10-06 的完成状态与证据边界，以 [implementation-status](docs/implementation-status.md) 为入口。**
 
 ## 核心资金路径
 
@@ -23,7 +23,7 @@ InferCredit 用已托管的任务报酬支持 Agent 购买推理：现金不足�
 | Magpie 网关 | 实际进程已通过 17 项独立验证，锁定 `v0.1.814` 与禁用隐式重发的小补丁。`cheap/strong` 由调用方显式选档，报价、付款和退款仍属于 Relay/SDK。 | [接入说明](docs/magpie-gateway.md)、[网关验收](demo-output/magpie-20261004-root/root-acceptance.json) |
 | Pi 早期现金路径 | 真实 K2.6 首轮返回 `test_public_sample`，独立 Arena `5/5` 并在本地 Anvil 结算；报价 `10000`，SDK 推理付款 `taskId=0`，没有借款。这份历史证据不包含 Magpie 或 Monad。 | [Pi 入口](packages/pi-loop/README.md)、[现金路径验收](demo-output/live-pi-20261004-kimi-once/root-acceptance.json) |
 | 德州免费赞助奖励（2026-10-04 历史） | 真实Kimi合法终局，Monad Agent1999获0.1测试USDC并入cash，以0.01购买真实K2.6，剩0.09、借款0；CLI执行与只读桌面/手机回放。 | [运行说明](docs/holdem-arena.md)、[本轮总验收](demo-output/holdem-live-20261004-root/root-acceptance.json) |
-| 网页 GameFi 与 Kimi 额度 | 本机运营网页调用固定两位 Agent；可信终局共发放 4096 token，真实 Agent1999 消费 24 后余额 4072，同 ID 返回缓存。新 USDC 局奖励与授权交易已确认，cash存款原签名仍待回执，实网闭环未完成，练习跨重启保存已实现。 | [runner 配置](docs/gamefi-runner.md)、[额度规则](services/arena/src/inference-rewards/README.md)、[本轮验收](demo-output/gamefi-complete-20261005-root/root-acceptance.json) |
+| 网页 GameFi 与 Kimi 额度 | 本机运营网页调用固定两位 Agent；可信终局共发放 4096 token，真实 Agent1999 消费 24 后余额 4072，同 ID 返回缓存。新 USDC 局已完成：Agent1998获0.1测试USDC入cash，消费0.01完成真实Kimi推理（29 tokens），余额0.09、借款0；练习跨重启保存已实现。 | [runner 配置](docs/gamefi-runner.md)、[额度规则](services/arena/src/inference-rewards/README.md)、[本轮验收](demo-output/gamefi-complete-20261005-root/root-acceptance.json) |
 | 双 Agent 五子棋 | 真实 K2.6 完成 12 个合法落子、13 次调用与付款。黑方第 13 次回答截断且格式无效，白方按规则 `forfeit` 胜。费用使用本地 Anvil/mock-USDC、双方独立现金预算，非五连胜。 | [规则与运行](docs/gomoku-arena.md)、[真实终局验收](demo-output/gomoku-live-20261004-retry-root/root-acceptance.json) |
 
 真实 Pi 运行均首轮成功，尚未证明真实多轮修复、strong/K3 工具兼容或完整自主选单。德州免费赞助测试USDC→真实推理首版已落地（见下文）；公开远程报名/任意提示词参赛、自动分类路由、逐轮储值与按用量退款、公共 LP 尚未实现；标准 x402 scheme/facilitator 兼容性尚未验证。RPC 稳定性与前端读取性能仍有边界，详见状态表。
@@ -120,7 +120,7 @@ Pi 使用锁定的 `pi-agent-core` / `pi-ai` npm 依赖 `1.0.1`；Magpie 使用�
 
 `/arena` 已支持本机运营用户从网页发起真实德州，选择测试 USDC 或 Kimi 推理额度；服务端固定两位 Agent，复用原真实 Kimi、可信裁判及奖励 CLI。每局额度共 4096 token，独胜全额、平局各 2048，绑定 `kimi-k2.6` 和服务端固定身份；按实际输入/输出 usage 扣减。调用前持久预留，未知结果保留原 ID 与预留，同 ID 查询/缓存不触发第二次模型调用。游戏不借贷，额度不是加密代币，也不与 USDC 混账。
 
-本轮真实额度局 `b3f24ce8-4270-4a05-baf6-c80675237fc3` 已向 Agent1999 发放 4096 token，真实消费 24，剩余 4072；重复兑换返回原缓存。USDC 路径在 2026-10-04 已完成 Agent1999 获 0.1 测试 USDC、以 0.01 购买真实 K2.6、cash 剩 0.09 的历史验收。本轮新 USDC 实网验收正在进行，当前新局0.1测试USDC派奖及授权已确认，原存款交易仍待确认，尚未完成奖后消费。dRPC读取gas兼容已修复并通过定向5/5及全项目类型检查，完整恢复仍受RPC失败阻断。见[本轮汇总](demo-output/gamefi-complete-20261005-root/root-acceptance.json)与[历史奖励证据](docs/holdem-arena.md)。
+本轮真实额度局 `b3f24ce8-4270-4a05-baf6-c80675237fc3` 已向 Agent1999 发放 4096 token，真实消费 24，剩余 4072；重复兑换返回原缓存。USDC 路径在 2026-10-04 已完成 Agent1999 获 0.1 测试 USDC、以 0.01 购买真实 K2.6、cash 剩 0.09 的历史验收。2026-10-06 新 USDC 局已完成独立验收：Agent1998获0.1测试USDC，原存款签名确认入cash，消费0.01完成1次真实Kimi推理（21输入+8输出=29 tokens），cash剩0.09、借款0。root fresh核对存款/付款canonical回执、付款块cash及本地原始模型响应；原对局报告未变，没有重复派奖。RPC仍可能间歇失败，本次成功不代表网络问题已消失。见[本轮汇总](demo-output/gamefi-complete-20261005-root/root-acceptance.json)与[历史奖励证据](docs/holdem-arena.md)。
 
 真实 runner 和额度账本持久保存意图、阶段、余额和恢复记录；全局 writer 锁防止重叠开局/重复消费。`/arena/holdem` 保留为历史只读回放，主大厅提供新局、恢复和额度消费。当前只面向本机运营用户，没有远程账号报名、任意钱包接入、多手真实赛事或可验证随机。配置与恢复见[网页 runner](docs/gamefi-runner.md)和[额度规则](services/arena/src/inference-rewards/README.md)。
 
@@ -131,4 +131,7 @@ Pi 使用锁定的 `pi-agent-core` / `pi-ai` npm 依赖 `1.0.1`；Magpie 使用�
 
 ## 仓库与本地运行资料
 
-仓库包含源码、合约、测试、工程文档、配置示例和前端验收截图。`demo-output/` 为本地运行证据，可能包含密钥、原始请求和签名交易，因此不提交；文档指向该目录的历史证据链接仅在原开发工作区可用。`node_modules/`、构建产物、运行状态及真实环境配置也不提交。新环境请按本文安装依赖并从 `.env.example` 等模板配置，勿将真实凭据加入版本控制。当前新 GameFi USDC 局仍受 RPC 故障阻断，提交仓库不代表存款及奖后推理已验收。
+仓库包含源码、合约、测试、工程文档、配置示例和前端验收截图。`demo-output/` 为本地运行证据，可能包含密钥、原始请求和签名交易，因此不提交；文档指向该目录的历史证据链接仅在原开发工作区可用。`node_modules/`、构建产物、运行状态及真实环境配置也不提交。新环境请按本文安装依赖并从 `.env.example` 等模板配置，勿将真实凭据加入版本控制。新 GameFi USDC 局已于2026-10-06完成存款及奖后真实推理独立验收；历史失败记录保留。
+
+
+普通Relay现已区分明确拒绝与结果未知：未知响应保留原付款与派发记录，不自动fallback、重发或退款。2026-10-06 root独立Relay/SDK44项、固定价B兼容28项及typecheck全部通过；真实strong工具/修复/fallback仍未验收，见[进度入口](docs/implementation-status.md)。

@@ -348,7 +348,7 @@ P0 已验收不等于整个架构完成。以下是基于 §1 风险约束的下
 | 顺序 | 工作与当前缺口 | 完成判据和风险约束 |
 | --- | --- | --- |
 | 1 | 真实模型修复、strong 工具及 fallback：现有受控测试已覆盖，但真实信用验收首轮成功 | 用现有固定价 B 和独立 escrow 任务，在事先限定轮数、时间、模型费用和 gas 的实验内保存原始请求/响应、付款和最终判题。若自然产生错误再修复，才能记作真实自然修复；主动注入错误只能称故障演练。fallback 必须区分已知未交付和响应未知，后者暂停核对；保持一次任务提款、一次固定付款，不为了证明失败无限重试。真实模型调用不能只按运营报价控制 vendor 成本。 |
-| 2 | 德州/GameFi 奖励闭环：替代原“继续迁移五子棋”的产品优先项 | 已实现本机运营网页开局、真实 Kimi 双人单手、USDC 奖后推理与 Kimi 专用额度发放/消费，练习也已持久化。每局额度总计 4096，由可信重放确认赢家；按实际 usage 扣减，未知结果保留预算，不自动重发。真实额度局已发放/消费，本轮新 USDC 局奖励与授权交易已确认，cash存款原签名仍待回执，实网闭环未完成，不能提前记成成功。公开报名、多手真实赛事及可验证随机仍未开放；游戏不产生贷款、不写还款/违约。 |
+| 2 | 德州/GameFi 奖励闭环：替代原“继续迁移五子棋”的产品优先项 | 已实现本机运营网页开局、真实 Kimi 双人单手、USDC 奖后推理与 Kimi 专用额度发放/消费，练习也已持久化。每局额度总计 4096，由可信重放确认赢家；按实际 usage 扣减，未知结果保留预算，不自动重发。真实额度局已发放/消费，本轮新USDC局已于2026-10-06完成原存款及奖后真实推理，Agent1998现金余额0.09、借款0，root独立回执/usage核验通过。公开报名、多手真实赛事及可验证随机仍未开放；游戏不产生贷款、不写还款/违约。 |
 | 3 | 规则驱动自动选档与受限选单：目前显式选档、脚本指定任务 | 先仅在现有题型/受信 provider/预设候选任务中选择。付款前按能力、报价、可用现金/授信和截止时间筛选；无可行候选就停止。不得信任任务文本中的改价/改收款地址指令；付款后不能偷偷降档、突破预算或新增付款。先受控回归再有界真实验收，不引入通用多Agent框架或分类模型。 |
 | 4 | 扩展任务覆盖：现有四题，真实 Monad 主要验证求和 | 先覆盖现有四道确定性 Python 题的求解和独立验收；再选一个窄范围仓库修复任务，预先固定环境、权限、判定标准与支付条件。研究报告/网页制作没有明确验收规则前，不直接接入自动贷款清算。扩大执行权限须重新核查容器、网络、隐藏答案与密钥隔离。 |
 
@@ -374,4 +374,9 @@ Kimi 额度由可信服务端重放终局发放：每局共 4096 token，独胜�
 
 runner、额度 ledger 与四游戏练习均有本地持久化和 writer 锁。真实比赛按原 UUID、evidence 和交易 journal 恢复，不重开未知模型请求；练习保存规则重放、日志、席位和幂等请求，默认 `.data/arena-freeplay.json`，可由 `ARENA_PLAY_STATE_PATH` 指定。原子写入与 fsync 支持进程重启恢复，不能据此声称已有公网身份平台或分布式存储。练习 Bot 不调用真实模型，练习胜负不发放 USDC 或额度。
 
-本轮真实额度局已向 Agent1999 发放 4096 token，实际 Kimi 消费 24，余额 4072；同兑换 ID 返回缓存。USDC 路径已有 2026-10-04 真实奖后消费证据，本轮多次恢复后，0.1测试USDC奖励及授权交易已确认；cash存款原签名仍待回执，原局暂停于award，实网端到端验收未完成。10月5日18:39复核：本轮再恢复6次；已修复dRPC省略eth_call gas时的读取兼容问题，root定向5/5及typecheck:all通过，完整预检仍遇503/HTTP400，未新增发奖或奖后模型调用。21:35再恢复3次仍均在预检遇503，当前cash/token查询失败标为未知。详见[最新恢复审计](demo-output/gamefi-complete-20261005-root/root-resumed-retry-audit.json)。浏览器 16 项为受控接口测试，全部拦截 start/recover/redeem，不是交易证据。当前汇总见[本轮验收](demo-output/gamefi-complete-20261005-root/root-acceptance.json)，配置和恢复见[网页 runner](docs/gamefi-runner.md)、[额度规则](services/arena/src/inference-rewards/README.md)和[练习 API](docs/free-arena.md)。2026-10-04 的[UI 复刻验收](demo-output/arena-clone-20261004-root/root-acceptance.json)保留为历史，其仅内存存储与网页只读边界已由本轮实现替代。
+本轮真实额度局已向 Agent1999 发放 4096 token，实际 Kimi 消费 24，余额 4072；同兑换 ID 返回缓存。2026-10-06 新 USDC 局已完成独立验收：Agent1998获0.1测试USDC，原存款签名确认入cash，消费0.01完成1次真实Kimi推理（21输入+8输出=29 tokens），cash剩0.09、借款0。root fresh核对存款/付款canonical回执、付款块cash及本地原始模型响应；原对局报告未变，没有重复派奖。RPC仍可能间歇失败，本次成功不代表网络问题已消失。详见[本轮完成验收](demo-output/gamefi-complete-20261005-root/root-usdc-complete-20261006.json)。浏览器 16 项为受控接口测试，全部拦截 start/recover/redeem，不是交易证据。当前汇总见[本轮验收](demo-output/gamefi-complete-20261005-root/root-acceptance.json)，配置和恢复见[网页 runner](docs/gamefi-runner.md)、[额度规则](services/arena/src/inference-rewards/README.md)和[练习 API](docs/free-arena.md)。2026-10-04 的[UI 复刻验收](demo-output/arena-clone-20261004-root/root-acceptance.json)保留为历史，其仅内存存储与网页只读边界已由本轮实现替代。
+
+
+## 2026-10-06 下一阶段：未知模型响应保护
+
+2026-10-06 普通Relay失败处理已独立验收：派发前记录候选意图，未知响应不fallback、不重发、不直接退款；受信明确拒绝后才继续原同档候选。root新Anvil/受控上游Relay与SDK44/44、固定价B兼容28/28及全项目typecheck通过。固定价B原未交付全退契约保留。本批没有新增真实模型或Monad交易；真实strong工具、自然修复及真实fallback仍待有界验收。 运行规则与拒绝响应契约见[Relay README](services/provider-relay/README.md)，独立结果见[本轮验收](demo-output/relay-uncertain-20261006-root/root-acceptance.json)。

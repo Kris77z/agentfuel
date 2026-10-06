@@ -7,10 +7,16 @@ import type { Upstream } from "./config.js";
 export interface SignedOperation { rawTransaction: string; txHash: string; nonce: number }
 export interface Refund { id: string; amount: string; state: "Prepared" | "Confirmed"; approval?: SignedOperation; transaction?: SignedOperation }
 export interface RouteSnapshot { version: 1; model: string; tier?: RoutingTier; upstreams: Omit<Upstream, "key">[] }
+export interface UpstreamAttempt {
+  upstream: string; model: string; startedAt: number;
+  state: "Dispatching" | "Rejected" | "Unknown" | "Delivered";
+  httpStatus?: number; reason?: "NETWORK_OR_TIMEOUT" | "HTTP_STATUS" | "INVALID_RESPONSE";
+}
 export interface PaymentRecord {
   quote: Quote; request: ChatInput; state: "Quoted" | "Paid" | "Processing" | "Delivered" | "Refunded";
   proof?: PaymentProof; result?: Json; receipt?: InferenceReceipt; lastError?: string; refunds: Refund[];
   scanBlock?: number; expiredPayment?: boolean; route?: RouteSnapshot;
+  upstreamAttempts?: UpstreamAttempt[];
 }
 export class Store {
   private readonly locks = new Map<string, Promise<unknown>>();

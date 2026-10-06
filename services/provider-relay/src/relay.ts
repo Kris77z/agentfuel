@@ -2,7 +2,11 @@ import { Contract, JsonRpcProvider, hexlify, randomBytes, ZeroAddress } from "et
 import { ACCOUNT_ABI, MANAGER_ABI, accountInterface, paymentId, requestDigest, sameAddress, uint,
   type ChatInput, type Json, type PaymentProof, type Quote } from "@agentfuel/sdk/protocol";
 import { upstreamUrl, validateService, type RelayConfig, type TierRoute, type Upstream } from "./config.js";
-import { Store, type PaymentRecord } from "./store.js";
+import { Store, type PaymentRecord, type UpstreamAttempt } from "./store.js";
+
+// Complete request/auth/route/size/quota rejections from the configured upstream.
+// Timeouts, conflicts and server errors do not prove that inference never ran.
+const REJECTED_HTTP_STATUSES = new Set([400, 401, 403, 404, 413, 415, 422, 429]);
 
 export class RelayError extends Error {
   constructor(public code: string, message: string, public status = 409) { super(message); }
@@ -82,7 +86,7 @@ export class Relay {
       requestDigest: digest, serverNonce: nonce, service: input.service, model: input.model,
       ...(input.tier ? { tier: input.tier } : {}), price, payTo: this.config.payTo, asset: this.config.asset,
       chainId: this.config.chainId.toString(), account: this.config.account, quoteExpiry: String(block.timestamp + this.config.quoteTtl), createdBlock: block.number };
-    await this.store.write({ quote, request: input, route, state: "Quoted", refunds: [] });
+    await this.store.write({ quote, request: input, route, state: "Quoted", refunds: [], upstreamAttempts: [] });
     return quote;
   }
   async record(id: string, agentId: string, digest: string) {
@@ -156,9 +160,15 @@ export class Relay {
     record.state = "Paid";
     await this.store.write(record);
   }
+  isDeliveryUncertain(record: PaymentRecord) {
+    if (record.state === "Delivered" || record.state === "Refunded") return false;
+    return record.upstreamAttempts?.some(attempt => attempt.state !== "Rejected") ||
+      (record.upstreamAttempts === undefined && (record.state === "Processing" || record.lastError === "UPSTREAM_FAILED"));
+  }
   view(record: PaymentRecord) { return { state: record.state, paymentId: record.quote.paymentId, expiredPayment: Boolean(record.expiredPayment), refundPending: record.refunds.length > 0,
     refundedAmount: record.refunds.filter(refund => refund.state === "Confirmed").reduce((sum, refund) => sum + BigInt(refund.amount), 0n).toString(),
-    ...(record.lastError ? { deliveryError: record.lastError } : {}),
+    ...(this.isDeliveryUncertain(record) ? { deliveryError: "UPSTREAM_UNCERTAIN" } : record.lastError ? { deliveryError: record.lastError } : {}),
+    ...(record.upstreamAttempts?.length ? { upstreamAttempts: record.upstreamAttempts } : {}),
     ...(record.state === "Delivered" ? { result: record.result, receipt: record.receipt } : {}) }; }
   async status(id: string, agentId: string, digest: string) {
     const peek = await this.record(id, agentId, digest);
@@ -185,6 +195,10 @@ export class Relay {
   async deliver(record: PaymentRecord) {
     this.assertRecord(record);
     if (record.state === "Delivered") return { result: record.result, receipt: record.receipt };
+    if (this.isDeliveryUncertain(record)) {
+      record.state = "Processing"; record.lastError = "UPSTREAM_UNCERTAIN"; await this.store.write(record);
+      throw new RelayError("UPSTREAM_UNCERTAIN", "Original dispatch needs operator reconciliation; no new upstream request or automatic refund is allowed");
+    }
     if (record.expiredPayment) throw new RelayError("PAYMENT_AFTER_EXPIRY", "Late payment is recorded for operator refund, not inference");
     if (record.state === "Refunded" || record.refunds.length) throw new RelayError("REFUND_IN_PROGRESS", "Payment is being refunded; inference is disabled");
     let candidates: Upstream[];
@@ -194,30 +208,56 @@ export class Relay {
       record.state = "Paid"; record.lastError = error.code; await this.store.write(record);
       throw error;
     }
+    record.upstreamAttempts ??= [];
     record.state = "Processing";
     await this.store.write(record); // Original request is durable before any upstream call.
     const { agentId: _agent, taskId: _task, service: _service, tier: _tier, ...inference } = record.request;
     for (const upstream of candidates) {
+      if (record.upstreamAttempts.some(attempt => attempt.upstream === upstream.name && attempt.model === upstream.model)) continue;
+      const attempt: UpstreamAttempt = { upstream: upstream.name, model: upstream.model, startedAt: Date.now(), state: "Dispatching" };
+      record.upstreamAttempts.push(attempt);
+      await this.store.write(record); // A crash after this point cannot prove the vendor did not receive the request.
+      let response: Response;
       let result: Record<string, Json>;
       try {
-        const response = await (this.upstreamFetch ?? fetch)(`${upstream.baseUrl.replace(/\/$/, "")}/chat/completions`, { method: "POST",
+        response = await (this.upstreamFetch ?? fetch)(`${upstream.baseUrl.replace(/\/$/, "")}/chat/completions`, { method: "POST",
           headers: { "content-type": "application/json", authorization: `Bearer ${upstream.key}` },
           body: JSON.stringify({ ...inference, model: upstream.model }), signal: AbortSignal.timeout(this.config.upstreamTimeout) });
-        if (!response.ok) continue;
+      } catch { return this.uncertain(record, attempt, "NETWORK_OR_TIMEOUT"); }
+      attempt.httpStatus = response.status;
+      if (!response.ok) {
+        if (!REJECTED_HTTP_STATUSES.has(response.status)) {
+          await response.body?.cancel().catch(() => {});
+          return this.uncertain(record, attempt, "HTTP_STATUS");
+        }
+        try { await response.text(); } // A truncated rejection response is also unknown.
+        catch { return this.uncertain(record, attempt, "NETWORK_OR_TIMEOUT"); }
+        attempt.state = "Rejected"; attempt.reason = "HTTP_STATUS";
+        await this.store.write(record); // Only a durable rejection permits the next locked candidate.
+        continue;
+      }
+      try {
         result = await response.json() as Record<string, Json>;
-        if (!Array.isArray(result.choices) || !result.choices.length || result.error) continue;
-      } catch { continue; } // Same locked quote, next ordered upstream; relay bears extra cost.
+        if (!result || !Array.isArray(result.choices) || !result.choices.length || result.error) throw new Error();
+      } catch { return this.uncertain(record, attempt, "INVALID_RESPONSE"); }
       record.result = result;
       record.receipt = { ...record.proof!, paymentId: record.quote.paymentId, agentId: record.quote.agentId, taskId: record.quote.taskId,
         requestDigest: record.quote.requestDigest, service: record.quote.service, price: record.quote.price,
         asset: record.quote.asset, chainId: record.quote.chainId, account: record.quote.account, payTo: record.quote.payTo,
         ...(record.quote.tier ? { tier: record.quote.tier } : {}), upstream: upstream.name, model: upstream.model, usage: result.usage || null };
+      attempt.state = "Delivered";
       record.state = "Delivered"; delete record.lastError;
       await this.store.write(record); // Storage failure is not another upstream failure.
       return { result: record.result, receipt: record.receipt };
     }
     record.state = "Paid"; record.lastError = "UPSTREAM_FAILED"; await this.store.write(record);
-    throw new RelayError("UPSTREAM_FAILED", "All upstreams failed; retry the same payment or request an operator refund", 502);
+    throw new RelayError("UPSTREAM_FAILED", "All available upstreams explicitly rejected the request; operator refund is available", 502);
+  }
+  private async uncertain(record: PaymentRecord, attempt: UpstreamAttempt, reason: UpstreamAttempt["reason"]): Promise<never> {
+    attempt.state = "Unknown"; attempt.reason = reason;
+    record.state = "Processing"; record.lastError = "UPSTREAM_UNCERTAIN";
+    await this.store.write(record);
+    throw new RelayError("UPSTREAM_UNCERTAIN", "Original dispatch needs operator reconciliation; no new upstream request or automatic refund is allowed");
   }
   private pinnedUpstreams(record: PaymentRecord): Upstream[] {
     const { route, quote } = record;

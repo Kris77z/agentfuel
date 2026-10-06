@@ -68,7 +68,7 @@ test("SDK tiers reject overbudget quotes before payment and keep fallback, locke
     const name = new URL(String(url)).hostname.split(".")[0];
     calls.push({ name, model: input.model, authorization: new Headers(init!.headers).get("authorization"), input });
     assert.equal(input.tier, undefined); assert.equal(input.service, undefined); assert.equal(input.agentId, undefined); assert.equal(input.taskId, undefined);
-    if (failAll || name.endsWith("primary")) return Response.json({ error: "local failure" }, { status: 503 });
+    if (failAll || name.endsWith("primary")) return Response.json({ error: "local quota rejection" }, { status: 429 });
     return Response.json({ model: input.model, choices: [{ message: { role: "assistant", content: "local result" } }], usage: { total_tokens: 3 } });
   };
   const serve = async (config: RelayConfig) => {

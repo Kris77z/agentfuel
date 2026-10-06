@@ -44,7 +44,7 @@ runner 的全局 writer 锁覆盖模型、奖励和消费阶段，额度 ledger 
 
 运营配置和执行边界见[网页 runner](gamefi-runner.md)、[额度规则](../services/arena/src/inference-rewards/README.md)与[练习 API](free-arena.md)。网页和 CLI 均复用原奖励政策，不增加游戏贷款、通用兑换平台或可验证随机。
 
-本轮真实额度局 `b3f24ce8-4270-4a05-baf6-c80675237fc3` 已向 Agent1999 发放 4096 token，实际 Kimi 消费 24（16 输入/8 输出），余额 4072；原兑换 ID 返回缓存。本轮新 USDC 实网验收仍在进行，当前新局0.1测试USDC派奖及授权已确认，原存款交易仍待确认，尚未完成奖后消费。最新6次恢复仍受RPC失败阻断；dRPC读取gas兼容修复已通过root定向5/5及全项目类型检查。汇总由 root 更新[本轮验收](../demo-output/gamefi-complete-20261005-root/root-acceptance.json)。控制台桌面/手机 16 项浏览器测试为受控接口拦截，不调用真实模型或提交交易，见[验证说明](../frontend/acceptance/gamefi-console/verification.md)。
+本轮真实额度局 `b3f24ce8-4270-4a05-baf6-c80675237fc3` 已向 Agent1999 发放 4096 token，实际 Kimi 消费 24（16 输入/8 输出），余额 4072；原兑换 ID 返回缓存。2026-10-06 新 USDC 局已完成独立验收：Agent1998获0.1测试USDC，原存款签名确认入cash，消费0.01完成1次真实Kimi推理（21输入+8输出=29 tokens），cash剩0.09、借款0。root fresh核对存款/付款canonical回执、付款块cash及本地原始模型响应；原对局报告未变，没有重复派奖。RPC仍可能间歇失败，本次成功不代表网络问题已消失。汇总由 root 更新[本轮验收](../demo-output/gamefi-complete-20261005-root/root-acceptance.json)。控制台桌面/手机 16 项浏览器测试为受控接口拦截，不调用真实模型或提交交易，见[验证说明](../frontend/acceptance/gamefi-console/verification.md)。
 
 ## 本地运行与历史验收（2026-10-04）
 

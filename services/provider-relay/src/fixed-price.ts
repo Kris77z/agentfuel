@@ -20,6 +20,9 @@ export interface FixedPriceOptions extends RelayOptions { runner?: DockerExecuto
 
 /** Separate opt-in service. The original chat Relay and its cash delivery remain unchanged. */
 export class FixedPriceSolvingRelay extends Relay {
+  // This separate service deliberately refunds an unqualified/unknown solve in full,
+  // with its provider bearing the uncertain model cost. It uses its own solve journal.
+  override isDeliveryUncertain(_record: PaymentRecord) { return false; }
   constructor(config: RelayConfig, private readonly solving: FixedPriceOptions = {}) {
     super(config, solving);
     if (config.service.id !== FIXED_SOLVE_SERVICE || config.service.model !== FIXED_SOLVE_MODEL || config.service.tiers ||

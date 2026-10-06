@@ -1,16 +1,16 @@
 # Implementation status
 
-更新日期：2026-10-05。完成判据保持 ENGINEERING v5.3 §9 原范围；本地 mocks/受控模型输出不等于 Monad 部署或真实 Kimi。下表分别标明主 Agent 独立复跑与仅审代码/报告的范围。
+更新日期：2026-10-06。完成判据保持 ENGINEERING v5.3 §9 原范围；本地 mocks/受控模型输出不等于 Monad 部署或真实 Kimi。下表分别标明主 Agent 独立复跑与仅审代码/报告的范围。
 
 | 已有组件/证据 | 当前状态与边界 |
 | --- | --- |
-| 网页 GameFi runner（2026-10-05） | 已实现本机运营网页开局、阶段轮询、原 UUID 重试与恢复；服务端固定两位 Agent，复用真实 Kimi 与原 USDC 奖励 CLI，浏览器不能选择路径/钱包/模型/赢家。全局持久 writer 锁覆盖阶段，未知对局/付款不自动重开。USDC 路径已有 2026-10-04 实网奖后消费证据；本轮新 USDC 局奖励与授权交易已确认，cash存款原签名仍待回执，实网闭环未完成，不预记成功。见[runner 运行](gamefi-runner.md)与[本轮汇总](../demo-output/gamefi-complete-20261005-root/root-acceptance.json)。 |
+| 网页 GameFi runner（2026-10-05） | 已实现本机运营网页开局、阶段轮询、原 UUID 重试与恢复；服务端固定两位 Agent，复用真实 Kimi 与原 USDC 奖励 CLI，浏览器不能选择路径/钱包/模型/赢家。全局持久 writer 锁覆盖阶段，未知对局/付款不自动重开。USDC 路径已有 2026-10-04 实网奖后消费证据；本轮新USDC局已完成：原存款入cash0.1、消费0.01完成真实Kimi29 tokens、余额0.09、借款0，root独立核验通过。见[runner 运行](gamefi-runner.md)与[本轮汇总](../demo-output/gamefi-complete-20261005-root/root-acceptance.json)。 |
 | Kimi 推理额度（2026-10-05） | 已实现可信 replay 重算赢家、每局共发 4096 token（平局各 2048）、唯一 grant/match 绑定和固定运营身份。先持久化意图与预留，再单次调用；按真实 input/output usage 扣减，未知保留预留，同 ID 返回原状态/缓存，超额阻止新消费。真实额度局 b3f24ce8-4270-4a05-baf6-c80675237fc3 向 Agent1999 发 4096，实际消费 24，余额 4072，重复 ID 缓存。见[额度规则](../services/arena/src/inference-rewards/README.md)与[本轮汇总](../demo-output/gamefi-complete-20261005-root/root-acceptance.json)。 |
 | 四游戏练习持久化（2026-10-05） | 已实现规则重放、日志、席位和幂等请求的本地原子快照及 writer 锁，默认 .data/arena-freeplay.json、ARENA_PLAY_STATE_PATH 可覆盖；服务重启恢复同局。练习仍使用本地策略 Bot、不发奖励。root 本轮重启验收与汇总见[本轮记录](../demo-output/gamefi-complete-20261005-root/root-acceptance.json)，运行边界见[练习 API](free-arena.md)。 |
 | 四个 P0 合约、原生币/ERC20资金、生命周期、清算、退款、反馈 | 已逐批独立验收。离线 Foundry：38 suites，408 tests，404 pass、0 fail、4合理 skip；部署配置覆盖网络 canonical pair、code/引用检查、USDC原始单位和bps范围。目标链四合约、11笔部署/配置、七轮真实业务结算及反向链上路径已完成；标准CLI最终审计通过，真实after页面已验收，60秒备用录像已验收。 |
 | Day-0 Monad canonical spike | 用户锁定 Monad testnet 10143 + 测试 USDC6d；public RPC/registries/签名profile/身份transfer清wallet/报告者过滤已有真实只读与本地fork证据，见 [day0-findings](day0-findings.md)。无公网交易。RPC/传输曾失败，不能认为公共网络稳定。 |
 | Underwriter §6.1 | 已独立验收：Node22 typecheck、4/4 本地测试。HTTP授权的TS签名真实通过Anvil四合约；两资产、真值/镜像门槛、身份/冻结、金额、重放/过期、原子evidence落盘。真实Monad业务checkpoint见下表。 |
-| Provider relay §6.2 + SDK §6.4 | 已实现，最新root独立复跑Relay8/8、0 skip。本地SDK→402→真实draw/pay→受控HTTP上游→receipt；纯cash、同ID并发/重试、请求/receipt拒绝、Processing恢复、locked fallback、晚付款退款、分次退款与commit故障、browser signer拒绝/丢hash、分页扫描/确认水位、过期raw禁止广播。官方RPC运行日志每页100块；旧未付quote恢复全零检查不扫描日志、不移动watermark。单进程单dataDir；本地测试上游为替身，真实Kimi业务checkpoint见下表。自建402/receipt，标准x402未验证。 |
+| Provider relay §6.2 + SDK §6.4 | 已实现，最新root独立复跑Relay8/8、0 skip。本地SDK→402→真实draw/pay→受控HTTP上游→receipt；纯cash、同ID并发/重试、请求/receipt拒绝、明确拒绝后恢复、未知暂停、locked fallback、晚付款退款、分次退款与commit故障、browser signer拒绝/丢hash、分页扫描/确认水位、过期raw禁止广播。官方RPC运行日志每页100块；旧未付quote恢复全零检查不扫描日志、不移动watermark。单进程单dataDir；本地测试上游为替身，真实Kimi业务checkpoint见下表。自建402/receipt，标准x402未验证。 |
 | 预算路由 §6.6 第一步 | 已实现显式 cheap/strong 两档，保留旧 coder 单档/demo 配置。tier 绑定请求摘要与报价，SDK 既有 maxPrice 付款前校验；档内原候选顺序 fallback、付款锁价、请求物理模型归因、无密钥持久路由快照。变更配置不能跨档或引入新候选，key 可轮换，调价保留原价；不可履约已付记录仍查状态/退款，旧无快照记录明确拒绝未交付恢复但保留退款/缓存。主 Agent 已审代码并独立复跑 Node22 typecheck:all（含前端）及 Relay/SDK 10/10（0 fail/skip），使用 Anvil 真正付款/退款和受控上游；真实两档短探针与Pi循环分别见下行；路由未接Magpie/分类器。见 [Relay README](../services/provider-relay/README.md) 与 [两档测试](../services/provider-relay/test/tiers.test.ts)。 |
 | 受限Pi cash循环 §6.6 | 已实现并由主Agent独立审代码、复跑验收：Pi 10/10、Relay/SDK 16/16（均0 fail/skip），typecheck:all含前端通过。Pi core/pi-ai锁1.0.1，单个已指定求和任务；SDK taskId0纯cash、显式tier、报价预算预留及轮数/工具数/deadline限制。Docker固定公开样例不结算，最终复用Arena HTTP与独立settler并核验TaskSettled；持久会话/handle/最终payload，崩溃显式恢复，已付缓存/本地响应恢复不二付。覆盖首错修复、上限停止、公开样例通过但最终失败、HTTP未知状态保留意图；此前本地受控批次未用真实模型，新增真实单轮证据见下一行。未切换旧demo/网页，不证明自主选单或多轮信用。见[README](../packages/pi-loop/README.md)与[集成测试](../packages/pi-loop/test/loop.test.ts)。 |
 | 真实Kimi→SDK→Relay→Pi工具→独立Arena本地结算 | 2026-10-04一次有界真实K2.6请求，HTTP200/finish_reason tool_calls；请求与返回model均kimi-k2.6，usage输入190/输出45/总235（reasoning1）。实际test_public_sample通过，独立Arena hidden tests 5/5、真实本地TaskSettled；报价10000（0.01 mock-USDC），cash路径/taskId0无借款。首轮成功、零付费重试，未使用strong、无预置错误，未验证真实两轮修复/K3工具/Monad Pi/多轮信用/Magpie/标准x402。raw ProviderPaid与TaskSettled receipts、signed pay/settle journal、原请求响应及会话均保存。root独立离线核验和Docker重判5/5，Pi11/11、脚本与审计33/33（均0fail/skip），typecheck:all含前端exit0。见[报告](../demo-output/live-pi-20261004-kimi-once/report.json)、[最终审计](../demo-output/live-pi-20261004-kimi-once/offline-pi-audit.json)、[root验收](../demo-output/live-pi-20261004-kimi-once/root-acceptance.json)；当次运行结束后的auditor强化源码hash差异见[记录](../demo-output/live-pi-20261004-kimi-once/post-run-audit.json)。运营报价不是模型实际账单；原Anvil已关闭，离线核验不等于重新查询原链。 |
@@ -92,7 +92,7 @@ root 本轮最新定向测试 47/47 通过，包含持久化、额度账本、ru
 
 `/arena` 主区现在通过 `/api/arena/gamefi` 发起本机运营真实德州，选择 USDC 或 Kimi 专用额度奖励；通过 `/api/arena/credits` 查询固定身份余额、消费及原兑换状态。`/arena/holdem` 和 `loadHoldemSnapshot` 保留原公开回放，不把练习状态改造为真实奖励证据。远程公开账号/任意钱包报名、完整赛事和可验证随机仍未开放，游戏不借贷。
 
-额度 ledger 与 runner 持久绑定原比赛/兑换 ID、可信终局和运营配置。真实额度局已发 4096、消费 24、余额 4072；重复 ID 返回缓存。本轮新 USDC 实网验收仍在进行，最终结果由 root 更新[本轮汇总](../demo-output/gamefi-complete-20261005-root/root-acceptance.json)。原 2026-10-04 Agent1999 的 0.1 奖励、0.01 真实推理消费、cash 0.09 属于上节历史成功证据，不代替新局结果。
+额度 ledger 与 runner 持久绑定原比赛/兑换 ID、可信终局和运营配置。真实额度局已发 4096、消费 24、余额 4072；重复 ID 返回缓存。本轮新 USDC 实网验收已于2026-10-06完成（Agent1998入cash0.1、消费0.01、余额0.09、真实Kimi29 tokens），独立证据由 root 更新[本轮汇总](../demo-output/gamefi-complete-20261005-root/root-acceptance.json)。原 2026-10-04 Agent1999 的 0.1 奖励、0.01 真实推理消费、cash 0.09 属于上节历史成功证据，不代替新局结果。
 
 四游戏均为免费练习；策略 Bot 不调用付费模型，虚拟筹码与 USDC/额度分别记录，不发放奖励。默认本地快照保存规则重放、席位、日志和幂等回复，服务重启可恢复。`ARENA_PLAY_STATE_PATH` 可指定文件；原子替换、fsync 与 writer 锁不等于远程身份系统或分布式数据库。具体运行见[练习说明](free-arena.md)。
 
@@ -158,3 +158,19 @@ Alchemy代理与dRPC代理（读取gas100000）各恢复1次，均在award预检
 ### 2026-10-06 用户要求的最后一次恢复
 
 仅执行一次Alchemy代理原流程恢复，最终仍在award预检返回HTTP503。未追加RPC探针、其他端点或第二次恢复，已按用户“最后一次”要求停止。root离线核对原报告及3笔交易hash、2项确认journal未变，无afterDeposit/purchase session；原存款与奖后推理仍未完成。本轮没有新的canonical链上查询。[最终尝试审计](../demo-output/gamefi-complete-20261005-root/root-final-attempt-20261006-audit.json)。
+
+
+## 2026-10-06 USDC新局闭环已完成（当前结论）
+
+2026-10-06 新 USDC 局已完成独立验收：Agent1998获0.1测试USDC，原存款签名确认入cash，消费0.01完成1次真实Kimi推理（21输入+8输出=29 tokens），cash剩0.09、借款0。root fresh核对存款/付款canonical回执、付款块cash及本地原始模型响应；原对局报告未变，没有重复派奖。RPC仍可能间歇失败，本次成功不代表网络问题已消失。
+
+原requestId `e73e30fb-473a-4b08-8e3b-d5f39f593150` 已为 `Complete/purchase`。原deposit交易 `0xa6eebb911be00a240067d6d129d2dd53d7f0c898886d6af23fd01e9322fc1f17` 在block68705387成功；付款交易 `0xfb8fb203afd2c52790081fc1946b28abb78713d29fc6ff9a2e80f879668ffd22` 在block68707563成功，原nonce4存款未替换，唯一新增购买使用nonce5。前述Paused/award与网络失败均为历史，不再代表当前交付状态。本轮只做真实恢复与验收，没有改业务代码或重跑无关测试。网页3020可用性未重新验收，与链上及模型闭环分开。
+
+[独立完成验收](../demo-output/gamefi-complete-20261005-root/root-usdc-complete-20261006.json)、[存款canonical回执](../demo-output/gamefi-complete-20261005-root/root-deposit-canonical-20261006.json)、[付款canonical回执](../demo-output/gamefi-complete-20261005-root/root-payment-canonical-20261006.json)。
+
+
+## 2026-10-06 普通Relay未知响应保护（已验收）
+
+2026-10-06 普通Relay失败处理已独立验收：派发前记录候选意图，未知响应不fallback、不重发、不直接退款；受信明确拒绝后才继续原同档候选。root新Anvil/受控上游Relay与SDK44/44、固定价B兼容28/28及全项目typecheck通过。固定价B原未交付全退契约保留。本批没有新增真实模型或Monad交易；真实strong工具、自然修复及真实fallback仍待有界验收。 新增回归包含实际本地付款、候选调用计数、超时/断连/无效响应、派发及结果保存故障、重复ID、进程重启、旧记录、路由变更及退款恢复。SDK与合约未修改；不引入自动清除未知状态的接口。
+
+[独立验收记录](../demo-output/relay-uncertain-20261006-root/root-acceptance.json)、[回归源码](../services/provider-relay/test/upstream-uncertain.test.ts)。后续顺序为有界strong工具/修复验收，再推进预设候选的规则选档选单和确定性任务覆盖，仍不扩展游戏借贷或公共LP。

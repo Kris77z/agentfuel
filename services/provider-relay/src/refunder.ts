@@ -29,6 +29,7 @@ export class Refunder {
       await this.manager();
       await this.relay.confirm(record);
       if (record.state === "Quoted" || record.state === "Delivered") throw new RelayError("REFUND_NOT_ALLOWED", "Only paid, undelivered inference can be refunded");
+      if (this.relay.isDeliveryUncertain(record)) throw new RelayError("UPSTREAM_UNCERTAIN", "Reconcile the original dispatch before deciding delivery or refund");
       let entry = record.refunds.find(refund => refund.id === refundId);
       if (entry && entry.amount !== amount) throw new RelayError("REFUND_MISMATCH", "RefundId is already bound to another amount");
       if (!entry) {
@@ -115,7 +116,11 @@ export class Refunder {
     for (const id of await this.relay.store.ids()) {
       const record = await this.relay.store.read(id);
       if (!record.refunds.length || record.state === "Refunded") continue;
-      await this.relay.store.lock(id, async () => { for (const entry of record.refunds) if (entry.state !== "Confirmed") await this.finish(record, entry, false); });
+      await this.relay.store.lock(id, async () => {
+        const current = await this.relay.store.read(id);
+        if (this.relay.isDeliveryUncertain(current)) return;
+        for (const entry of current.refunds) if (entry.state !== "Confirmed") await this.finish(current, entry, false);
+      });
     }
   }
 }
