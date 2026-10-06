@@ -24,6 +24,19 @@ export async function auditSavedFixedPrice(outputDir: string) {
   try {
     const report = await json("report.json"), session = await json("session/session.json") as FixedTaskSession;
     assert.equal(report.version, 1); assert.ok(["real-kimi-system-https-proxy", "real-kimi-via-configured-gateway", "controlled"].includes(report.upstreamMode));
+    // Old default reports deliberately have no scenario field; keep their plan/binding intact.
+    const scenario = report.plan.scenario;
+    assert.ok(scenario === undefined || scenario === "strong-only");
+    assert.deepEqual(report.plan.tiers, scenario === "strong-only" ? ["strong", "strong"] : ["cheap", "strong", "strong"]);
+    assert.equal(report.plan.maxRounds, scenario === "strong-only" ? 2 : 3);
+    assert.equal(report.plan.maxCompletionTokens, 2048); assert.equal(report.plan.maxToolCalls, 4); assert.equal(report.plan.deadlineMs, 300000);
+    assert.equal(report.plan.modelRetries, 0); assert.equal(report.plan.fixedPriceRaw, "120000"); assert.equal(report.plan.rewardRaw, "150000");
+    assert.deepEqual(session.config.solve.tiers, report.plan.tiers); assert.equal(session.config.solve.maxRounds, report.plan.maxRounds);
+    assert.equal(session.config.solve.maxCompletionTokens, report.plan.maxCompletionTokens); assert.equal(session.config.solve.maxToolCalls, report.plan.maxToolCalls);
+    assert.equal(session.config.solve.problemId, PUBLIC_SAMPLE.problemId); assert.equal(session.config.solve.deadlineMs, session.config.deadlineMs);
+    const runner = await json("runner/session.json");
+    assert.deepEqual(runner.client, session.config); assert.equal(runner.mode, report.mode);
+    if (scenario === "strong-only") { assert.equal(report.mode, "local"); assert.equal(session.config.chainId, "31337"); }
     const chain = report.chain, handle = session.handle!, quote = handle.quote, receipt = session.inference!.receipt;
     const result = session.inference!.result as any, run = result.run, record = await json(`relay/${quote.paymentId}.json`), providerRun = await json(`relay/solve-runs/${quote.paymentId}/session.json`);
     assert.equal(session.phase, "Succeeded"); assert.equal(report.clientPhase, "Succeeded"); assert.equal(report.complete, true);
@@ -65,6 +78,10 @@ export async function auditSavedFixedPrice(outputDir: string) {
       assert.equal(round.state, "Responded"); assert.equal(round.appended, true); assert.deepEqual(round.response, response); assert.deepEqual(round.body, physical);
       assert.equal(round.tier, session.config.solve.tiers[i]); assert.equal(round.model, report.plan.models[round.tier]); assert.equal(physical.model, round.model); assert.equal(physical.max_completion_tokens, report.plan.maxCompletionTokens);
       assert.deepEqual(physical.messages, toRelayMessages(normalizeContext({ messages: run.messages.slice(0, assistants[i].index) })));
+      if (i === 0) {
+        assert.ok(physical.messages.every((message: any) => message.role === "system" || message.role === "user"));
+        assert.deepEqual(physical.messages.filter((message: any) => message.role === "user"), [{ role: "user", content: PUBLIC_SAMPLE.prompt }]);
+      }
       assert.equal(physical.tools.length, 1); assert.equal(physical.tools[0].function.name, "test_public_sample"); assert.equal(physical.stream, undefined); assert.equal(physical.agentId, undefined); assert.equal(physical.taskId, undefined);
       if (round.tier === "cheap") assert.deepEqual(physical.thinking, { type: "disabled" }); else assert.equal(physical.reasoning_effort, "low");
       assert.equal(attempt.round, i + 1); assert.equal(attempt.httpStatus, 200); assert.equal(attempt.state, "Responded"); assert.equal(attempt.paymentId, quote.paymentId); assert.equal(attempt.requestDigest, quote.requestDigest); assert.equal(attempt.requestedModel, physical.model);
@@ -106,7 +123,7 @@ export async function auditSavedFixedPrice(outputDir: string) {
     assert.equal(BigInt(chain.after.providerTokenBalance) - BigInt(chain.before.providerTokenBalance), BigInt(quote.price)); assert.equal(chain.after.agentNonce, chain.before.agentNonce + 1); assert.equal(paid.nonce, chain.before.agentNonce);
     assert.equal(BigInt(chain.after.cash), BigInt(chain.before.cash) - cash + settled[0].args.agentResidual); assert.equal(chain.before.taskStatus, "2"); assert.equal(chain.after.taskStatus, "3"); assert.equal(chain.before.loan[4], "0"); assert.equal(chain.after.loan[4], "2"); assert.equal(chain.after.loan[1], "0"); assert.equal(chain.after.loan[2], "0"); assert.equal(chain.after.totalOutstanding, chain.before.totalOutstanding);
     const repairObserved = observations.some(a => !a.passed && observations.some(b => b.passed && b.round > a.round && b.code !== a.code));
-    const summary = { version: 1, fullyVerified: true, scope: "saved-artifacts", checkedAt: new Date().toISOString(), chainId: chain.chainId, upstreamMode: report.upstreamMode,
+    const summary = { version: 1, fullyVerified: true, scope: "saved-artifacts", checkedAt: new Date().toISOString(), chainId: chain.chainId, upstreamMode: report.upstreamMode, scenario: scenario ?? "default",
       rounds: run.rounds.length, toolCalls: run.tools.length, fixedPriceRaw: quote.price, fromCash: receipt.fromCash, fromCredit: receipt.fromCredit, feeBps: String(auth.feeBps), fee: fee.toString(),
       signedPaymentValidated: true, signedCreditAuthorizationValidated: true, rawProviderPaidValidated: true, rawLoanOpenedValidated: true, submissionSignatureValidated: true, signedSettlementValidated: true, rawTaskSettledValidated: true, repaid: (credit + fee).toString(),
       repairObserved, actualModelRequests: run.rounds.map((r: any) => ({ tier: r.tier, requestedModel: r.model, returnedModel: r.response.model, usage: r.response.usage })),

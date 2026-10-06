@@ -67,6 +67,30 @@ node --import tsx scripts/verify-live-fixed-price.ts \
 
 Monad RPC 默认 `system-https-proxy`，可显式选择 `direct`；宿主与独立 settler 使用相同选择，没有自动切换端点。该参数仅控制链 RPC，真实模型仍使用其独立网关配置。非法值或缺值会在配置/网络访问之前拒绝。本次500ms间隔由root验收进程加入，不是入口默认节流或自动重试参数。只读预检通过不等于业务结算通过；第二条命令离线核验已保存的Task11证据，canonical链状态则以root另存审计为据。
 
+### 本地 strong 工具验收入口
+
+`--scenario strong-only` 仅允许 `--mode local`，使用新的 Anvil/mock-USDC、现有隔离 Docker 和独立 Arena。计划固定为 `tiers=[strong,strong]`、最多2轮、每轮 `max_completion_tokens=2048`、5分钟、零自动模型重试；K3请求使用 `reasoning_effort=low`，首个公开样例通过即停止。仍只有固定 `sum-integers` 题和原公开样例，没有 starter、任意 prompt、选题或强制第二轮。两轮上限不表示一定发生修复；真实首轮成功只证明该次strong工具调用和交付，受控错误后的修复不能声称为真实自然修复。
+
+```sh
+node --import tsx scripts/verify-live-fixed-price.ts \
+  --mode local --scenario strong-only \
+  --config /Users/jungle/.config/agentfuel/monad-demo-20261002T011344Z-4df31740/demo.monad-ankr.json \
+  --output /absolute/fresh-strong-output
+
+node --import tsx scripts/verify-live-fixed-price.ts \
+  --audit-output /absolute/existing-strong-output
+```
+
+首条默认只读，不调用模型或创建链；明确获准后追加 `--execute` 才实际运行。直营Kimi走原显式系统HTTPS代理；复用现有受信网关可另传 `--routes /absolute/private/new-routes.json`，仍按固定映射核对网关请求model与物理响应model。不要使用历史失效端口。固定运营报价120000、托管150000、cash40000+draw80000、fee12000原始mock-USDC单位；这些不是vendor token成本或账单，gas另计。
+
+scenario进入计划和runner的配置摘要；solve请求及会话配置绑定 `strong,strong` 和全部上限。恢复必须保留原 `--scenario strong-only`、配置、routes、output、handle和deadline，再追加 `--execute --resume`；换场景拒绝且不重写原证据。原派发缺响应不会自动再发，未交付仍沿用B原收款全额退款规则。未知、超限和失败也保存请求/会话/付款或退款原始证据后再关闭Anvil。
+
+未传scenario的默认计划仍为 `cheap,strong,strong`、最多3轮，旧plan/runner binding和历史审计兼容。auditor明确核对场景、tiers、上限、客户端/runner/付款绑定、工具代码与独立最终判题。`scripts/test/live-fixed-price.test.ts` 的strong场景只使用受控模型：覆盖早停、两轮受控修复、两轮上限退款、未知不二调/恢复不二付，以及非法/缺值/非本地scenario和审计篡改负例。这些受控回归和既有K3短探针都不能代替真实工具证据。
+
+2026-10-06执行一次有界真实strong-only，见[原报告](../../demo-output/live-strong-only-20261006-root/report.json)和[离线一致性审计](../../demo-output/live-strong-only-20261006-root/offline-fixed-audit.json)。直营Kimi经原系统HTTPS代理，仅一次 `kimi-k3` 请求，返回model和receipt请求模型同为 `kimi-k3`；`reasoning_effort=low`、2048 completion上限，finish_reason为tool_calls。实际 `test_public_sample` 工具一次输出9并通过，独立Arena5/5及新本地链TaskSettled通过。usage输入307/输出86/总393，reasoning15、输入cache_write_tokens256均按原响应保存，不据此推算账单。
+
+固定报价120000=cash40000+draw80000，fee12000、还款92000，provider余额0→120000、agent nonce4→5、最终cash58000、贷款Repaid且未偿0。首轮成功后即停，没有第二次模型请求，`repairObserved=false`，不能声称真实多轮或自然修复，也没有新增Monad交易。原请求响应、source hashes、付款/结算raw receipts、会话和独立settler journal已保存；root已独立复核原始模型/资金证据并重新Docker判题5/5，受控脚本12/12及全项目typecheck通过，见[root验收](../../demo-output/live-strong-only-20261006-root/root-acceptance.json)。
+
 ### Monad 现场发现的修复
 
 Task 9 的原付款上限600000不足：原交易status0，历史区块上同一calldata在600000 gas回滚、1000000 gas执行成功。现入口付款上限1000000、包含accept的agent预算1300000。原付款未转出USDC或开启贷款，任务到期后150000 escrow已全退，见[原失败审计](../../demo-output/live-monad-pi-20261004-root/root-final-failure-audit.json)。不覆盖原报告或修改已签交易。

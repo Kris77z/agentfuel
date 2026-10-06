@@ -3752,3 +3752,8 @@ runner、额度 ledger 与四游戏练习均有本地持久化和 writer 锁。�
 ## 2026-10-06 下一阶段：未知模型响应保护
 
 2026-10-06 普通Relay失败处理已独立验收：派发前记录候选意图，未知响应不fallback、不重发、不直接退款；受信明确拒绝后才继续原同档候选。root新Anvil/受控上游Relay与SDK44/44、固定价B兼容28/28及全项目typecheck通过。固定价B原未交付全退契约保留。本批没有新增真实模型或Monad交易；真实strong工具、自然修复及真实fallback仍待有界验收。 运行规则与拒绝响应契约见[Relay README](services/provider-relay/README.md)，独立结果见[本轮验收](demo-output/relay-uncertain-20261006-root/root-acceptance.json)。
+
+
+## 2026-10-06 Strong 工具真实验收（当前）
+
+2026-10-06 strong-only真实工具验收已完成：新本地Anvil固定价信用任务经直营Kimi K3一次调用，输入307/输出86/总393 tokens，实际test_public_sample一次通过，独立Arena5/5并结算。现金40000+借款80000支付120000原始mock-USDC，费用12000、还款92000，最终cash58000、未偿0。root独立复跑12项受控脚本测试、全项目typecheck，校验原请求响应/签名/资金回执，并重新Docker判题5/5。首轮成功即停，没有人为错误或第二次模型调用，不证明自然多轮修复或真实fallback；本轮没有新增Monad交易、未经过Magpie，也不据usage推算vendor账单。 [独立验收](demo-output/live-strong-only-20261006-root/root-acceptance.json)，[复现与限制](packages/pi-loop/FIXED_PRICE.md)。这补齐此前“仅K3短探针、未验证工具”的缺口，旧运行仍保留各自原始范围。

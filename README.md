@@ -134,4 +134,7 @@ Pi 使用锁定的 `pi-agent-core` / `pi-ai` npm 依赖 `1.0.1`；Magpie 使用�
 仓库包含源码、合约、测试、工程文档、配置示例和前端验收截图。`demo-output/` 为本地运行证据，可能包含密钥、原始请求和签名交易，因此不提交；文档指向该目录的历史证据链接仅在原开发工作区可用。`node_modules/`、构建产物、运行状态及真实环境配置也不提交。新环境请按本文安装依赖并从 `.env.example` 等模板配置，勿将真实凭据加入版本控制。新 GameFi USDC 局已于2026-10-06完成存款及奖后真实推理独立验收；历史失败记录保留。
 
 
-普通Relay现已区分明确拒绝与结果未知：未知响应保留原付款与派发记录，不自动fallback、重发或退款。2026-10-06 root独立Relay/SDK44项、固定价B兼容28项及typecheck全部通过；真实strong工具/修复/fallback仍未验收，见[进度入口](docs/implementation-status.md)。
+普通Relay现已区分明确拒绝与结果未知：未知响应保留原付款与派发记录，不自动fallback、重发或退款。2026-10-06 root独立Relay/SDK44项、固定价B兼容28项及typecheck全部通过；真实strong工具随后已完成下述验收，自然修复/真实fallback仍未验收，见[进度入口](docs/implementation-status.md)。
+
+
+真实strong工具已于2026-10-06验收：K3一次调用393 tokens，实际工具及独立Arena5/5，新本地链信用还款完成；root复核原始证据并重新Docker判题5/5。只证明首轮成功，不计自然修复或真实fallback，见[固定价服务](packages/pi-loop/FIXED_PRICE.md)。
