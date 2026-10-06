@@ -1,0 +1,134 @@
+# InferCredit / AgentFuel
+
+InferCredit 用已托管的任务报酬支持 Agent 购买推理：现金不足时，按任务获取授信，把借款直接支付给白名单 Provider；任务通过独立验收后，在一笔交易中还清本金与费用，剩余收入进入 Agent 现金账本。真实还款与违约写回 ERC-8004 声誉，供后续授信使用。
+
+仓库采用 npm workspaces、TypeScript、ethers v6、Foundry 和 Next.js。当前是 Hackathon P0 与已落地扩展的实现，不是长期架构文档中所有功能的集合。**截至 2026-10-05 的完成状态与证据边界，以 [implementation-status](docs/implementation-status.md) 为入口。**
+
+## 核心资金路径
+
+1. 发布者调用 `TaskEscrow.createTask` 托管报酬；当前 ERC-8004 agent wallet 调用 `acceptTask` 接单。
+2. SDK 获取 Relay 的自建 `402` 报价，优先使用现金。现金不足时，Underwriter 为该任务签发 EIP-712 授权；`AgentAccount.payProvider` 原子完成现金扣款、`CreditManager.draw` 和 Provider 付款。每个任务只能提款一次，借款不能提到任意钱包。
+3. Relay 确认付款后执行推理。固定价求解服务 B 可经实际 Magpie 调用模型，由 Pi 使用有界的 `test_public_sample` 工具；最终结果另交 Arena 的隐藏测试，独立 settler 持 verifier key 结算。
+4. 成功结算按任务创建时的费率快照扣协议费，再偿还本金与 factor fee，余额进入 cash；失败或到期按合约规则清算。退款按贷款状态处理，反馈失败保留待重试记录，不回滚已完成的资金清算。
+
+目标演示链是 **Monad Testnet，chainId `10143`**，结算资产是 **6 位小数的测试 USDC**。金额与 ID 在协议中使用原始整数/十进制字符串；例如 `120000` 表示 `0.12` USDC。合约也有原生币路径及本地测试。Provider 固定报价、信用费用与上游模型实际账单是不同数据。P0 vault 是 treasury 管理的协议自有资金池；当前 `sessionKey` 就是 agent wallet 私钥，没有独立 session key 协议。
+
+## 已验证的范围
+
+| 路径 | 已有结果与边界 | 证据入口 |
+| --- | --- | --- |
+| P0 四合约与原演示 | Foundry 离线 408 tests：404 pass、0 fail、4 skip。Monad 原演示完成六次还款、一次违约；主角第三次还款从 `640/B` 升至 `710/A`。 | [合约测试索引](contracts/TEST_PLAN.md)、[原演示最终证据](demo-output/monad-20261002-deployment-89b14f6d/evidence/demo.json) |
+| 固定价 Pi 信用 B | 一次 `forTask` 购买最多 N 轮求解；受控上游覆盖修复、恢复、未交付退款和隐藏测试失败清算。真实 K2.6 经 Magpie 的本地信用运行首轮成功，`cash40000 + draw80000` 支付 `120000`，偿还 `92000`。 | [服务规格与复现](packages/pi-loop/FIXED_PRICE.md)、[本地真实模型验收](demo-output/live-local-credit-20261004-root/root-acceptance.json) |
+| Monad Pi Task 11 | 实际 Magpie → 真实 K2.6 一次工具调用 → Pi → 独立 Arena `5/5` → `TaskSettled/Repaid`。`cash105396 + draw14604` 支付 `120000`，fee `438`、偿还 `15042`；最终 cash `134958`、还款 4、违约 0、未偿 0。Task 9/10 的失败及托管款全退仍作为历史保留。 | [Task 11 独立验收](demo-output/live-monad-pi-20261004-alchemy-root/root-acceptance.json)、[canonical 链状态核对](demo-output/live-monad-pi-20261004-alchemy-root/root-canonical-audit.json) |
+| Magpie 网关 | 实际进程已通过 17 项独立验证，锁定 `v0.1.814` 与禁用隐式重发的小补丁。`cheap/strong` 由调用方显式选档，报价、付款和退款仍属于 Relay/SDK。 | [接入说明](docs/magpie-gateway.md)、[网关验收](demo-output/magpie-20261004-root/root-acceptance.json) |
+| Pi 早期现金路径 | 真实 K2.6 首轮返回 `test_public_sample`，独立 Arena `5/5` 并在本地 Anvil 结算；报价 `10000`，SDK 推理付款 `taskId=0`，没有借款。这份历史证据不包含 Magpie 或 Monad。 | [Pi 入口](packages/pi-loop/README.md)、[现金路径验收](demo-output/live-pi-20261004-kimi-once/root-acceptance.json) |
+| 德州免费赞助奖励（2026-10-04 历史） | 真实Kimi合法终局，Monad Agent1999获0.1测试USDC并入cash，以0.01购买真实K2.6，剩0.09、借款0；CLI执行与只读桌面/手机回放。 | [运行说明](docs/holdem-arena.md)、[本轮总验收](demo-output/holdem-live-20261004-root/root-acceptance.json) |
+| 网页 GameFi 与 Kimi 额度 | 本机运营网页调用固定两位 Agent；可信终局共发放 4096 token，真实 Agent1999 消费 24 后余额 4072，同 ID 返回缓存。新 USDC 局奖励与授权交易已确认，cash存款原签名仍待回执，实网闭环未完成，练习跨重启保存已实现。 | [runner 配置](docs/gamefi-runner.md)、[额度规则](services/arena/src/inference-rewards/README.md)、[本轮验收](demo-output/gamefi-complete-20261005-root/root-acceptance.json) |
+| 双 Agent 五子棋 | 真实 K2.6 完成 12 个合法落子、13 次调用与付款。黑方第 13 次回答截断且格式无效，白方按规则 `forfeit` 胜。费用使用本地 Anvil/mock-USDC、双方独立现金预算，非五连胜。 | [规则与运行](docs/gomoku-arena.md)、[真实终局验收](demo-output/gomoku-live-20261004-retry-root/root-acceptance.json) |
+
+真实 Pi 运行均首轮成功，尚未证明真实多轮修复、strong/K3 工具兼容或完整自主选单。德州免费赞助测试USDC→真实推理首版已落地（见下文）；公开远程报名/任意提示词参赛、自动分类路由、逐轮储值与按用量退款、公共 LP 尚未实现；标准 x402 scheme/facilitator 兼容性尚未验证。RPC 稳定性与前端读取性能仍有边界，详见状态表。
+
+## 最小本地运行
+
+从仓库根目录执行。需要 **Node.js `22.19.0+`**、npm、PATH 中的 `forge`/`anvil`，以及已启动的本机 Docker daemon。Foundry 使用 solc `0.8.24`；首次安装依赖、编译器和镜像需要相应下载源可访问。
+
+```sh
+npm ci
+forge build --root contracts --skip-lint
+docker info
+docker pull python:3.12-alpine@sha256:4c47124a8391cb7a9f571164147d154777cf012a4ece5f86097130d7a4478111
+npm run demo
+```
+
+默认 demo 自建独立 Anvil、四合约、Underwriter、Relay、Docker Arena 和独立 settler，使用真实本地交易、mock registries 与明确标记的 FAKE 上游；不需要真实私钥或模型 API key。它保存新的 `demo-output/local-…/`，完成后关闭本次服务。Docker 不可用会在业务交易前失败；已有输出目录不能覆盖。
+
+若要在前端观察 `B → A`，在交互终端运行：
+
+```sh
+npm run demo -- --mode local --serve --pause-before-third
+```
+
+第二个终端将 `FRONTEND_MANIFEST_PATH` 替换为上一步输出的 **绝对路径**：
+
+```sh
+FRONTEND_MODE=chain FRONTEND_MANIFEST_PATH=/absolute/path/to/manifest.json npm run dev --workspace @agentfuel/frontend
+```
+
+打开 `http://127.0.0.1:3000`；原终端按 Enter 执行主角第三单，结束后 Ctrl-C 关闭本次服务。只查看合成 UI 可运行 `npm run dev:fixture --workspace @agentfuel/frontend`，页面标记 `FIXTURE` 且关闭钱包广播。金额、输出文件和恢复边界见 [本地 demo runbook](docs/demo-runbook.md#本地飞轮复现) 与 [前端说明](frontend/README.md)。
+
+## 检查与验收
+
+静态检查：
+
+```sh
+npm run typecheck:all
+```
+
+本地 workspace 测试和完整合约套件分别运行：
+
+```sh
+npm run test:all
+forge test --root contracts --offline
+```
+
+`test:all` 包含 Underwriter、Relay（含 SDK）、Arena、Pi、ERC-8004 和前端 Node 测试；不包含 Foundry 全套、`scripts/test`、浏览器测试、canonical 公网 fork 或真实模型/网关验收。部分测试会启动本地 Anvil 与 Docker，固定 Python 镜像须提前缓存；`--offline` 合约测试需要已缓存的 solc。
+
+完整本地飞轮及 Monad 配置/恢复回归另有入口，后者使用本地 Anvil，不访问公网或真实模型：
+
+```sh
+npm run test:demo
+npm run test:demo:monad
+```
+
+按改动选择其余验证，不用把真实执行当作默认测试：
+
+| 改动范围 | 入口 |
+| --- | --- |
+| 固定价服务的修复、退款、恢复 | [FIXED_PRICE.md 的受控回归](packages/pi-loop/FIXED_PRICE.md)，包含 `scripts/verify-fixed-price-credit.ts` 新链验收 |
+| 五子棋裁判、付款和恢复 | `node --import tsx --test scripts/test/gomoku.test.ts`；[规则与受控 demo](docs/gomoku-arena.md) |
+| Magpie 进程、补丁和失败调用次数 | [Magpie 复现](docs/magpie-gateway.md#复现)，需独立构建的网关和 Go；未配置 binary 会失败 |
+| 前端构建与钱包/Docker 浏览器流程 | [frontend README](frontend/README.md#本地视觉与测试)，浏览器测试另需 Chrome |
+| canonical registry 签名与反馈 | [ERC-8004 测试](packages/erc8004/README.md#测试与实际结果)；公网 fork 是显式 opt-in，不属于离线套件 |
+
+已有真实结果可以离线复查，例如：
+
+```sh
+node --import tsx scripts/verify-live-fixed-price.ts --audit-output demo-output/live-monad-pi-20261004-alchemy-root
+```
+
+该命令核验保存的证据，不重新访问原链、调用模型或广播。真实网络预检、执行与恢复只按 [demo runbook](docs/demo-runbook.md) 和 [固定价服务 runbook](packages/pi-loop/FIXED_PRICE.md#真实执行入口) 操作；已有已付请求恢复原 PaymentHandle、原输出目录与原签名交易，不通过新 paymentId 重买。
+
+## 目录与阅读顺序
+
+| 目录/文档 | 用途 |
+| --- | --- |
+| [contracts/](contracts/README.md) | 四个资金合约；`src/interfaces/` 定义类型、事件与错误，`TEST_PLAN.md` 索引行为测试 |
+| [services/underwriter/](services/underwriter/README.md) | 固定区块信用读取、任务授信与 EIP-712 evidence |
+| [services/provider-relay/](services/provider-relay/README.md) | 报价、收款确认、模型路由、receipt 与运营退款 |
+| [services/arena/](services/arena/README.md) | Docker 判题、可信 controller、独立 settler 和恢复 |
+| [packages/sdk/](packages/sdk/README.md) | Node/浏览器签名者入口、现金优先付款及 PaymentHandle 恢复 |
+| [packages/pi-loop/](packages/pi-loop/README.md) | 受限现金循环与独立固定价求解服务 B |
+| [packages/erc8004/](packages/erc8004/README.md) | canonical 身份、钱包绑定和指定 reporter 声誉读取 |
+| [frontend/](frontend/README.md) | Agent Financial Identity 档案、任务与证据面板 |
+| `scripts/`、`demo-output/` | 本地/真实验证入口、脚本回归与既有运行证据 |
+
+先读 [implementation-status](docs/implementation-status.md) 与相关模块 runbook，再查 [工程规格 §4](AGENT_CREDIT_ENGINEERING.md) 和 [风险与 MVP](AGENT_CREDIT_RISK_AND_MVP.md)。[架构](AGENT_CREDIT_ARCHITECTURE.md) 保留长期方案，[赛道叙事](AGENT_CREDIT_TRACK_NARRATIVE.md) 与 [demo pitch](docs/demo-pitch.md) 用于解释项目；历史排期和早期模块状态不代表新增功能已完成。
+
+Pi 使用锁定的 `pi-agent-core` / `pi-ai` npm 依赖 `1.0.1`；Magpie 使用锁定官方源码与本仓库补丁，保留 [上游 MIT LICENSE](scripts/magpie-UPSTREAM-LICENSE)、[锁文件](scripts/magpie.lock.json) 和 [补丁](scripts/magpie-no-retry.patch)。外部来源及当前运行边界以对应模块说明为准。
+
+## GameFi 与四种练习（2026-10-05）
+
+`/arena` 已支持本机运营用户从网页发起真实德州，选择测试 USDC 或 Kimi 推理额度；服务端固定两位 Agent，复用原真实 Kimi、可信裁判及奖励 CLI。每局额度共 4096 token，独胜全额、平局各 2048，绑定 `kimi-k2.6` 和服务端固定身份；按实际输入/输出 usage 扣减。调用前持久预留，未知结果保留原 ID 与预留，同 ID 查询/缓存不触发第二次模型调用。游戏不借贷，额度不是加密代币，也不与 USDC 混账。
+
+本轮真实额度局 `b3f24ce8-4270-4a05-baf6-c80675237fc3` 已向 Agent1999 发放 4096 token，真实消费 24，剩余 4072；重复兑换返回原缓存。USDC 路径在 2026-10-04 已完成 Agent1999 获 0.1 测试 USDC、以 0.01 购买真实 K2.6、cash 剩 0.09 的历史验收。本轮新 USDC 实网验收正在进行，当前新局0.1测试USDC派奖及授权已确认，原存款交易仍待确认，尚未完成奖后消费。dRPC读取gas兼容已修复并通过定向5/5及全项目类型检查，完整恢复仍受RPC失败阻断。见[本轮汇总](demo-output/gamefi-complete-20261005-root/root-acceptance.json)与[历史奖励证据](docs/holdem-arena.md)。
+
+真实 runner 和额度账本持久保存意图、阶段、余额和恢复记录；全局 writer 锁防止重叠开局/重复消费。`/arena/holdem` 保留为历史只读回放，主大厅提供新局、恢复和额度消费。当前只面向本机运营用户，没有远程账号报名、任意钱包接入、多手真实赛事或可验证随机。配置与恢复见[网页 runner](docs/gamefi-runner.md)和[额度规则](services/arena/src/inference-rewards/README.md)。
+
+四游戏为免费练习：德州、五子棋、国际象棋、12关小丑牌，支持双人邀请、日志、历史与 Agent API。策略 Bot 不调用真实模型，虚拟筹码不接借贷或派奖。练习默认保存到服务进程 cwd 下 `.data/arena-freeplay.json`，可用 `ARENA_PLAY_STATE_PATH` 指定；规则重放、席位与幂等请求可跨服务重启恢复。详见[练习运行和 API](docs/free-arena.md)、[参考 UI 来源](frontend/acceptance/arena/clone-evidence.md)。
+
+控制台桌面/手机 16 项浏览器测试使用受控接口拦截，不调用真实模型或提交奖励交易，见[测试边界](frontend/acceptance/gamefi-console/verification.md)。本地受控德州演示仍可用 `node --import tsx scripts/holdem-demo.ts --output /absolute/new-holdem-output`，需要 Anvil 和已构建合约。
+
+
+## 仓库与本地运行资料
+
+仓库包含源码、合约、测试、工程文档、配置示例和前端验收截图。`demo-output/` 为本地运行证据，可能包含密钥、原始请求和签名交易，因此不提交；文档指向该目录的历史证据链接仅在原开发工作区可用。`node_modules/`、构建产物、运行状态及真实环境配置也不提交。新环境请按本文安装依赖并从 `.env.example` 等模板配置，勿将真实凭据加入版本控制。当前新 GameFi USDC 局仍受 RPC 故障阻断，提交仓库不代表存款及奖后推理已验收。

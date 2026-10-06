@@ -1,0 +1,121 @@
+import { Contract, Wallet, keccak256, ZeroAddress } from "ethers";
+import { MANAGER_ABI, managerInterface, sameAddress, uint } from "@agentfuel/sdk/protocol";
+import { Relay, RelayError } from "./relay.js";
+import type { PaymentRecord, Refund, SignedOperation } from "./store.js";
+export interface RefunderOptions { maxFeePerGas?: bigint; gasLimit?: bigint }
+
+export class Refunder {
+  private readonly wallet?: Wallet;
+  private queue: Promise<unknown> = Promise.resolve();
+  constructor(private readonly relay: Relay, private readonly limits: RefunderOptions = {}) {
+    if ((limits.maxFeePerGas !== undefined && limits.maxFeePerGas <= 0n) || (limits.gasLimit !== undefined && limits.gasLimit <= 0n)) throw new Error("INVALID_GAS_CEILING");
+    if (relay.config.refunderKey) this.wallet = new Wallet(relay.config.refunderKey, relay.provider);
+  }
+  private async manager() {
+    if (!this.wallet) throw new RelayError("REFUND_DISABLED", "Configure the dedicated refunder key to use operator refunds", 503);
+    await this.relay.chain();
+    const address = await this.relay.account.getFunction("creditManager").staticCall();
+    const manager = new Contract(address, MANAGER_ABI, this.relay.provider);
+    if (!sameAddress(await manager.getFunction("relayRefunder").staticCall(), this.wallet.address)) throw new RelayError("REFUNDER_MISMATCH", "Signer is not Manager.relayRefunder");
+    return manager;
+  }
+  async initialize() { if (this.wallet) await this.manager(); }
+  refund(paymentId: string, refundId: string, amount: string) {
+    try {
+      if (typeof paymentId !== "string" || !/^0x[0-9a-f]{64}$/.test(paymentId) || typeof refundId !== "string" || !/^0x[0-9a-f]{64}$/.test(refundId) || uint(amount, "amount") === 0n) throw new Error();
+    } catch { throw new RelayError("INVALID_REFUND", "Use bytes32 paymentId/refundId and positive decimal amount", 400); }
+    const operation = this.queue.catch(() => {}).then(() => this.relay.store.lock(paymentId, async () => {
+      const record = await this.relay.store.read(paymentId);
+      await this.manager();
+      await this.relay.confirm(record);
+      if (record.state === "Quoted" || record.state === "Delivered") throw new RelayError("REFUND_NOT_ALLOWED", "Only paid, undelivered inference can be refunded");
+      let entry = record.refunds.find(refund => refund.id === refundId);
+      if (entry && entry.amount !== amount) throw new RelayError("REFUND_MISMATCH", "RefundId is already bound to another amount");
+      if (!entry) {
+        if (await this.relay.account.getFunction("refundConsumed").staticCall(refundId)) throw new RelayError("REFUND_ID_USED", "RefundId was already consumed outside this payment journal");
+        const reserved = record.refunds.reduce((sum, refund) => sum + BigInt(refund.amount), 0n);
+        if (reserved + BigInt(amount) > BigInt(record.quote.price)) throw new RelayError("REFUND_EXCEEDS_PAYMENT", "Refund total exceeds original payment");
+        entry = { id: refundId, amount, state: "Prepared" };
+        record.refunds.push(entry);
+        await this.relay.store.write(record); // Disables inference before any refund submission.
+      }
+      await this.finish(record, entry, true);
+      return { ...this.relay.view(record), refundId, txHash: entry.transaction?.txHash };
+    }));
+    this.queue = operation;
+    return operation;
+  }
+  private async signed(contract: Contract, method: string, args: unknown[], value = 0n): Promise<SignedOperation> {
+    const populated = await this.wallet!.populateTransaction({ to: await contract.getAddress(), chainId: this.relay.config.chainId,
+      data: contract.interface.encodeFunctionData(method, args), value,
+      ...(this.limits.gasLimit !== undefined ? { gasLimit: method === "approve" ? 100000n : this.limits.gasLimit } : {}) });
+    if (this.limits.maxFeePerGas !== undefined && BigInt(populated.maxFeePerGas ?? populated.gasPrice ?? 0n) > this.limits.maxFeePerGas) throw new RelayError("GAS_CEILING_EXCEEDED", "Refund fee exceeds its configured ceiling");
+    const rawTransaction = await this.wallet!.signTransaction(populated);
+    return { rawTransaction, txHash: keccak256(rawTransaction), nonce: Number(populated.nonce) };
+  }
+  private async execute(operation: SignedOperation) {
+    const provider = this.relay.provider;
+    let receipt = await provider.getTransactionReceipt(operation.txHash);
+    if (!receipt) {
+      const currentNonce = await provider.getTransactionCount(this.wallet!.address, "latest");
+      if (currentNonce > operation.nonce) throw new RelayError("REFUND_UNCERTAIN", "Refund nonce consumed without its recorded receipt; do not submit another refund");
+      try { await provider.broadcastTransaction(operation.rawTransaction); }
+      catch {
+        if (!await provider.getTransaction(operation.txHash)) throw new RelayError("REFUND_UNCERTAIN", "Refund broadcast is uncertain; retry the same refundId");
+      }
+      receipt = await provider.waitForTransaction(operation.txHash, this.relay.config.confirmations, 15_000);
+    }
+    if (!receipt) throw new RelayError("REFUND_UNCONFIRMED", "Refund confirmation is pending");
+    if (receipt.status !== 1) throw new RelayError("REFUND_REVERTED", "Recorded refund transaction reverted");
+    if ((await provider.getBlockNumber()) - receipt.blockNumber + 1 < this.relay.config.confirmations) throw new RelayError("REFUND_UNCONFIRMED", "Refund needs more confirmations");
+    const block = await provider.getBlock(receipt.blockNumber);
+    if (block?.hash !== receipt.blockHash) throw new RelayError("REFUND_REORG", "Refund receipt is not canonical");
+    return receipt;
+  }
+  private async resetReverted(record: PaymentRecord, entry: Refund, field: "approval" | "transaction", retryFailed: boolean) {
+    const operation = entry[field];
+    if (operation && (await this.relay.provider.getTransactionReceipt(operation.txHash))?.status === 0 && retryFailed) {
+      delete entry[field]; await this.relay.store.write(record);
+    }
+  }
+  private async finish(record: PaymentRecord, entry: Refund, retryFailed: boolean) {
+    const manager = await this.manager();
+    if (entry.state !== "Confirmed") {
+      if (!await this.relay.account.getFunction("refundConsumed").staticCall(entry.id)) {
+        if (!sameAddress(this.relay.config.asset, ZeroAddress)) {
+          const token = new Contract(this.relay.config.asset, ["function allowance(address,address) view returns(uint256)", "function approve(address,uint256) returns(bool)"], this.relay.provider);
+          if ((await token.getFunction("allowance").staticCall(this.wallet!.address, await manager.getAddress())) < BigInt(entry.amount)) {
+            await this.resetReverted(record, entry, "approval", retryFailed);
+            if (!entry.approval) { entry.approval = await this.signed(token, "approve", [await manager.getAddress(), entry.amount]); await this.relay.store.write(record); }
+            await this.execute(entry.approval);
+          }
+        }
+        await this.resetReverted(record, entry, "transaction", retryFailed);
+        if (!entry.transaction) {
+          entry.transaction = await this.signed(manager, "processRefund", [record.quote.paymentId, entry.amount, entry.id],
+            sameAddress(this.relay.config.asset, ZeroAddress) ? BigInt(entry.amount) : 0n);
+          await this.relay.store.write(record);
+        }
+        await this.execute(entry.transaction);
+      }
+      if (!entry.transaction) throw new RelayError("REFUND_CONFLICT", "RefundId was consumed outside this journal; manual reconciliation is required");
+      const receipt = await this.execute(entry.transaction);
+      const events = receipt.logs.filter(log => sameAddress(log.address, manager.target as string)).map(log => { try { return managerInterface.parseLog(log); } catch { return null; } });
+      const event = events.find(event => event?.name === "RefundProcessed" && event.args.paymentId === record.quote.paymentId && event.args.refundId === entry.id && event.args.amount === BigInt(entry.amount));
+      if (!event || !await this.relay.account.getFunction("refundConsumed").staticCall(entry.id)) throw new RelayError("REFUND_MISMATCH", "Refund transaction does not prove this payment/refundId/amount");
+      entry.state = "Confirmed";
+    }
+    const total = record.refunds.filter(refund => refund.state === "Confirmed").reduce((sum, refund) => sum + BigInt(refund.amount), 0n);
+    const payment = await this.relay.account.getFunction("getPayment").staticCall(record.quote.paymentId);
+    if (payment.refundedAmount !== total) throw new RelayError("REFUND_CONFLICT", "Chain refund total differs from this journal");
+    if (total === BigInt(record.quote.price)) record.state = "Refunded";
+    await this.relay.store.write(record);
+  }
+  async recover() {
+    for (const id of await this.relay.store.ids()) {
+      const record = await this.relay.store.read(id);
+      if (!record.refunds.length || record.state === "Refunded") continue;
+      await this.relay.store.lock(id, async () => { for (const entry of record.refunds) if (entry.state !== "Confirmed") await this.finish(record, entry, false); });
+    }
+  }
+}

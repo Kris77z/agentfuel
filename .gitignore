@@ -1,0 +1,23 @@
+node_modules/
+.env
+.env.*
+!.env.example
+!.env.monad-testnet.example
+evidence/
+relay-data/
+demo-output/
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+.DS_Store
+
+# Private local runtime journals and game state
+.data/
+
+# Build artifacts and local credentials
+.next*/
+*.tsbuildinfo
+*.key
+*.pem
+*.p12
+*.log

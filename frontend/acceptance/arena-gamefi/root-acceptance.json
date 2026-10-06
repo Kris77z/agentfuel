@@ -1,0 +1,32 @@
+{
+  "accepted": true,
+  "date": "2026-10-04",
+  "preview": "http://127.0.0.1:3020/arena",
+  "rootChecks": {
+    "typecheckAll": "pass",
+    "productionBuild": "pass",
+    "freeplayRegression": {
+      "pass": 12,
+      "fail": 0
+    },
+    "manualBrowser": [
+      "existing true model report embedded in lobby",
+      "USDC award and inference cash values read from same-match source",
+      "terminal replay interaction"
+    ],
+    "existingSourceReused": [
+      "loadHoldemSnapshot",
+      "HoldemArena",
+      "HoldemMonadEvidence",
+      "holdem engine",
+      "gomoku rules"
+    ]
+  },
+  "implementerBrowserTests": {
+    "pass": 18,
+    "fail": 0,
+    "report": "browser-report.json"
+  },
+  "scope": "UI/UX integration, existing GameFi report/replay/reward workflows reused; new browser launch or LLM-credit issuance not implemented",
+  "newModelOrChainCalls": 0
+}

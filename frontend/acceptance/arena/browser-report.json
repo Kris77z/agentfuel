@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-04",
+  "url": "http://127.0.0.1:3020/arena",
+  "tests": {
+    "passed": 14,
+    "failed": 0,
+    "durationSeconds": 28.7,
+    "projects": [
+      "desktop 1512x900",
+      "Pixel 5"
+    ]
+  },
+  "assets": {
+    "count": 20,
+    "bytes": 252508,
+    "missing": 0,
+    "firstScreenFailed": 0,
+    "externalRequests": 0
+  },
+  "runtimeErrors": 0,
+  "screenshots": [
+    "lobby-mobile.png",
+    "chess-playing-mobile.png",
+    "gomoku-playing-mobile.png",
+    "gomoku-playing-desktop.png",
+    "chess-playing-desktop.png",
+    "balatro-playing-desktop.png",
+    "lobby-desktop.png",
+    "poker-finished-desktop.png",
+    "balatro-playing-mobile.png",
+    "poker-finished-mobile.png"
+  ],
+  "knownGaps": [
+    "Original authenticated Jev service and ranked credits are not mirrored.",
+    "CSS tables and playing cards are independent rendering.",
+    "Match history is in-process memory; restart clears history."
+  ],
+  "manualBalatroReward": {
+    "cards": "KD KS KC",
+    "firstScore": 180,
+    "firstBlindScore": 312,
+    "chosenJoker": "spark",
+    "nextTarget": 450
+  }
+}

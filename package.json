@@ -1,0 +1,37 @@
+{
+  "name": "agentfuel",
+  "private": true,
+  "workspaces": [
+    "services/underwriter",
+    "services/provider-relay",
+    "services/arena",
+    "packages/sdk",
+    "packages/pi-loop",
+    "packages/erc8004",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "npm run test:all",
+    "test:core": "npm test --workspace @agentfuel/underwriter && npm test --workspace @agentfuel/provider-relay",
+    "test:all": "npm run test:core && npm test --workspace @agentfuel/arena && npm test --workspace @agentfuel/pi-loop && npm test --workspace @agentfuel/erc8004 && npm test --workspace @agentfuel/frontend",
+    "typecheck:all": "npm run typecheck && npm run typecheck --workspace @agentfuel/frontend",
+    "test:fork": "npm run test:fork --workspace @agentfuel/erc8004",
+    "underwriter": "npm start --workspace @agentfuel/underwriter",
+    "relay": "npm start --workspace @agentfuel/provider-relay",
+    "predemo": "forge build --root contracts --skip-lint",
+    "demo": "tsx scripts/demo.ts",
+    "pretest:demo": "forge build --root contracts --skip-lint",
+    "test:demo": "tsx --test scripts/test/demo.test.ts",
+    "test:demo:monad": "tsx --test scripts/test/monad.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "https-proxy-agent": "^7.0.6",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

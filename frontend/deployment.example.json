@@ -1,0 +1,13 @@
+{
+  "chainId": "10143",
+  "network": "Monad testnet",
+  "rpcUrl": "https://testnet-rpc.monad.xyz",
+  "explorerUrl": "https://testnet.monadexplorer.com",
+  "deploymentBlock": 0,
+  "underwriterUrl": "http://127.0.0.1:8787",
+  "asset": { "address": "0x534b2f3A21130d7a60830c2Df862319e593943A3", "symbol": "USDC", "decimals": 6 },
+  "contracts": { "manager": "", "adapter": "", "account": "", "escrow": "" },
+  "agents": [{ "id": "1", "name": "Agent 1" }, { "id": "2", "name": "Agent 2" }, { "id": "3", "name": "Agent 3" }],
+  "providers": [],
+  "arenaUrl": ""
+}
