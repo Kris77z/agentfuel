@@ -3,7 +3,7 @@ import { isDeepStrictEqual } from "node:util";
 import { Contract, JsonRpcProvider, getAddress, type Signer } from "ethers";
 import { ACCOUNT_ABI, MANAGER_ABI, accountInterface, InferCredit, PaymentError, type Inference, type PaymentHandle } from "@agentfuel/sdk";
 import { DockerExecutor } from "@agentfuel/arena/docker";
-import { PUBLIC_SAMPLE, testPublicSample, type SampleResult } from "./public-sample.js";
+import { publicSampleFor, testPublicSample, type SampleResult } from "./public-sample.js";
 import { validateSolveSpec, type SolveSpec, type ProviderSolveState } from "./provider.js";
 import { SessionStore } from "./session.js";
 import { submitProgrammingCandidate, type SubmissionState, type SubmissionConfig } from "./submission.js";
@@ -64,6 +64,7 @@ async function confirmPaidDelivery(state: FixedTaskSession, config: FixedTaskCon
 /** One task-bound fixed-price purchase. Only SDK.forTask may finance this service. */
 export async function runFixedPriceTask(directory: string, config: FixedTaskConfig, options: FixedTaskOptions): Promise<FixedTaskSession> {
   validateSolveSpec(config.solve, false);
+  const sample = publicSampleFor(config.solve.problemId);
   if (config.deadlineMs !== config.solve.deadlineMs || !/^[1-9][0-9]*$/.test(config.taskId) ||
     !/^[1-9][0-9]*$/.test(config.agentId) || !/^[1-9][0-9]*$/.test(config.chainId) || !/^[1-9][0-9]*$/.test(config.maxServicePrice)) throw new Error("INVALID_FIXED_TASK_CONFIG");
   for (const address of [config.account, config.asset, config.provider, config.escrowAddress]) getAddress(address);
@@ -95,7 +96,7 @@ export async function runFixedPriceTask(directory: string, config: FixedTaskConf
       });
       try {
         state.inference = state.handle ? await infer.resume(structuredClone(state.handle)) : await infer.forTask(config.taskId).fetch(config.relayUrl, {
-          body: { service: "infercredit/solve-fixed", model: "pi-fixed-v1", messages: [{ role: "user", content: PUBLIC_SAMPLE.prompt }], solve: JSON.parse(JSON.stringify(config.solve)) },
+          body: { service: "infercredit/solve-fixed", model: "pi-fixed-v1", messages: [{ role: "user", content: sample.prompt }], solve: JSON.parse(JSON.stringify(config.solve)) },
         });
         await save(); // Crash here restores the original paid delivery, never another purchase.
       } catch (error) {
@@ -118,16 +119,16 @@ export async function runFixedPriceTask(directory: string, config: FixedTaskConf
     if (state.submission || state.phase === "ReadyToSubmit") {
       if (state.candidate !== result.code || !state.qualification?.passed || state.qualificationCodeHash !== result.codeHash ||
         (state.submission && (state.submission.payload.code !== result.code || state.submission.payload.taskId !== config.taskId))) stop("SESSION_CANDIDATE_MISMATCH");
-      await submitProgrammingCandidate(state, config, { ...options, rpc, save }); return structuredClone(state);
+      await submitProgrammingCandidate(state, config, { ...options, rpc, save }, config.solve.problemId); return structuredClone(state);
     }
     // The provider promises only a passing public sample. The agent verifies that condition independently.
     if (!state.qualification) {
       assertTime(); await runner.ready(); assertTime();
-      state.qualification = await testPublicSample(runner, result.code, AbortSignal.timeout(Math.max(1, config.deadlineMs - Date.now()))); state.qualificationCodeHash = result.codeHash; await save();
+      state.qualification = await testPublicSample(runner, result.code, AbortSignal.timeout(Math.max(1, config.deadlineMs - Date.now())), config.solve.problemId); state.qualificationCodeHash = result.codeHash; await save();
     }
     if (!state.qualification.passed || state.qualificationCodeHash !== result.codeHash) stop("SERVICE_PUBLIC_SAMPLE_FAILED");
     state.candidate = result.code; state.phase = "ReadyToSubmit"; delete state.reason; await save();
-    await submitProgrammingCandidate(state, config, { ...options, rpc, save });
+    await submitProgrammingCandidate(state, config, { ...options, rpc, save }, config.solve.problemId);
     return structuredClone(state);
   } catch (error) {
     if (!state || !(error instanceof PaymentError)) throw error;

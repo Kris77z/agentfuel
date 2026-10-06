@@ -134,7 +134,14 @@ Pi 使用锁定的 `pi-agent-core` / `pi-ai` npm 依赖 `1.0.1`；Magpie 使用�
 仓库包含源码、合约、测试、工程文档、配置示例和前端验收截图。`demo-output/` 为本地运行证据，可能包含密钥、原始请求和签名交易，因此不提交；文档指向该目录的历史证据链接仅在原开发工作区可用。`node_modules/`、构建产物、运行状态及真实环境配置也不提交。新环境请按本文安装依赖并从 `.env.example` 等模板配置，勿将真实凭据加入版本控制。新 GameFi USDC 局已于2026-10-06完成存款及奖后真实推理独立验收；历史失败记录保留。
 
 
-普通Relay现已区分明确拒绝与结果未知：未知响应保留原付款与派发记录，不自动fallback、重发或退款。2026-10-06 root独立Relay/SDK44项、固定价B兼容28项及typecheck全部通过；真实strong工具随后已完成下述验收，自然修复/真实fallback仍未验收，见[进度入口](docs/implementation-status.md)。
+普通Relay现已区分明确拒绝与结果未知：未知响应保留原付款与派发记录，不自动fallback、重发或退款。2026-10-06 root独立Relay/SDK44项、固定价B兼容28项及typecheck全部通过；真实strong工具随后已完成下述验收，自然修复/自然供应商故障仍未验收；注入拒绝后的真实备用调用已于2026-10-07完成，见[进度入口](docs/implementation-status.md)。
 
 
 真实strong工具已于2026-10-06验收：K3一次调用393 tokens，实际工具及独立Arena5/5，新本地链信用还款完成；root复核原始证据并重新Docker判题5/5。只证明首轮成功，不计自然修复或真实fallback，见[固定价服务](packages/pi-loop/FIXED_PRICE.md)。
+
+
+## 2026-10-07 新增交付
+
+规则选择器、四题固定价求解和注入拒绝后的真实备用路由均已完成验收。四题真实Kimi各一次，独立判题19/19并完成本地信用还款；选择器另一次真实现金购买，原session恢复不重复消费；备用调用一次，原付款回放及Relay重启不重复扣款。62项定向受控测试、最终受影响2项复跑和全项目typecheck通过。
+
+本轮使用隔离Anvil/mock-USDC，无新增Monad交易；选择器只负责预设Assigned任务中的一次购买，四题使用各自独立fixture，不冒充网页全自主调度、自然多轮修复或自然供应商故障。详细结果与剩余边界见[工程状态](docs/implementation-status.md#2026-10-07-本轮验收与剩余边界)，入口见[选择器](packages/pi-loop/README.md)、[四题求解](packages/pi-loop/FIXED_PRICE.md)、[备用路由](services/provider-relay/README.md)。

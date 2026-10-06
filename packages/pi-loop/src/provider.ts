@@ -5,13 +5,14 @@ import type { AssistantMessage, Model } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 import type { Json, RoutingTier } from "@agentfuel/sdk";
 import { DockerExecutor } from "@agentfuel/arena/docker";
+import type { ProblemId } from "@agentfuel/arena";
 import { relayStreamFn } from "./adapter.js";
-import { PUBLIC_SAMPLE, testPublicSample, type SampleResult } from "./public-sample.js";
+import { isFixedProblemId, publicSampleFor, testPublicSample, type SampleResult } from "./public-sample.js";
 import { SessionStore } from "./session.js";
 
 export type JsonObject = Record<string, Json>;
 export interface SolveSpec {
-  version: 1; problemId: "sum-integers"; tiers: RoutingTier[];
+  version: 1; problemId: ProblemId; tiers: RoutingTier[];
   maxRounds: number; maxToolCalls: number; maxCompletionTokens: number; deadlineMs: number;
 }
 export interface ProviderSolveState {
@@ -31,11 +32,11 @@ function exact(value: Record<string, unknown>, keys: string[]) { return Object.k
 function bounded(value: unknown, max: number): value is number { return typeof value === "number" && Number.isSafeInteger(value) && value >= 1 && value <= max; }
 export function validateSolveSpec(value: unknown, forQuote = true): SolveSpec {
   if (!object(value) || !exact(value, ["version", "problemId", "tiers", "maxRounds", "maxToolCalls", "maxCompletionTokens", "deadlineMs"]) ||
-    value.version !== 1 || value.problemId !== PUBLIC_SAMPLE.problemId || !bounded(value.maxRounds, 3) || !bounded(value.maxToolCalls, 4) || !bounded(value.maxCompletionTokens, 2048) ||
+    value.version !== 1 || !isFixedProblemId(value.problemId) || !bounded(value.maxRounds, 3) || !bounded(value.maxToolCalls, 4) || !bounded(value.maxCompletionTokens, 2048) ||
     !Array.isArray(value.tiers) || value.tiers.length !== value.maxRounds || value.tiers.some(tier => tier !== "cheap" && tier !== "strong") ||
     typeof value.deadlineMs !== "number" || !Number.isSafeInteger(value.deadlineMs) || value.deadlineMs <= 0) throw new Error("INVALID_SOLVE_SPEC");
   const now = Date.now(); if (forQuote && (value.deadlineMs <= now || value.deadlineMs > now + 300000)) throw new Error("INVALID_SOLVE_DEADLINE");
-  return { version: 1, problemId: "sum-integers", tiers: [...value.tiers] as RoutingTier[], maxRounds: value.maxRounds,
+  return { version: 1, problemId: value.problemId, tiers: [...value.tiers] as RoutingTier[], maxRounds: value.maxRounds,
     maxToolCalls: value.maxToolCalls, maxCompletionTokens: value.maxCompletionTokens, deadlineMs: value.deadlineMs };
 }
 function routesFrom(value: ProviderSolveOptions["routes"]): ProviderSolveOptions["routes"] {
@@ -61,6 +62,7 @@ const codeHash = (code: string) => createHash("sha256").update(code).digest("hex
 /** A provider-owned fixed-price service. This module has no payment, credit or settlement entry point. */
 export async function runProviderSolver(directory: string, input: SolveSpec, options: ProviderSolveOptions): Promise<ProviderSolveState> {
   const spec = validateSolveSpec(input, false), routes = routesFrom(options.routes), binding = hash({ spec, routes });
+  const sample = publicSampleFor(spec.problemId);
   const store = new SessionStore<ProviderSolveState>(directory); await store.start(options.recoverLock);
   const runner = options.runner ?? new DockerExecutor();
   let state: ProviderSolveState; let durabilityError: unknown;
@@ -99,7 +101,7 @@ export async function runProviderSolver(directory: string, input: SolveSpec, opt
     await save();
     const schema = Type.Object({ code: Type.String({ minLength: 1, maxLength: 65536 }) }, { additionalProperties: false });
     const tool: AgentTool<typeof schema, SampleResult> = { name: "test_public_sample", label: "Test the fixed public sample",
-      description: "Run Python code in isolated Docker against only [4,8,-3] -> 9. This does not submit or settle the task.", parameters: schema, replay: "safe", executionMode: "sequential",
+      description: `Run Python code in isolated Docker against only ${sample.input.trim()} -> ${JSON.stringify(sample.expected)}. This does not submit or settle the task.`, parameters: schema, replay: "safe", executionMode: "sequential",
       execute: async (id, { code }, signal) => {
         const key = `${state.rounds.filter(round => round.appended).length}:${id}`, prior = state.tools.find(attempt => attempt.id === key);
         if (prior && prior.code !== code) throw new SolveStop("TOOL_ID_REUSED");
@@ -108,7 +110,7 @@ export async function runProviderSolver(directory: string, input: SolveSpec, opt
         const attempt = prior ?? { id: key, code }; if (!prior) state.tools.push(attempt); await save();
         await runner.ready(); time();
         const timeout = AbortSignal.timeout(Math.max(1, spec.deadlineMs - Date.now()));
-        const result = await testPublicSample(runner, code, signal ? AbortSignal.any([signal, timeout]) : timeout); attempt.result = result;
+        const result = await testPublicSample(runner, code, signal ? AbortSignal.any([signal, timeout]) : timeout, spec.problemId); attempt.result = result;
         if (result.passed) { time(); state.candidate = code; state.codeHash = codeHash(code); }
         await save();
         return { content: [{ type: "text", text: JSON.stringify(result) }], details: result, ...(result.passed ? { terminate: true } : {}) };
@@ -190,7 +192,7 @@ export async function runProviderSolver(directory: string, input: SolveSpec, opt
     }
     // A cached response can be replayed after expiry; tool execution and new dispatch still check the original deadline.
     if (Date.now() >= spec.deadlineMs && !state.rounds.some(round => !round.appended && round.response)) { await stop("SESSION_DEADLINE"); return structuredClone(state); }
-    if (!state.messages.length) await agent.prompt(PUBLIC_SAMPLE.prompt); else await agent.continue();
+    if (!state.messages.length) await agent.prompt(sample.prompt); else await agent.continue();
     if (durabilityError) throw durabilityError;
     if (state.phase === "Running") await stop(invocationError ?? (agent.state.errorMessage ? "MODEL_RESPONSE_ERROR" : "NO_PUBLIC_TEST"));
     return structuredClone(state);

@@ -2,7 +2,8 @@ import { setTimeout as delay } from "node:timers/promises";
 import { Interface, type JsonRpcProvider, type Signer } from "ethers";
 import { PaymentError, type Json } from "@agentfuel/sdk";
 import { submissionTypedData, type Submission } from "@agentfuel/arena/submission-auth";
-import { PUBLIC_SAMPLE } from "./public-sample.js";
+import type { ProblemId } from "@agentfuel/arena";
+import { publicSampleFor } from "./public-sample.js";
 
 export interface SubmissionConfig { taskId: string; agentId: string; rpcUrl: string; chainId: string; escrowAddress: string; arenaUrl: string; deadlineMs: number }
 export interface SubmissionState { phase: string; reason?: string; candidate?: string; submission?: { payload: Submission; runId?: string; result?: Json } }
@@ -10,7 +11,8 @@ export interface SubmissionOptions { rpc: JsonRpcProvider; signer: Signer; save:
 const escrowInterface = new Interface(["event TaskSettled(uint256 indexed taskId,bool passed,uint256 repaid,uint256 slashed,uint256 agentResidual)"]);
 function stop(code: string): never { throw new PaymentError(code, code); }
 /** Shared host-only final submission. Callers must durably qualify candidate before entering. */
-export async function submitProgrammingCandidate(state: SubmissionState, config: SubmissionConfig, options: SubmissionOptions) {
+export async function submitProgrammingCandidate(state: SubmissionState, config: SubmissionConfig, options: SubmissionOptions, problemId: ProblemId = "sum-integers") {
+  publicSampleFor(problemId);
   const { rpc, save } = options;
   const assertTime = () => { if (Date.now() >= config.deadlineMs) stop("SESSION_DEADLINE"); };
   if (await rpc.send("eth_chainId", []) !== `0x${BigInt(config.chainId).toString(16)}`) stop("NETWORK_MISMATCH");
@@ -19,7 +21,7 @@ export async function submitProgrammingCandidate(state: SubmissionState, config:
     const block = (await rpc.getBlock("latest"))!;
     const seconds = Math.min(300, Math.floor((config.deadlineMs - Date.now()) / 1000)); if (seconds <= 0) stop("SESSION_DEADLINE");
     const payload: Submission = { taskId: config.taskId, code: state.candidate, deadline: String(block.timestamp + seconds), signature: "" };
-    const typed = submissionTypedData({ rpcUrl: config.rpcUrl, chainId: config.chainId, escrowAddress: config.escrowAddress, ipcDirectory: "/unused", tasks: { [config.taskId]: { agentId: config.agentId, problemId: PUBLIC_SAMPLE.problemId } } }, payload);
+    const typed = submissionTypedData({ rpcUrl: config.rpcUrl, chainId: config.chainId, escrowAddress: config.escrowAddress, ipcDirectory: "/unused", tasks: { [config.taskId]: { agentId: config.agentId, problemId } } }, payload);
     assertTime(); payload.signature = await options.signer.signTypedData(typed.domain, typed.types, typed.message);
     state.submission = { payload }; state.phase = "SubmissionPending"; await save();
   }
@@ -48,7 +50,7 @@ export async function submitProgrammingCandidate(state: SubmissionState, config:
       if (run.status === "settled") {
         const result = run.result as { verdict?: { taskId?: string; agentId?: string; runId?: string; passed?: boolean; mode?: string; chainId?: string; escrowAddress?: string; problemId?: string }; settlement?: { taskId?: string; runId?: string; passed?: boolean; txHash?: string } };
         const verdict = result?.verdict, settlement = result?.settlement;
-        if (!verdict || !settlement || verdict.taskId !== config.taskId || verdict.agentId !== config.agentId || verdict.runId !== submission.runId || verdict.mode !== "docker" || typeof verdict.passed !== "boolean" || verdict.chainId !== config.chainId || verdict.escrowAddress?.toLowerCase() !== config.escrowAddress.toLowerCase() || verdict.problemId !== PUBLIC_SAMPLE.problemId || settlement.taskId !== config.taskId || settlement.runId !== submission.runId || settlement.passed !== verdict.passed || !settlement.txHash) stop("ARENA_RESULT_MISMATCH");
+        if (!verdict || !settlement || verdict.taskId !== config.taskId || verdict.agentId !== config.agentId || verdict.runId !== submission.runId || verdict.mode !== "docker" || typeof verdict.passed !== "boolean" || verdict.chainId !== config.chainId || verdict.escrowAddress?.toLowerCase() !== config.escrowAddress.toLowerCase() || verdict.problemId !== problemId || settlement.taskId !== config.taskId || settlement.runId !== submission.runId || settlement.passed !== verdict.passed || !settlement.txHash) stop("ARENA_RESULT_MISMATCH");
         const receipt = await rpc.getTransactionReceipt(settlement.txHash);
         const event = receipt?.logs.filter(log => log.address.toLowerCase() === config.escrowAddress.toLowerCase()).map(log => { try { return escrowInterface.parseLog(log); } catch { return null; } }).find(event => event?.name === "TaskSettled" && event.args.taskId === BigInt(config.taskId) && event.args.passed === verdict.passed);
         if (receipt?.status !== 1 || !event) stop("ARENA_SETTLEMENT_UNCONFIRMED");

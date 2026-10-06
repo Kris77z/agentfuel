@@ -90,3 +90,18 @@ ENGINEERING §6.6另有[受限Pi cash循环](../../packages/pi-loop/README.md)�
 
 
 另有独立opt-in [固定价求解服务B](../../packages/pi-loop/FIXED_PRICE.md)：`FixedPriceSolvingRelay`/`FixedPriceRefunder`沿用原402与资金证据，一次task-bound付款支持provider内部有界Pi公开样例循环。固定价早成功不退差额，未交付仅原全价运营退款；其独立 solve journal 对模型结果未知不重发，但由 provider 承担未知模型成本，未交付合格终稿仍允许全额退款。这是 B 的明确交付规则，不适用普通 Relay 的未知退款禁令。receipt为最后一轮模型/usage摘要，各轮实际请求和响应在run中。它不改变普通Relay/旧demo启动配置。实际 Magpie→Kimi 的本地信用和 Monad Task11 已由 root 独立验收，分别见[本地证据](../../demo-output/live-local-credit-20261004-root/root-acceptance.json)和[Monad证据](../../demo-output/live-monad-pi-20261004-alchemy-root/root-acceptance.json)；两次均首轮成功，不证明真实多轮修复或 strong 工具兼容。
+
+
+### 2026-10-07 备用路由真实调用验收
+
+`verify-live-fallback.ts` 在新 Anvil 上注入首个候选的完整 429 拒绝（不向供应商发请求），随后同 cheap 档调用真实 Kimi K2.6 一次。该次返回 OK，usage 为输入11/输出4/总15；0.01 mock-USDC 只付一次，重复读取及 Relay 重启后的原 handle 恢复均未新增付款或模型调用。已独立核对保存的原始请求/响应、签名交易、ProviderPaid raw receipt 和派发记录，见[验收](../../demo-output/live-fallback-20261007-root/root-acceptance.json)。这是“注入拒绝 + 真实备用模型”演练，不是自然供应商故障，也不证明跨档自动降级、Magpie 或 Monad fallback。
+
+```sh
+# 不带 --execute 只输出方案；固定最多1次真实请求、128 completion tokens，不自动重试。
+node --import tsx scripts/verify-live-fallback.ts --config /absolute/private/demo.monad.json --output /absolute/new-output --execute
+# 已有目录只能审计，不再执行付费调用。
+node --import tsx scripts/verify-live-fallback.ts --audit-output /absolute/existing-output
+node --import tsx --test scripts/test/live-fallback.test.ts
+```
+
+2项受控测试覆盖成功、原付款缓存/重启、防重复执行、证据篡改拒绝与备用派发结果未知时停止。执行日志及签名 handle 保留在私有忽略目录；命令不使用配置内的 Monad 钱包或广播测试网交易。

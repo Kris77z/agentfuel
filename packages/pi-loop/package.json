@@ -5,8 +5,10 @@
   "exports": {
     ".": "./src/index.ts",
     "./provider": "./src/provider.ts",
+    "./public-sample": "./src/public-sample.ts",
     "./session": "./src/session.ts",
-    "./fixed-task": "./src/fixed-task.ts"
+    "./fixed-task": "./src/fixed-task.ts",
+    "./selector": "./src/selector.ts"
   },
   "engines": {
     "node": ">=22.19.0"

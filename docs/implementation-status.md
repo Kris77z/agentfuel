@@ -1,9 +1,12 @@
 # Implementation status
 
-更新日期：2026-10-06。完成判据保持 ENGINEERING v5.3 §9 原范围；本地 mocks/受控模型输出不等于 Monad 部署或真实 Kimi。下表分别标明主 Agent 独立复跑与仅审代码/报告的范围。
+更新日期：2026-10-07。完成判据保持 ENGINEERING v5.3 §9 原范围；本地 mocks/受控模型输出不等于 Monad 部署或真实 Kimi。下表分别标明主 Agent 独立复跑与仅审代码/报告的范围。
 
 | 已有组件/证据 | 当前状态与边界 |
 | --- | --- |
+| 规则驱动选单/选档（2026-10-07） | 已实现预设 Assigned 任务、宿主能力标签、受信 provider 两档的确定性选择；按价格→期限→taskId→provider/tier排序，精确锁价及原 PaymentHandle 恢复。root独立12项选择器+4项入口测试通过。真实K2.6一次：从求和/括号候选中选括号 cheap，1530 tokens，现金40000→30000、贷款0，原session再读不新增调用/付款。只验收一次 SDK 购买，不自动接单、执行生成代码或完整自主调度；能力标签不是模型能力基准。见[模块](../packages/pi-loop/README.md)与[验收](../demo-output/live-selection-20261007-root/root-acceptance.json)。 |
+| 四题固定价信用 B（2026-10-07） | 求和/去重排序/括号/词频真实K2.6各一次，共1116 tokens，每题使用独立新Anvil fixture；各付120000（cash40000+credit80000），还92000（含fee12000），最终cash58000、未偿0。独立Arena共19项通过，root新Docker复跑19项通过。root独立脚本/provider/sample共44项和最终受影响2项复跑通过；首次成功即停，不证明自然修复。见[runbook](../packages/pi-loop/FIXED_PRICE.md)与[验收](../demo-output/live-catalog-20261007-root/root-acceptance.json)。 |
+| 注入拒绝后的真实备用调用（2026-10-07） | 普通Relay宿主注入首候选429（未发供应商请求），同cheap档真实K2.6一次、15 tokens、一次10000现金付款。原handle回放/Relay重启未新增付款或调用；root独立2项受控测试、原请求响应/签名/ProviderPaid审计通过，并补usage上限与总数审计。此为故障演练，不能称自然供应商故障、跨档降级或Magpie fallback。见[Relay](../services/provider-relay/README.md)与[验收](../demo-output/live-fallback-20261007-root/root-acceptance.json)。 |
 | 网页 GameFi runner（2026-10-05） | 已实现本机运营网页开局、阶段轮询、原 UUID 重试与恢复；服务端固定两位 Agent，复用真实 Kimi 与原 USDC 奖励 CLI，浏览器不能选择路径/钱包/模型/赢家。全局持久 writer 锁覆盖阶段，未知对局/付款不自动重开。USDC 路径已有 2026-10-04 实网奖后消费证据；本轮新USDC局已完成：原存款入cash0.1、消费0.01完成真实Kimi29 tokens、余额0.09、借款0，root独立核验通过。见[runner 运行](gamefi-runner.md)与[本轮汇总](../demo-output/gamefi-complete-20261005-root/root-acceptance.json)。 |
 | Kimi 推理额度（2026-10-05） | 已实现可信 replay 重算赢家、每局共发 4096 token（平局各 2048）、唯一 grant/match 绑定和固定运营身份。先持久化意图与预留，再单次调用；按真实 input/output usage 扣减，未知保留预留，同 ID 返回原状态/缓存，超额阻止新消费。真实额度局 b3f24ce8-4270-4a05-baf6-c80675237fc3 向 Agent1999 发 4096，实际消费 24，余额 4072，重复 ID 缓存。见[额度规则](../services/arena/src/inference-rewards/README.md)与[本轮汇总](../demo-output/gamefi-complete-20261005-root/root-acceptance.json)。 |
 | 四游戏练习持久化（2026-10-05） | 已实现规则重放、日志、席位和幂等请求的本地原子快照及 writer 锁，默认 .data/arena-freeplay.json、ARENA_PLAY_STATE_PATH 可覆盖；服务重启恢复同局。练习仍使用本地策略 Bot、不发奖励。root 本轮重启验收与汇总见[本轮记录](../demo-output/gamefi-complete-20261005-root/root-acceptance.json)，运行边界见[练习 API](free-arena.md)。 |
@@ -183,3 +186,12 @@ Alchemy代理与dRPC代理（读取gas100000）各恢复1次，均在award预检
 新增`--scenario strong-only`仅允许local，固定strong,strong最多两轮，每轮completion≤2048、5分钟，首轮通过即停。场景加入原恢复绑定，换场景拒绝；默认计划与旧local/Monad历史证据审计兼容。资金为本地mock-USDC，0.12固定报价不是vendor模型账单。
 
 [原报告](../demo-output/live-strong-only-20261006-root/report.json)、[root独立验收](../demo-output/live-strong-only-20261006-root/root-acceptance.json)、[受控12项测试](../demo-output/strong-only-20261006-root/controlled-tests.tap)。下一步仍按风险清单推进真实fallback有界验收或预设候选的规则选档选单；不为获得修复记录而故意重跑成功任务。
+
+
+## 2026-10-07 本轮验收与剩余边界
+
+三项扩展使用原协议和既有依赖。本轮共6次真实Kimi调用（四题4次、备用1次、选择器1次），不做付费重试；均由主Agent执行并独立审查保存的请求、响应与原始链回执，四题代码另由新Docker验收19/19。62项定向受控测试（44+12+4+2）及全项目typecheck含前端通过；四题恢复逻辑最终修改后另复跑受影响2项。未重跑不相关的全量合约/前端浏览器套件。
+
+本轮全部资金验证使用隔离Anvil/mock-USDC，没有新增Monad交易，也没有经过Magpie；此前Monad Task11/Magpie实证仍保留其原范围。选择器的creditLimit是宿主付款前检查，不能冒充新的链上额度隔离；实际受控forTask信用购买已覆盖，新增真实选择消费为cash-only。四题各自独立fixture，不能合并宣称同一Agent累积四次还款或升级。
+
+§9本轮可直接实施的三项已完成。后续仍有自然多轮修复/自然供应商故障的运行证据缺口；不为制造该证据故意重跑成功任务。下一功能项是固定环境和判据的窄范围仓库修复任务，尚未接入自动贷款。公开LP、循环额度、公开游戏报名和多手赛事不在本轮交付范围。新增接口尚未接入网页自动调度，网页和既有演示入口保持原业务范围。

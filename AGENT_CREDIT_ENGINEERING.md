@@ -10,12 +10,12 @@
 > **原计划时间盒：2026-09-14 → 2026-10-13；以下日期为原定排期，不代表已完成。**
 > **Demo 冻结日定在 10-10（周六），留 3 天缓冲做视频和提交材料。**
 
-> **2026-10-05 当前交付范围**：P0 四合约、授信、Relay/SDK、Docker 判题与前端已验收；
+> **2026-10-07 当前交付范围**：P0 四合约、授信、Relay/SDK、Docker 判题与前端已验收；
 > Monad 测试网七轮真实业务结算已完成（六次还款、一次违约），主角第三次还款从 640/B 升至 710/A。
 > 合约离线验收为 408 tests：404 passed / 0 failed / 4 skipped。详细证据和测试边界见
 > [implementation-status](docs/implementation-status.md)，§9 是演示验收范围，不代表本文全部长期规划已实现。
 > 真实流程经恢复完成；读取性能、运行稳定性及正式材料仍需收尾。
-> **§6.6 扩展已验收：真实 Magpie/Kimi/Pi 固定价信用服务在 Monad Task11 完成还款；五子棋真实模型对局以格式违例判负终局，费用仍在本地现金结算。德州真实 Kimi → Monad 赞助测试 USDC → 真实推理消费已有历史验收；网页真实开局、4096 Kimi 额度发放/消费及练习持久化已实现，当前验收见文末。真实多轮修复、真实模型 fallback 仍未验收。**
+> **§6.6 扩展已验收：真实 Magpie/Kimi/Pi 固定价信用服务在 Monad Task11 完成还款；五子棋真实模型对局以格式违例判负终局，费用仍在本地现金结算。德州真实 Kimi → Monad 赞助测试 USDC → 真实推理消费已有历史验收；网页真实开局、4096 Kimi 额度发放/消费及练习持久化已实现，当前验收见文末。真实四题固定价求解与“注入拒绝后调用真实备用模型”已于2026-10-07验收；自然多轮修复、自然供应商故障仍没有真实运行证据。**
 > 下一阶段按 [RISK_AND_MVP §9](AGENT_CREDIT_RISK_AND_MVP.md#9-下一阶段推进顺序2026-10-04评估) 推进；该节是待实施/验收计划，不改变 §4 的现有资金不变量。
 
 ## 开工依据与边界
@@ -1252,3 +1252,13 @@ runner、额度 ledger 与四游戏练习均有本地持久化和 writer 锁。�
 ## 2026-10-06 Strong 工具真实验收（当前）
 
 2026-10-06 strong-only真实工具验收已完成：新本地Anvil固定价信用任务经直营Kimi K3一次调用，输入307/输出86/总393 tokens，实际test_public_sample一次通过，独立Arena5/5并结算。现金40000+借款80000支付120000原始mock-USDC，费用12000、还款92000，最终cash58000、未偿0。root独立复跑12项受控脚本测试、全项目typecheck，校验原请求响应/签名/资金回执，并重新Docker判题5/5。首轮成功即停，没有人为错误或第二次模型调用，不证明自然多轮修复或真实fallback；本轮没有新增Monad交易、未经过Magpie，也不据usage推算vendor账单。 [独立验收](demo-output/live-strong-only-20261006-root/root-acceptance.json)，[复现与限制](packages/pi-loop/FIXED_PRICE.md)。这补齐此前“仅K3短探针、未验证工具”的缺口，旧运行仍保留各自原始范围。
+
+
+## 2026-10-07 扩展任务与备用路由
+
+固定价 B 保持一次 task-bound 付款，将原求和白名单扩展到现有四道 Python 题。题目绑定贯穿公开样例、solve spec、请求摘要、提交裁决与离线审计；不接受任意提示词或模型自称通过。`--catalog` 仅本地，每题一轮、最多四次模型调用，任一题未完成就停止。真实 K2.6 四题各一次成功，独立 Arena 19项和 root 新 Docker 19项均通过，各任务贷款结清。旧 Monad Task11 与默认求和绑定兼容，未新增测试网交易。
+
+普通 Relay 另完成“宿主注入完整拒绝 → 真实同档备用 Kimi”单次验收，付款回放/重启没有额外扣款或调用。它不等于自然供应商故障、跨档自动降级或模型能力对比。详细结果和后续边界见[当前工程状态](docs/implementation-status.md)，复现入口见[固定价 B](packages/pi-loop/FIXED_PRICE.md)和[Relay](services/provider-relay/README.md)。
+
+
+规则选择入口 `@agentfuel/pi-loop/selector` 已实现，按宿主白名单的能力、价格、cash/creditLimit、Assigned状态和期限做确定性筛选，决策与报价先持久化再付款。真实单次验收从两个候选中选括号题cheap并完成现金购买；受控测试另覆盖显式forTask信用、资金变化与未知恢复。当前不自动接单、不执行生成代码、不接网页调度，host creditLimit也不改变原链上policy；[选择器边界与复现](packages/pi-loop/README.md)及[当前状态](docs/implementation-status.md)为准。

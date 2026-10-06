@@ -66,3 +66,54 @@ root已独立验收[真实Kimi信用B与实际Magpie本地流程](../../demo-out
 [Monad Task11真实流程](../../demo-output/live-monad-pi-20261004-alchemy-root/root-acceptance.json)也已由root独立验收，另有[canonical固定区块审计](../../demo-output/live-monad-pi-20261004-alchemy-root/root-canonical-audit.json)。Alchemy直连和root进程500ms请求间隔下，253个宿主RPC全部成功，独立settler不计在内。一次真实K2.6经实际Magpie返回工具调用，usage输入190/输出40/总230；独立Arena5/5和目标链TaskSettled通过。实际cash105396+draw14604=120000，fee438、还款15042原始单位；最终cash134958、还款次数4、违约0、未偿0。provider=poster=refunder的有意角色复用及原provider保留已在报告中说明。首轮成功不等于多轮修复，运营报价也不是vendor账单；Task9/10失败及退款仍保留为历史证据。
 
 [真实验证脚本](../../scripts/verify-live-fixed-price.ts)支持既有Monad部署、原handle/交易journal恢复和离线证据审计；Alchemy私有RPC文件配合`--rpc-transport direct`的具体预检与审计命令见[固定价入口](FIXED_PRICE.md#真实执行入口)。[Magpie](../../docs/magpie-gateway.md)与[双Agent五子棋现金Arena](../../docs/gomoku-arena.md)已有独立实现，不再列为P1排除。棋牌当前只使用双方独立cash预算；共享奖金授信、逐轮储值退款、by-intent和完整自主选任务仍未实现，标准x402亦未验证。
+
+## 预设候选任务的付款前选择
+
+`@agentfuel/pi-loop/selector` 是独立 opt-in 宿主入口，原显式 cash loop 和固定价 B 配置保持不变。`runSelectedInference` 从宿主预设、链上已经 Assigned 的候选任务和受信 provider 中选择**一次 SDK 推理购买**。它不自动接任务，不运行代码或 Pi 工具，也不提交 Arena；返回 `Delivered` 只表示这次推理已交付，不能作为任务成功。四题型仅限 Arena 现有的 `sum-integers`、`unique-sorted`、`balanced-brackets`、`word-frequency`，消息只取公开 catalog，不读 hidden tests。后续工具求解和最终判题仍走各自入口。
+
+宿主为每条 route 明确声明 `python3-json-stdio` 和可处理题型的能力标签、`cheap`/`strong`、精确报价、固定收款地址和 Relay URL。标签是受信配置的声明，不是模型能力测评。任务配置只接受预设题型绑定、taskId、原 deadline 和明确 `creditLimit`；任务正文或模型输出不进入配置，不参与改价、改地址或选档。每个 provider 的两档同时配置时必须 cheap < strong。金额全部用十进制字符串和 BigInt。
+
+入口读取当前 cash 和每个任务的 Assigned/agentId/deadline，再按能力、`maxPrice`、cash 加该任务明确授信上限、剩余时间筛选。可行候选按报价、最近 deadline、数值 taskId、providerId、tier 排序；没有可行项则持久保存 `Stopped/NO_FEASIBLE_CANDIDATE`，不请求报价、不付款。预算只计运营报价，不含 gas 或 vendor 账单。现金足够的候选固定走 `infer.fetch` 的 taskId0；只有 `allowCredit=true`、显式 underwriter 和现金不足时才走该 task 的 `forTask`，原协议仍检查身份、贷款和授信条件，不能为原任务通过新 nonce 再提款。
+
+```ts
+import { runSelectedInference, type SelectionConfig } from "@agentfuel/pi-loop/selector";
+const selection: SelectionConfig = {
+  agentId: "1", chainId: "31337", account, asset, escrowAddress,
+  // taskId/problemId/deadline 来自宿主核对的绑定，不从任意任务文本解析。
+  tasks: [{ taskId: assignedTaskId, problemId: "balanced-brackets",
+    deadlineMs: assignedDeadlineSeconds * 1000, creditLimit: "20000" }],
+  providers: [{ id: "trusted", payTo: provider, relayUrl: relayBase + "/v1/chat",
+    service: "infercredit/coder", model: "coder", routes: [
+      { tier: "cheap", price: "10000", capabilities: ["python3-json-stdio", "sum-integers"] },
+      { tier: "strong", price: "30000", capabilities: ["python3-json-stdio", "balanced-brackets"] },
+    ] }],
+  allowCredit: false, maxPrice: "30000", deadlineMs: hostDeadlineMs,
+  minRemainingMs: 5000, maxCompletionTokens: 128,
+};
+// signer 使用宿主已配置的 JSON-RPC provider；这里不复制 RPC 密钥或创建新钱包。
+const purchase = await runSelectedInference(selectionDirectory, selection, { signer });
+// 明确允许任务信用时才同时设置 allowCredit:true 与 { signer, underwriterUrl }。
+```
+
+决策先用现有 SessionStore 原子落盘，记录受信 configHash、资金/任务 snapshotHash、所有候选的排除原因和选中项。SDK await `onHandle` 核对精确原价、档位、请求 digest 和原 paymentId，再保存 PaymentHandle/报价预留，保存失败停止付款。SDK 的链、钱包、provider/domain 校验继续生效。每次签名、广播或相同 raw 重播前重读 cash 和任务状态/期限；资金变少不能把原 cash 选择升级成信用，不重新排序、不换 provider、不另开付款。回执还核对金额、资金拆分、档位和 domain；异常保留证据而非宣称交付成功。`creditLimit` 是宿主准入及付款前检查上限，**没有修改原合约 policy 或 underwriter 的签名额度，也不是新增链上资金隔离**；同一账户的外部并发消费仍受原协议约束，宿主应顺序执行该钱包付款。
+
+同目录恢复要求原配置和完整决策快照一致。已保存 `Delivered` 结果直接返回；未知付款/上游响应保留 `Paused`、原 handle 和预留，只 resume 原 ID，不重新报价或派发下一候选。到达 deadline 后不调用 SDK、新签或重播；已经保存的结果仍可读，尚未领取的已付款 handle 留给原支付状态查询/人工核对。锁及显式崩溃恢复沿用 SessionStore 的单机 writer 规则。配置不含 key；Relay URL 拒绝 userinfo/query/fragment，不把 credential-bearing URL 写入会话。
+
+受控回归通过隔离 Anvil/mock-USDC 和真实 SDK→Relay 付款，验证四题规则、BigInt 排序、无可行候选零报价/零付款、变价/过期/持久化失败停止、现金变化不升级信用、原 ID 未知恢复不重付或重发，以及一次显式 task-credit 强档购买。未运行真实模型或公网链交易，未验证自动任务发现、接单或完整自主调度：
+
+```sh
+node --import tsx --test packages/pi-loop/test/selector.test.ts
+npm run typecheck:all
+```
+
+[选择验收脚本](../../scripts/verify-live-selection.ts)固定两个预设 Assigned 候选（sum/brackets）和一个受信 provider 的两档配置，实际通过选择器选择 brackets 的 cheap 档。默认仅打印计划；`--execute` 必须使用全新绝对输出目录，最多一次K2.6、2048 completion tokens、5分钟、cash-only，未知停止，不重复执行已有 output。受控脚本回归另验证缺少原链回执不能报成功。原始请求/响应、选择会话/handle/receipt、签名付款交易、ProviderPaid raw receipt、余额和同会话恢复观察均在关链前保存；离线审计复算决策并核对模型/usage/token cap、原价、付款事件和恢复零新增付款/请求。它不执行返回代码，也不证明 Pi 工具或 Arena 任务成功。当前只有受控脚本测试，真实一次验收留给 root：
+
+```sh
+node --import tsx scripts/verify-live-selection.ts --config /absolute/private/demo.monad.json
+node --import tsx scripts/verify-live-selection.ts --config /absolute/private/demo.monad.json --output /absolute/fresh-output --execute
+node --import tsx scripts/verify-live-selection.ts --audit-output /absolute/existing-output
+node --import tsx --test scripts/test/live-selection.test.ts
+```
+
+
+2026-10-07 root真实选择验收通过：宿主预设求和/括号候选及能力标签，选择器选出括号cheap→真实Kimi K2.6一次（输入76/输出1454/总1530 tokens，含1301 reasoning）。本地cash40000→30000、credit0；重复读取同session没有新增模型、付款或nonce。保存签名和ProviderPaid原始回执已离线复核，见[独立验收](../../demo-output/live-selection-20261007-root/root-acceptance.json)。root独立12+4项测试和typecheck:all通过；这次不执行返回代码、不调用Arena、不证明题目已完成，不参与Monad或Magpie。能力标签来自宿主策略，不是模型能力测试结果。

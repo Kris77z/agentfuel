@@ -6,7 +6,7 @@ import { Contract, Wallet } from "ethers";
 import { requestDigest, sameAddress, type ChatInput, type Json, type Quote, type RoutingTier } from "@agentfuel/sdk/protocol";
 import { runProviderSolver, validateSolveSpec, type SolveSpec } from "@agentfuel/pi-loop/provider";
 import { SessionStore } from "@agentfuel/pi-loop/session";
-import { PUBLIC_SAMPLE } from "@agentfuel/pi-loop";
+import { publicSampleFor } from "@agentfuel/pi-loop/public-sample";
 import type { DockerExecutor } from "@agentfuel/arena/docker";
 import { upstreamUrl, type RelayConfig, type Upstream } from "./config.js";
 import { Relay, RelayError, type RelayOptions } from "./relay.js";
@@ -34,10 +34,10 @@ export class FixedPriceSolvingRelay extends Relay {
   override validate(value: unknown, forQuote = true): ChatInput {
     const input = super.validate(value, forQuote);
     try {
+      const spec = validateSolveSpec(input.solve, forQuote);
       if (Object.keys(input).sort().join(",") !== "agentId,messages,model,service,solve,taskId" || input.taskId === "0" ||
         input.service !== FIXED_SOLVE_SERVICE || input.model !== FIXED_SOLVE_MODEL ||
-        !isDeepStrictEqual(input.messages, [{ role: "user", content: PUBLIC_SAMPLE.prompt }])) throw new Error();
-      validateSolveSpec(input.solve, forQuote);
+        !isDeepStrictEqual(input.messages, [{ role: "user", content: publicSampleFor(spec.problemId).prompt }])) throw new Error();
     } catch { throw new RelayError("INVALID_SOLVE_REQUEST", "Use the fixed public task and bounded solve specification", 400); }
     return input;
   }

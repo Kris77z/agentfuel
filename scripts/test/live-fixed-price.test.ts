@@ -10,9 +10,9 @@ import { tmpdir } from "node:os";
 import { Wallet, JsonRpcProvider } from "ethers";
 import { ALL_ROLES, SIGNING_ROLES, MONAD_IDENTITY, MONAD_REPUTATION, MONAD_USDC } from "../demo-monad-config.js";
 import { key, startAnvil, stopAnvil } from "../../services/underwriter/test/fixture.js";
-import { verifyLiveFixedPrice, BoundedWallet } from "../verify-live-fixed-price.js";
+import { verifyLiveFixedPrice, verifyLiveFixedCatalog, LIVE_FIXED_CATALOG_PLAN, BoundedWallet } from "../verify-live-fixed-price.js";
 import { auditSavedFixedPrice } from "../live-fixed-price-evidence.js";
-import { PUBLIC_SAMPLE } from "../../packages/pi-loop/src/public-sample.js";
+import { PUBLIC_SAMPLE, publicSampleFor } from "../../packages/pi-loop/src/public-sample.js";
 
 async function config(directory: string) {
   const keys = { deployer: 1, guardian: 1, treasury: 1, poster: 1, underwriter: 3, verifier: 4, hero: 2, veteran: 5, defaulted: 6, rotatedOwner: 7, rotatedWallet: 8, provider: 9, refunder: 1 };
@@ -23,6 +23,85 @@ async function config(directory: string) {
 }
 const good = "import json,sys\nprint(json.dumps(sum(json.load(sys.stdin))))\n";
 const response = (code: string, model = "kimi-k2.6", id = "call_real") => Response.json({ model, choices: [{ finish_reason: "tool_calls", message: { role: "assistant", content: null, tool_calls: [{ id, type: "function", function: { name: "test_public_sample", arguments: JSON.stringify({ code }) } }] } }], usage: { prompt_tokens: 40, completion_tokens: 55, total_tokens: 95 } });
+const catalogCode = {
+  "sum-integers": good,
+  "unique-sorted": "import json,sys\nprint(json.dumps(sorted(set(json.load(sys.stdin)))))\n",
+  "balanced-brackets": "import json,sys\ns=json.load(sys.stdin)\nstack=[]\npairs={')':'(',']':'[','}':'{'}\nok=True\nfor c in s:\n if c in '([{': stack.append(c)\n elif not stack or stack.pop()!=pairs[c]:\n  ok=False\n  break\nprint(json.dumps(ok and not stack))\n",
+  "word-frequency": "import json,sys\nfrom collections import Counter\nprint(json.dumps(dict(Counter(json.load(sys.stdin)))))\n",
+};
+
+test("catalog selection rejects arbitrary input and Monad execution before configuration or network", async () => {
+  const options = { mode: "local" as const, configFile: "/does-not-exist", output: "/does-not-exist-output" };
+  for (const problemId of ["unknown", "constructor", "__proto__", null, "", false]) await assert.rejects(verifyLiveFixedPrice({ ...options, problemId: problemId as any }), /INVALID_FIXED_PROBLEM/);
+  await assert.rejects(verifyLiveFixedPrice({ ...options, mode: "monad", problemId: "unique-sorted" }), /CATALOG_LOCAL_REQUIRED/);
+  await assert.rejects(verifyLiveFixedCatalog({ ...options, mode: "monad" }), /CATALOG_LOCAL_REQUIRED/);
+  await assert.rejects(verifyLiveFixedCatalog({ ...options, problemId: "sum-integers" } as any), /CATALOG_FIXED_TASKS_REQUIRED/);
+  const path = fileURLToPath(new URL("../verify-live-fixed-price.ts", import.meta.url));
+  for (const args of [["--problem-id"], ["--problem-id", "unknown"], ["--problem-id", "sum-integers", "--problem-id", "unique-sorted"]]) await assert.rejects(promisify(execFile)(process.execPath, ["--import", "tsx", path, ...args]), (error: any) => error.code === 1 && error.stderr.trim() === "INVALID_FIXED_PROBLEM");
+  await assert.rejects(promisify(execFile)(process.execPath, ["--import", "tsx", path, "--mode", "monad", "--catalog"]), (error: any) => error.code === 1 && error.stderr.trim() === "CATALOG_LOCAL_REQUIRED");
+});
+
+test("controlled four-task batch pays once per task, uses public tools, independently settles all hidden cases and resumes without calls", { timeout: 240000 }, async () => {
+  const directory = await mkdtemp(join(tmpdir(), "af-catalog-four-")); let calls = 0;
+  try {
+    const configFile = await config(directory), output = join(directory, "output"), options = { mode: "local" as const, configFile, output };
+    const readonly = await verifyLiveFixedCatalog(options); assert.equal(readonly.complete, false); assert.ok("paidModelEndpointNotCalled" in readonly); assert.equal(readonly.paidModelEndpointNotCalled, true);
+    assert.deepEqual(readonly.plan, LIVE_FIXED_CATALOG_PLAN); assert.equal(readonly.plan.maxModelCalls, 4); assert.equal(readonly.plan.maxRoundsPerTask, 1);
+    const report = await verifyLiveFixedCatalog({ ...options, execute: true }, async (_url, init) => {
+      const problemId = LIVE_FIXED_CATALOG_PLAN.problemIds[calls++], sample = publicSampleFor(problemId), request = JSON.parse(String(init?.body));
+      assert.equal(request.model, "kimi-k2.6"); assert.equal(request.max_completion_tokens, 2048);
+      assert.deepEqual(request.messages.filter((m: any) => m.role === "user"), [{ role: "user", content: sample.prompt }]);
+      assert.equal(JSON.stringify(request).includes("19999999999"), false); assert.equal(JSON.stringify(request).includes("tostring"), false);
+      assert.deepEqual(Object.keys(request.tools[0].function.parameters.properties), ["code"]);
+      return response(catalogCode[problemId], "kimi-k2.6", `call_catalog_${calls}`);
+    });
+    assert.equal(report.complete, true, JSON.stringify(report)); assert.equal(calls, 4); assert.equal(report.modelCalls, 4);
+    for (const run of report.runs) {
+      assert.equal(run.complete, true); const saved = JSON.parse(await readFile(join(run.output, "session/session.json"), "utf8"));
+      assert.equal(saved.config.solve.problemId, run.problemId); assert.equal(saved.config.solve.maxRounds, 1); assert.deepEqual(saved.config.solve.tiers, ["cheap"]);
+      const audit = await auditSavedFixedPrice(run.output); assert.equal(audit.problemId, run.problemId); assert.equal(audit.rounds, 1); assert.equal(audit.toolCalls, 1);
+      assert.equal(audit.fixedPriceRaw, "120000"); assert.equal(audit.fromCash, "40000"); assert.equal(audit.fromCredit, "80000"); assert.equal(audit.fee, "12000"); assert.equal(audit.repaid, "92000");
+      assert.equal(audit.rawTaskSettledValidated, true); assert.equal(audit.signedSettlementValidated, true);
+      assert.equal(saved.submission.result.verdict.problemId, run.problemId); assert.equal(saved.submission.result.verdict.passed, true);
+      assert.equal(saved.submission.result.tests.length, { "sum-integers": 5, "unique-sorted": 4, "balanced-brackets": 6, "word-frequency": 4 }[run.problemId]);
+    }
+    const resumed = await verifyLiveFixedCatalog({ ...options, execute: true, resume: true }, async () => { calls++; throw new Error("No redispatch"); });
+    assert.equal(resumed.complete, true); assert.equal(resumed.modelCalls, 4); assert.equal(calls, 4);
+    const selected = report.runs[1], path = join(selected.output, "report.json"), original = await readFile(path, "utf8");
+    for (const mutate of [(r: any) => { r.plan.problemId = "word-frequency"; }, (r: any) => { delete r.plan.scenario; }, (r: any) => { r.plan.maxRounds = 2; }]) {
+      const changed = JSON.parse(original); mutate(changed); await writeFile(path, JSON.stringify(changed));
+      await assert.rejects(verifyLiveFixedCatalog({ ...options, execute: true, resume: true }, async () => { calls++; throw new Error("No mismatched dispatch"); }));
+      await assert.rejects(auditSavedFixedPrice(selected.output)); await writeFile(path, original); assert.equal(calls, 4);
+    }
+    const statePath = join(output, "catalog/session.json"), state = JSON.parse(await readFile(statePath, "utf8")); state.modelCalls = 0; await writeFile(statePath, JSON.stringify(state));
+    const recounted = await verifyLiveFixedCatalog({ ...options, execute: true, resume: true }, async () => { calls++; throw new Error("No recount dispatch"); });
+    assert.equal(recounted.complete, true); assert.equal(recounted.modelCalls, 4); assert.equal(calls, 4);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test("passing a public-only word-frequency answer does not pass independent Arena or repay the task loan", { timeout: 120000 }, async () => {
+  const directory = await mkdtemp(join(tmpdir(), "af-catalog-hidden-")); let calls = 0;
+  try {
+    const sample = publicSampleFor("word-frequency"), code = `print(${JSON.stringify(JSON.stringify(sample.expected))})\n`;
+    const report = await verifyLiveFixedPrice({ mode: "local", configFile: await config(directory), output: join(directory, "output"), execute: true, problemId: "word-frequency" }, async () => { calls++; return response(code); });
+    assert.equal(calls, 1); assert.equal(report.complete, false); assert.equal(report.outcome, "Failed"); assert.equal(report.clientReason, "ARENA_TASK_FAILED");
+    const saved = JSON.parse(await readFile(join(directory, "output/session/session.json"), "utf8"));
+    assert.equal(saved.qualification.passed, true); assert.equal(saved.submission.result.verdict.passed, false); assert.equal(saved.submission.result.verdict.problemId, "word-frequency");
+    assert.equal(saved.submission.result.tests.some((test: any) => test.passed === false), true); assert.equal(report.chain.after.loan[4], "3");
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test("unknown catalog dispatch stops the remaining tasks; original recovery cannot exceed the one-call bound", { timeout: 120000 }, async () => {
+  const directory = await mkdtemp(join(tmpdir(), "af-catalog-unknown-")); let calls = 0;
+  try {
+    const options = { mode: "local" as const, configFile: await config(directory), output: join(directory, "output"), execute: true };
+    const report = await verifyLiveFixedCatalog(options, async () => { calls++; throw new Error("Unknown controlled request"); });
+    assert.equal(report.complete, false); assert.equal(report.modelCalls, 1); assert.ok("stoppedAt" in report); assert.equal(report.stoppedAt, "sum-integers"); assert.equal(calls, 1);
+    assert.equal(report.runs.filter(run => run.started).length, 1);
+    const resumed = await verifyLiveFixedCatalog({ ...options, resume: true }, async () => { calls++; throw new Error("Never retry unknown model"); });
+    assert.equal(resumed.complete, false); assert.equal(resumed.modelCalls, 1); assert.equal(calls, 1); assert.equal(resumed.runs.filter(run => run.started).length, 1);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
 
 test("strong-only is explicit and local; invalid or missing scenario values reject before configuration or network access", async () => {
   const invalid = { mode: "local" as const, configFile: "/does-not-exist", output: "/does-not-exist-output" };

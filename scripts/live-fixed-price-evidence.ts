@@ -9,7 +9,8 @@ import { AUTH_TYPES } from "../services/underwriter/src/underwriter.js";
 import { submissionTypedData } from "../services/arena/src/submission-auth.js";
 import { digest } from "../services/arena/src/protocol.js";
 import { assistantFromInference, toRelayMessages } from "../packages/pi-loop/src/adapter.js";
-import { PUBLIC_SAMPLE } from "../packages/pi-loop/src/public-sample.js";
+import { isFixedProblemId, publicSampleFor } from "../packages/pi-loop/src/public-sample.js";
+import { hiddenTests } from "../services/arena/src/problems.js";
 import type { FixedTaskSession } from "../packages/pi-loop/src/fixed-task.js";
 import { verifyProviderPaid } from "./live-tiers-evidence.js";
 import { saveJson } from "./demo-common.js";
@@ -26,24 +27,28 @@ export async function auditSavedFixedPrice(outputDir: string) {
     assert.equal(report.version, 1); assert.ok(["real-kimi-system-https-proxy", "real-kimi-via-configured-gateway", "controlled"].includes(report.upstreamMode));
     // Old default reports deliberately have no scenario field; keep their plan/binding intact.
     const scenario = report.plan.scenario;
-    assert.ok(scenario === undefined || scenario === "strong-only");
-    assert.deepEqual(report.plan.tiers, scenario === "strong-only" ? ["strong", "strong"] : ["cheap", "strong", "strong"]);
-    assert.equal(report.plan.maxRounds, scenario === "strong-only" ? 2 : 3);
+    assert.ok(scenario === undefined || scenario === "strong-only" || scenario === "catalog-once");
+    const problemId = report.plan.problemId ?? "sum-integers"; assert.ok(isFixedProblemId(problemId));
+    if (scenario === undefined) assert.equal(report.plan.problemId, undefined);
+    if (scenario === "catalog-once") assert.equal(report.plan.problemId, problemId);
+    const sample = publicSampleFor(problemId);
+    assert.deepEqual(report.plan.tiers, scenario === "strong-only" ? ["strong", "strong"] : scenario === "catalog-once" ? ["cheap"] : ["cheap", "strong", "strong"]);
+    assert.equal(report.plan.maxRounds, scenario === "strong-only" ? 2 : scenario === "catalog-once" ? 1 : 3);
     assert.equal(report.plan.maxCompletionTokens, 2048); assert.equal(report.plan.maxToolCalls, 4); assert.equal(report.plan.deadlineMs, 300000);
     assert.equal(report.plan.modelRetries, 0); assert.equal(report.plan.fixedPriceRaw, "120000"); assert.equal(report.plan.rewardRaw, "150000");
     assert.deepEqual(session.config.solve.tiers, report.plan.tiers); assert.equal(session.config.solve.maxRounds, report.plan.maxRounds);
     assert.equal(session.config.solve.maxCompletionTokens, report.plan.maxCompletionTokens); assert.equal(session.config.solve.maxToolCalls, report.plan.maxToolCalls);
-    assert.equal(session.config.solve.problemId, PUBLIC_SAMPLE.problemId); assert.equal(session.config.solve.deadlineMs, session.config.deadlineMs);
+    assert.equal(session.config.solve.problemId, problemId); assert.equal(session.config.solve.deadlineMs, session.config.deadlineMs);
     const runner = await json("runner/session.json");
     assert.deepEqual(runner.client, session.config); assert.equal(runner.mode, report.mode);
-    if (scenario === "strong-only") { assert.equal(report.mode, "local"); assert.equal(session.config.chainId, "31337"); }
+    if (scenario === "strong-only" || scenario === "catalog-once") { assert.equal(report.mode, "local"); assert.equal(session.config.chainId, "31337"); }
     const chain = report.chain, handle = session.handle!, quote = handle.quote, receipt = session.inference!.receipt;
     const result = session.inference!.result as any, run = result.run, record = await json(`relay/${quote.paymentId}.json`), providerRun = await json(`relay/solve-runs/${quote.paymentId}/session.json`);
     assert.equal(session.phase, "Succeeded"); assert.equal(report.clientPhase, "Succeeded"); assert.equal(report.complete, true);
     assert.equal(session.config.chainId, chain.chainId); assert.equal(session.config.taskId, chain.taskId); assert.equal(session.config.agentId, chain.agentId);
     assert.ok(sameAddress(session.config.account, chain.account)); assert.ok(sameAddress(session.config.provider, chain.provider)); assert.ok(sameAddress(session.config.asset, chain.asset));
     assert.equal(handle.input.taskId, chain.taskId); assert.equal(handle.input.agentId, chain.agentId); assert.equal(handle.input.service, "infercredit/solve-fixed"); assert.equal(handle.input.model, "pi-fixed-v1");
-    assert.deepEqual(handle.input.solve, session.config.solve); assert.deepEqual(handle.input.messages, [{ role: "user", content: PUBLIC_SAMPLE.prompt }]);
+    assert.deepEqual(handle.input.solve, session.config.solve); assert.deepEqual(handle.input.messages, [{ role: "user", content: sample.prompt }]);
     assert.equal(quote.requestDigest, requestDigest(handle.input)); assert.equal(quote.paymentId, paymentId(chain.taskId, quote.requestDigest, quote.serverNonce));
     assert.equal(quote.price, report.plan.fixedPriceRaw); assert.equal(session.reservedPrice, quote.price); assert.equal(quote.price, session.config.maxServicePrice);
     assert.equal(quote.chainId, chain.chainId); assert.equal(quote.agentId, chain.agentId); assert.equal(quote.taskId, chain.taskId); assert.equal(quote.service, handle.input.service); assert.equal(quote.model, handle.input.model);
@@ -80,7 +85,7 @@ export async function auditSavedFixedPrice(outputDir: string) {
       assert.deepEqual(physical.messages, toRelayMessages(normalizeContext({ messages: run.messages.slice(0, assistants[i].index) })));
       if (i === 0) {
         assert.ok(physical.messages.every((message: any) => message.role === "system" || message.role === "user"));
-        assert.deepEqual(physical.messages.filter((message: any) => message.role === "user"), [{ role: "user", content: PUBLIC_SAMPLE.prompt }]);
+        assert.deepEqual(physical.messages.filter((message: any) => message.role === "user"), [{ role: "user", content: sample.prompt }]);
       }
       assert.equal(physical.tools.length, 1); assert.equal(physical.tools[0].function.name, "test_public_sample"); assert.equal(physical.stream, undefined); assert.equal(physical.agentId, undefined); assert.equal(physical.taskId, undefined);
       if (round.tier === "cheap") assert.deepEqual(physical.thinking, { type: "disabled" }); else assert.equal(physical.reasoning_effort, "low");
@@ -104,17 +109,17 @@ export async function auditSavedFixedPrice(outputDir: string) {
         ids.add(key); assert.equal(journal.length, 1); assert.equal(journal[0].code, call.arguments.code);
         assert.equal(tool.role, "toolResult"); assert.equal(tool.toolCallId, call.id); assert.equal(tool.toolName, call.name); assert.equal(tool.isError, false);
         assert.deepEqual(JSON.parse(tool.content.map((p: any) => p.text ?? "").join("")), journal[0].result);
-        if (journal[0].result.passed) { assert.equal(JSON.parse(journal[0].result.stdout.trim()), PUBLIC_SAMPLE.expected); earlyPass = true; }
+        if (journal[0].result.passed) { assert.deepEqual(JSON.parse(journal[0].result.stdout.trim()), sample.expected); earlyPass = true; }
         observations.push({ round: i + 1, code: journal[0].code, passed: journal[0].result.passed });
       }
     }
     assert.equal(run.tools.length, ids.size); const last = run.rounds.at(-1); assert.equal(receipt.model, last.model); assert.equal(receipt.upstream, last.tier); assert.deepEqual(receipt.usage, last.response.usage);
-    assert.ok(observations.some(o => o.passed && o.code === result.code)); assert.equal(session.candidate, result.code); assert.equal(session.qualificationCodeHash, result.codeHash); assert.equal(session.qualification!.passed, true); assert.equal(JSON.parse(session.qualification!.stdout.trim()), PUBLIC_SAMPLE.expected);
+    assert.ok(observations.some(o => o.passed && o.code === result.code)); assert.equal(session.candidate, result.code); assert.equal(session.qualificationCodeHash, result.codeHash); assert.equal(session.qualification!.passed, true); assert.deepEqual(JSON.parse(session.qualification!.stdout.trim()), sample.expected);
     const submission = session.submission!, arena = submission.result as any; assert.equal(submission.payload.code, result.code); assert.equal(submission.payload.taskId, chain.taskId);
-    const typed = submissionTypedData({ rpcUrl: session.config.rpcUrl, chainId: chain.chainId, escrowAddress: chain.escrow, ipcDirectory: "/unused", tasks: { [chain.taskId]: { agentId: chain.agentId, problemId: PUBLIC_SAMPLE.problemId } } }, submission.payload);
+    const typed = submissionTypedData({ rpcUrl: session.config.rpcUrl, chainId: chain.chainId, escrowAddress: chain.escrow, ipcDirectory: "/unused", tasks: { [chain.taskId]: { agentId: chain.agentId, problemId } } }, submission.payload);
     assert.ok(sameAddress(verifyTypedData(typed.domain, typed.types, typed.message, submission.payload.signature), chain.agentAddress));
-    assert.equal(arena.verdict.passed, true); assert.equal(arena.verdict.mode, "docker"); assert.equal(arena.verdict.chainId, chain.chainId); assert.ok(sameAddress(arena.verdict.escrowAddress, chain.escrow)); assert.equal(arena.verdict.taskId, chain.taskId); assert.equal(arena.verdict.agentId, chain.agentId); assert.equal(arena.verdict.problemId, PUBLIC_SAMPLE.problemId); assert.equal(arena.verdict.runId, submission.runId);
-    assert.equal(arena.tests.length, 5); arena.tests.forEach((t: any, i: number) => { assert.equal(t.case, i + 1); assert.equal(t.passed, true); assert.equal(t.failure, undefined); }); assert.equal(arena.verdict.evidenceHash, digest(JSON.stringify({ codeHash: digest(result.code), results: arena.tests })));
+    assert.equal(arena.verdict.passed, true); assert.equal(arena.verdict.mode, "docker"); assert.equal(arena.verdict.chainId, chain.chainId); assert.ok(sameAddress(arena.verdict.escrowAddress, chain.escrow)); assert.equal(arena.verdict.taskId, chain.taskId); assert.equal(arena.verdict.agentId, chain.agentId); assert.equal(arena.verdict.problemId, problemId); assert.equal(arena.verdict.runId, submission.runId);
+    assert.equal(arena.tests.length, hiddenTests(problemId).length); arena.tests.forEach((t: any, i: number) => { assert.equal(t.case, i + 1); assert.equal(t.passed, true); assert.equal(t.failure, undefined); }); assert.equal(arena.verdict.evidenceHash, digest(JSON.stringify({ codeHash: digest(result.code), results: arena.tests })));
     const settlementJournal = await json("settlement-journal.json"), entry = settlementJournal[chain.taskId]; assert.deepEqual(entry.verdict, arena.verdict); assert.deepEqual(entry.settlement, arena.settlement); assert.equal(entry.verdictHash, digest(JSON.stringify(entry.verdict)));
     const signed = Transaction.from(entry.rawTx); assert.equal(signed.hash, entry.txHash); assert.equal(signed.hash, arena.settlement.txHash); assert.equal(signed.chainId, BigInt(chain.chainId)); assert.ok(sameAddress(signed.from!, chain.verifier)); assert.ok(sameAddress(signed.to!, chain.escrow));
     const settleCall = escrow.parseTransaction({ data: signed.data, value: signed.value })!; assert.equal(settleCall.name, "settle"); assert.equal(settleCall.args[0], BigInt(chain.taskId)); assert.equal(settleCall.args[1], true);
@@ -124,6 +129,7 @@ export async function auditSavedFixedPrice(outputDir: string) {
     assert.equal(BigInt(chain.after.cash), BigInt(chain.before.cash) - cash + settled[0].args.agentResidual); assert.equal(chain.before.taskStatus, "2"); assert.equal(chain.after.taskStatus, "3"); assert.equal(chain.before.loan[4], "0"); assert.equal(chain.after.loan[4], "2"); assert.equal(chain.after.loan[1], "0"); assert.equal(chain.after.loan[2], "0"); assert.equal(chain.after.totalOutstanding, chain.before.totalOutstanding);
     const repairObserved = observations.some(a => !a.passed && observations.some(b => b.passed && b.round > a.round && b.code !== a.code));
     const summary = { version: 1, fullyVerified: true, scope: "saved-artifacts", checkedAt: new Date().toISOString(), chainId: chain.chainId, upstreamMode: report.upstreamMode, scenario: scenario ?? "default",
+      ...(report.plan.problemId ? { problemId } : {}),
       rounds: run.rounds.length, toolCalls: run.tools.length, fixedPriceRaw: quote.price, fromCash: receipt.fromCash, fromCredit: receipt.fromCredit, feeBps: String(auth.feeBps), fee: fee.toString(),
       signedPaymentValidated: true, signedCreditAuthorizationValidated: true, rawProviderPaidValidated: true, rawLoanOpenedValidated: true, submissionSignatureValidated: true, signedSettlementValidated: true, rawTaskSettledValidated: true, repaid: (credit + fee).toString(),
       repairObserved, actualModelRequests: run.rounds.map((r: any) => ({ tier: r.tier, requestedModel: r.model, returnedModel: r.response.model, usage: r.response.usage })),

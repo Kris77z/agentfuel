@@ -10,7 +10,8 @@ import { DockerExecutor, type Execution } from "@agentfuel/arena/docker";
 import type { Json } from "@agentfuel/sdk";
 import { runProviderSolver, validateSolveSpec, type ProviderSolveOptions, type ProviderSolveState, type SolveSpec } from "../src/provider.js";
 import { SessionStore } from "../src/session.js";
-import { PUBLIC_SAMPLE } from "../src/public-sample.js";
+import { PUBLIC_SAMPLE, publicSampleFor } from "../src/public-sample.js";
+import { problemCatalog } from "@agentfuel/arena";
 
 const good = "import json,sys\nprint(json.dumps(sum(json.load(sys.stdin))))\n", wrong = "print(0)\n";
 const routes: ProviderSolveOptions["routes"] = { cheap: { name: "controlled-cheap", model: "controlled-cheap", baseUrl: "https://cheap.invalid/v1" }, strong: { name: "controlled-strong", model: "controlled-strong", baseUrl: "https://strong.invalid/v1" } };
@@ -37,11 +38,37 @@ const saved = async (directory: string): Promise<ProviderSolveState> => JSON.par
 
 test("solve spec is strict, bounded and expiry is allowed only for recovery validation", () => {
   const valid = spec(); assert.deepEqual(validateSolveSpec(valid), valid);
-  for (const value of [null, [], { ...valid, extra: true }, { ...valid, problemId: "word-frequency" }, { ...valid, version: 2 },
+  for (const value of [null, [], { ...valid, extra: true }, { ...valid, problemId: "arbitrary-program" }, { ...valid, problemId: "constructor" }, { ...valid, version: 2 },
     { ...valid, tiers: ["cheap", "other", "strong"] }, { ...valid, tiers: ["cheap"] }, { ...valid, maxRounds: 4 },
     { ...valid, maxToolCalls: 5 }, { ...valid, maxToolCalls: 0 }, { ...valid, maxCompletionTokens: 2049 }, { ...valid, maxRounds: 1.5 },
     { ...valid, deadlineMs: 0 }, { ...valid, deadlineMs: Date.now() + 310000 }, { ...valid, deadlineMs: Date.now() - 1 }]) assert.throws(() => validateSolveSpec(value));
   assert.ok(validateSolveSpec({ ...valid, deadlineMs: 1 }, false));
+  for (const problem of problemCatalog()) assert.equal(validateSolveSpec({ ...valid, problemId: problem.id }).problemId, problem.id);
+});
+
+test("all four fixed tasks select only their public sample; resume cannot switch the paid problem", async t => {
+  for (const problem of problemCatalog()) await t.test(problem.id, async () => directoryTest(async directory => {
+    const sample = publicSampleFor(problem.id), input = spec({ problemId: problem.id, maxRounds: 1, tiers: ["cheap"] }); let calls = 0, tools = 0;
+    const runner = new class extends DockerExecutor {
+      override async ready() {}
+      override async execute(code: string, stdin: string): Promise<Execution> {
+        tools++; assert.equal(code, "complete controlled code"); assert.equal(stdin, sample.input);
+        return { stdout: JSON.stringify(sample.expected) + "\n", exitCode: 0 };
+      }
+    };
+    const options: ProviderSolveOptions = { routes, runner, invoke: async (tier, body) => {
+      calls++; const request = body as any;
+      assert.deepEqual(request.messages.filter((m: any) => m.role === "user"), [{ role: "user", content: sample.prompt }]);
+      assert.equal(request.tools.length, 1); assert.equal(request.tools[0].function.name, "test_public_sample");
+      assert.deepEqual(Object.keys(request.tools[0].function.parameters.properties), ["code"]);
+      assert.equal(request.tools[0].function.parameters.additionalProperties, false);
+      return response("complete controlled code", routes[tier].model);
+    } };
+    const result = await runProviderSolver(directory, input, options); assert.equal(result.phase, "Delivered"); assert.equal(result.spec.problemId, problem.id);
+    assert.equal((await runProviderSolver(directory, input, options)).phase, "Delivered"); assert.equal(calls, 1); assert.equal(tools, 1);
+    const other = problemCatalog().find(p => p.id !== problem.id)!;
+    await assert.rejects(runProviderSolver(directory, { ...input, problemId: other.id }, options), /SOLVE_CONFIG_MISMATCH/); assert.equal(calls, 1);
+  }));
 });
 
 test("provider Pi repairs via fixed public feedback and uses only the controlled transport", async () => directoryTest(async directory => {

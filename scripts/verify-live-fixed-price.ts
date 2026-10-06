@@ -12,6 +12,8 @@ import { Contract, JsonRpcProvider, Wallet, type TransactionRequest } from "ethe
 import { runFixedPriceTask, type FixedTaskConfig, type FixedTaskSession } from "@agentfuel/pi-loop/fixed-task";
 import { SessionStore } from "@agentfuel/pi-loop/session";
 import { DockerExecutor } from "@agentfuel/arena/docker";
+import type { ProblemId } from "@agentfuel/arena";
+import { isFixedProblemId } from "@agentfuel/pi-loop/public-sample";
 import { FixedPriceSolvingRelay, FixedPriceRefunder, FIXED_SOLVE_MODEL, FIXED_SOLVE_SERVICE } from "../services/provider-relay/src/fixed-price.js";
 import { createHttpServer as relayHttp } from "../services/provider-relay/src/http.js";
 import { Underwriter } from "../services/underwriter/src/underwriter.js";
@@ -33,7 +35,10 @@ export const LIVE_FIXED_PLAN = { version: 1, fixedPriceRaw: "120000", rewardRaw:
   gasUnits: { poster: "650000", agent: "1300000", verifier: "2000000", refunder: "500000" },
   pricingMeaning: "Operator fixed service price; neither observed Kimi cost nor a model bill" };
 export interface LiveFixedOptions { mode: "local" | "monad"; configFile: string; deploymentFile?: string; output: string;
-  scenario?: "strong-only"; agentId?: string; execute?: boolean; resume?: boolean; recover?: boolean; enableRefunderProvider?: boolean; rpcUrlFile?: string; rpcTransport?: RpcTransport; maxFeePerGas?: string; routesFile?: string }
+  scenario?: "strong-only" | "catalog-once"; problemId?: ProblemId; agentId?: string; execute?: boolean; resume?: boolean; recover?: boolean; enableRefunderProvider?: boolean; rpcUrlFile?: string; rpcTransport?: RpcTransport; maxFeePerGas?: string; routesFile?: string }
+export const LIVE_FIXED_CATALOG_PLAN = Object.freeze({ version: 1, problemIds: Object.freeze(["sum-integers", "unique-sorted", "balanced-brackets", "word-frequency"] as const),
+  mode: "local", scenario: "catalog-once", maxRoundsPerTask: 1, maxModelCalls: 4, modelRetries: 0,
+  stopOnUnconfirmedTask: true, fixedPriceRawPerTask: "120000", rewardRawPerTask: "150000" });
 export async function readLiveRoutes(path: string) {
   const input = JSON.parse(await readFile(path, "utf8"));
   if (!input || typeof input !== "object" || Array.isArray(input) || Object.keys(input).sort().join(",") !== "cheap,strong") throw new Error("INVALID_LIVE_ROUTES");
@@ -79,13 +84,18 @@ async function addresses(file: string | undefined): Promise<ContractAddresses> {
 
 /** Default is read-only. The test-only controlled fetch cannot be selected from the CLI. */
 export async function verifyLiveFixedPrice(options: LiveFixedOptions, controlledFetch?: typeof fetch) {
-  if (options.scenario !== undefined && options.scenario !== "strong-only") throw new Error("INVALID_LIVE_SCENARIO");
+  if (options.scenario !== undefined && !["strong-only", "catalog-once"].includes(options.scenario)) throw new Error("INVALID_LIVE_SCENARIO");
   if (options.scenario === "strong-only" && options.mode !== "local") throw new Error("STRONG_ONLY_LOCAL_REQUIRED");
+  const problemId = options.problemId === undefined ? "sum-integers" : options.problemId;
+  if (!isFixedProblemId(problemId)) throw new Error("INVALID_FIXED_PROBLEM");
+  const scenario = options.scenario ?? (problemId !== "sum-integers" ? "catalog-once" : undefined);
+  if (scenario === "catalog-once" && options.mode !== "local") throw new Error("CATALOG_LOCAL_REQUIRED");
   if (options.rpcTransport !== undefined && options.rpcTransport !== "direct" && options.rpcTransport !== "system-https-proxy") throw new Error("INVALID_RPC_TRANSPORT");
   const rpcTransport = options.mode === "monad" ? options.rpcTransport ?? "system-https-proxy" : "direct";
   const original = await loadMonadConfig(resolve(options.configFile)), output = resolve(options.output);
   const routes = options.routesFile ? await readLiveRoutes(resolve(options.routesFile)) : undefined;
-  const plan = { ...LIVE_FIXED_PLAN, ...(options.scenario ? { scenario: options.scenario, tiers: ["strong", "strong"] as const, maxRounds: 2 } : {}),
+  const plan = { ...LIVE_FIXED_PLAN, ...(scenario === "strong-only" ? { scenario, tiers: ["strong", "strong"] as const, maxRounds: 2, ...(problemId !== "sum-integers" ? { problemId } : {}) } : {}),
+    ...(scenario === "catalog-once" ? { scenario, problemId, tiers: ["cheap"] as const, maxRounds: 1 } : {}),
     responseModels: LIVE_FIXED_PLAN.models, models: routes ? { cheap: routes.cheap.model, strong: routes.strong.model } : LIVE_FIXED_PLAN.models };
   const upstreamMode = controlledFetch ? "controlled" : routes ? "real-kimi-via-configured-gateway" : "real-kimi-system-https-proxy";
   const identityBinding = hash({ mode: options.mode, original, deployment: options.deploymentFile ? await addresses(options.deploymentFile) : null,
@@ -174,7 +184,7 @@ export async function verifyLiveFixedPrice(options: LiveFixedOptions, controlled
     if (!checkpoint || !provider) throw new Error("RUN_CHECKPOINT_REQUIRED");
     await saveCheckpoint(); report.chainId = checkpoint.chainId; report.contracts = checkpoint.contracts; report.roles = checkpoint.roles; report.agentId = checkpoint.agentId;
     report.sourceHashes ??= {};
-    if (!previous) for (const path of ["scripts/verify-live-fixed-price.ts", "scripts/live-fixed-price-evidence.ts", "scripts/demo-journal.ts", "scripts/demo-rpc.ts", "scripts/demo-settler.ts", "packages/pi-loop/src/provider.ts", "packages/pi-loop/src/fixed-task.ts", "packages/pi-loop/src/submission.ts", "packages/pi-loop/src/session.ts", "packages/pi-loop/src/adapter.ts", "packages/pi-loop/src/public-sample.ts", "packages/sdk/src/index.ts", "packages/sdk/src/protocol.ts", "services/provider-relay/src/fixed-price.ts", "services/provider-relay/src/relay.ts", "services/provider-relay/src/refunder.ts", "services/arena/src/http.ts", "services/arena/src/controller.ts", "services/arena/src/settler.ts", "contracts/src/AgentAccount.sol", "contracts/src/CreditManager.sol", "contracts/src/TaskEscrow.sol"])
+    if (!previous) for (const path of ["scripts/verify-live-fixed-price.ts", "scripts/live-fixed-price-evidence.ts", "scripts/demo-journal.ts", "scripts/demo-rpc.ts", "scripts/demo-settler.ts", "packages/pi-loop/src/provider.ts", "packages/pi-loop/src/fixed-task.ts", "packages/pi-loop/src/submission.ts", "packages/pi-loop/src/session.ts", "packages/pi-loop/src/adapter.ts", "packages/pi-loop/src/public-sample.ts", "packages/sdk/src/index.ts", "packages/sdk/src/protocol.ts", "services/provider-relay/src/fixed-price.ts", "services/provider-relay/src/relay.ts", "services/provider-relay/src/refunder.ts", "services/arena/src/http.ts", "services/arena/src/problems.ts", "services/arena/src/controller.ts", "services/arena/src/settler.ts", "contracts/src/AgentAccount.sol", "contracts/src/CreditManager.sol", "contracts/src/TaskEscrow.sol"])
       report.sourceHashes[path] = createHash("sha256").update(await readFile(join(ROOT, path))).digest("hex");
     const chain = checkpoint, rpc = provider;
     report.roleReuse = { providerEqualsPoster: chain.roles.refunder === chain.roles.poster, providerEqualsRefunder: true,
@@ -219,7 +229,7 @@ export async function verifyLiveFixedPrice(options: LiveFixedOptions, controlled
     await prepareArenaIpc(chain.ipcDirectory, join(output, "settlement-journal.json"));
     ownsIpc = true;
     const arenaConfig: ArenaConfig = { rpcUrl: chain.rpcUrl, chainId: chain.chainId, escrowAddress: chain.contracts.escrow, ipcDirectory: chain.ipcDirectory,
-      tasks: { [chain.task.id]: { agentId: chain.agentId, problemId: "sum-integers" } }, settlementTimeoutMs: options.mode === "monad" ? 180000 : 30000 };
+      tasks: { [chain.task.id]: { agentId: chain.agentId, problemId } }, settlementTimeoutMs: options.mode === "monad" ? 180000 : 30000 };
     await save("arena-config.json", arenaConfig);
     // Local synthetic verifier file is private; Monad verifier remains exclusively in the independent child.
     let verifierFile = original.keyFiles.verifier;
@@ -266,7 +276,7 @@ export async function verifyLiveFixedPrice(options: LiveFixedOptions, controlled
     if (!chain.client) {
       const deadlineMs = Date.now() + plan.deadlineMs;
       chain.client = { taskId: chain.task.id, agentId: chain.agentId, rpcUrl: chain.rpcUrl, chainId: chain.chainId, account: chain.contracts.account, asset: chain.asset, provider: chain.roles.refunder,
-        relayUrl: `http://127.0.0.1:${chain.ports.relay}/v1/chat`, underwriterUrl: `http://127.0.0.1:${chain.ports.underwriter}`, maxServicePrice: "120000", solve: { version: 1, problemId: "sum-integers", tiers: [...plan.tiers], maxRounds: plan.maxRounds, maxToolCalls: plan.maxToolCalls, maxCompletionTokens: plan.maxCompletionTokens, deadlineMs },
+        relayUrl: `http://127.0.0.1:${chain.ports.relay}/v1/chat`, underwriterUrl: `http://127.0.0.1:${chain.ports.underwriter}`, maxServicePrice: "120000", solve: { version: 1, problemId, tiers: [...plan.tiers], maxRounds: plan.maxRounds, maxToolCalls: plan.maxToolCalls, maxCompletionTokens: plan.maxCompletionTokens, deadlineMs },
         deadlineMs, arenaUrl: `http://127.0.0.1:${chain.ports.arena}`, escrowAddress: chain.contracts.escrow }; await saveCheckpoint();
     }
     report.stage = "fixed-price-purchase"; await save("report.json", report);
@@ -324,13 +334,72 @@ export async function verifyLiveFixedPrice(options: LiveFixedOptions, controlled
   if (report.complete) { try { report.audit = await auditSavedFixedPrice(output); } catch { report.complete = false; report.auditError = "FIXED_PRICE_EVIDENCE_INVALID"; } await save("report.json", report); }
   return report;
 }
+
+/** Fixed local four-task batch. Every original task owns its one-dispatch journal; no failed task is replaced. */
+export async function verifyLiveFixedCatalog(options: Omit<LiveFixedOptions, "scenario" | "problemId">, controlledFetch?: typeof fetch) {
+  if (options.mode !== "local") throw new Error("CATALOG_LOCAL_REQUIRED");
+  if ("scenario" in options || "problemId" in options) throw new Error("CATALOG_FIXED_TASKS_REQUIRED");
+  if (options.resume && !options.execute) throw new Error("RESUME_REQUIRES_EXECUTE");
+  const original = await loadMonadConfig(resolve(options.configFile)), routes = options.routesFile ? await readLiveRoutes(resolve(options.routesFile)) : undefined;
+  const output = resolve(options.output), upstreamMode = controlledFetch ? "controlled" : routes ? "real-kimi-via-configured-gateway" : "real-kimi-system-https-proxy";
+  const binding = hash({ original, routes, upstreamMode, plan: LIVE_FIXED_CATALOG_PLAN });
+  const fresh = { version: 1, binding, plan: LIVE_FIXED_CATALOG_PLAN, upstreamMode, complete: false, modelCalls: 0,
+    runs: LIVE_FIXED_CATALOG_PLAN.problemIds.map(problemId => ({ problemId, output: join(output, problemId), started: false, complete: false })) };
+  if (!options.execute) return { ...fresh, paidModelEndpointNotCalled: true, preflight: { readOnly: true, newLocalFixturesOnly: true } };
+  const journal = new SessionStore<typeof fresh>(join(output, "catalog")); await journal.start(options.recover);
+  try {
+    const previous = await journal.read();
+    if (Boolean(previous) !== Boolean(options.resume)) throw new Error(previous ? "USE_SAME_OUTPUT_RESUME" : "RESUME_CHECKPOINT_REQUIRED");
+    if (previous && (previous.binding !== binding || hash(previous.plan) !== hash(LIVE_FIXED_CATALOG_PLAN))) throw new Error("RUN_CONFIG_MISMATCH");
+    const state = previous ?? fresh;
+    assert.equal(state.runs.length, LIVE_FIXED_CATALOG_PLAN.problemIds.length);
+    state.runs.forEach((entry, index) => { assert.equal(entry.problemId, LIVE_FIXED_CATALOG_PLAN.problemIds[index]); assert.equal(entry.output, join(output, entry.problemId)); });
+    const refreshModelCalls = async () => {
+      let calls = 0;
+      for (const entry of state.runs) {
+        const report = await optionalJson(join(entry.output, "report.json"));
+        if (!report) { assert.equal(entry.complete, false); continue; }
+        assert.equal(report.plan.scenario, "catalog-once"); assert.equal(report.plan.problemId, entry.problemId);
+        assert.equal(report.plan.maxRounds, 1); assert.deepEqual(report.plan.tiers, ["cheap"]); assert.equal(report.upstreamMode, upstreamMode);
+        assert.deepEqual(report.plan.models, routes ? { cheap: routes.cheap.model, strong: routes.strong.model } : LIVE_FIXED_PLAN.models);
+        assert.ok(Array.isArray(report.attempts) && report.attempts.length <= LIVE_FIXED_CATALOG_PLAN.maxRoundsPerTask);
+        calls += report.attempts.length;
+      }
+      assert.ok(calls <= LIVE_FIXED_CATALOG_PLAN.maxModelCalls); state.modelCalls = calls;
+    };
+    const save = async () => { await journal.write(state); await saveJson(join(output, "catalog-report.json"), state); };
+    await refreshModelCalls();
+    await save();
+    for (const [index, entry] of state.runs.entries()) {
+      assert.equal(entry.problemId, LIVE_FIXED_CATALOG_PLAN.problemIds[index]); assert.equal(entry.output, join(output, entry.problemId));
+      if (entry.complete) { const audit = await auditSavedFixedPrice(entry.output); assert.equal(audit.problemId, entry.problemId); assert.equal(audit.scenario, "catalog-once"); continue; }
+      const childCheckpoint = await optionalJson(join(entry.output, "runner/session.json"));
+      entry.started = true; await save();
+      const report = await verifyLiveFixedPrice({ ...options, output: entry.output, scenario: "catalog-once", problemId: entry.problemId, resume: Boolean(childCheckpoint) }, controlledFetch);
+      entry.complete = report.complete;
+      await refreshModelCalls(); await save();
+      if (!report.complete) {
+        const stopped = { ...state, stoppedAt: entry.problemId, error: report.error ?? report.clientReason ?? report.auditError ?? "TASK_NOT_CONFIRMED" };
+        await saveJson(join(output, "catalog-report.json"), stopped); return stopped;
+      }
+    }
+    state.complete = true; await save(); return state;
+  } finally { await journal.close(); }
+}
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const args = process.argv.slice(2), value = (name: string) => { const index = args.indexOf(name); return index < 0 ? undefined : args[index + 1]; };
   if (args.includes("--audit-output")) auditSavedFixedPrice(value("--audit-output")!).then(x => console.log(JSON.stringify(x))).catch(() => { console.error("FIXED_PRICE_EVIDENCE_INVALID"); process.exitCode = 1; });
-  else if (args.includes("--scenario") && (args.filter(arg => arg === "--scenario").length !== 1 || value("--scenario") !== "strong-only")) { console.error("INVALID_LIVE_SCENARIO"); process.exitCode = 1; }
+  else if (args.includes("--scenario") && (args.filter(arg => arg === "--scenario").length !== 1 || !["strong-only", "catalog-once"].includes(value("--scenario") ?? ""))) { console.error("INVALID_LIVE_SCENARIO"); process.exitCode = 1; }
   else if (value("--scenario") === "strong-only" && value("--mode") !== "local") { console.error("STRONG_ONLY_LOCAL_REQUIRED"); process.exitCode = 1; }
+  else if (args.includes("--problem-id") && (args.filter(arg => arg === "--problem-id").length !== 1 || !isFixedProblemId(value("--problem-id")))) { console.error("INVALID_FIXED_PROBLEM"); process.exitCode = 1; }
+  else if (args.includes("--catalog") && (args.includes("--scenario") || args.includes("--problem-id"))) { console.error("CATALOG_FIXED_TASKS_REQUIRED"); process.exitCode = 1; }
+  else if ((args.includes("--catalog") || value("--scenario") === "catalog-once" || value("--problem-id") && value("--problem-id") !== "sum-integers") && value("--mode") !== "local") { console.error("CATALOG_LOCAL_REQUIRED"); process.exitCode = 1; }
   else if (args.includes("--rpc-transport") && !["direct", "system-https-proxy"].includes(value("--rpc-transport") ?? "")) { console.error("INVALID_RPC_TRANSPORT"); process.exitCode = 1; }
-  else if (!value("--config") || !value("--output") || !["local", "monad"].includes(value("--mode") ?? "")) { console.error("Usage: tsx scripts/verify-live-fixed-price.ts --mode local|monad --config PRIVATE_CONFIG --output OUTPUT [--scenario strong-only (local only)] [--deployment MANIFEST --rpc-url-file PRIVATE_RPC --rpc-transport direct|system-https-proxy --enable-refunder-provider] [--execute --resume --recover --max-fee-per-gas WEI]"); process.exitCode = 1; }
-  else verifyLiveFixedPrice({ mode: value("--mode") as "local" | "monad", configFile: value("--config")!, output: value("--output")!, deploymentFile: value("--deployment"), rpcUrlFile: value("--rpc-url-file"), agentId: value("--agent-id"),
-    scenario: value("--scenario") as "strong-only" | undefined, execute: args.includes("--execute"), resume: args.includes("--resume"), recover: args.includes("--recover"), enableRefunderProvider: args.includes("--enable-refunder-provider"), rpcTransport: value("--rpc-transport") as RpcTransport | undefined, maxFeePerGas: value("--max-fee-per-gas"), routesFile: value("--routes") }).then(report => { console.log(JSON.stringify(report)); if (report.error || args.includes("--execute") && !report.complete) process.exitCode = 1; }).catch(error => { console.error(safeError(error)); process.exitCode = 1; });
+  else if (!value("--config") || !value("--output") || !["local", "monad"].includes(value("--mode") ?? "")) { console.error("Usage: tsx scripts/verify-live-fixed-price.ts --mode local|monad --config PRIVATE_CONFIG --output OUTPUT [--catalog (local only) | --problem-id sum-integers|unique-sorted|balanced-brackets|word-frequency] [--scenario strong-only|catalog-once (local only)] [--deployment MANIFEST --rpc-url-file PRIVATE_RPC --rpc-transport direct|system-https-proxy --enable-refunder-provider] [--execute --resume --recover --max-fee-per-gas WEI]"); process.exitCode = 1; }
+  else {
+    const options = { mode: value("--mode") as "local" | "monad", configFile: value("--config")!, output: value("--output")!, deploymentFile: value("--deployment"), rpcUrlFile: value("--rpc-url-file"), agentId: value("--agent-id"),
+      execute: args.includes("--execute"), resume: args.includes("--resume"), recover: args.includes("--recover"), enableRefunderProvider: args.includes("--enable-refunder-provider"), rpcTransport: value("--rpc-transport") as RpcTransport | undefined, maxFeePerGas: value("--max-fee-per-gas"), routesFile: value("--routes") };
+    const run = args.includes("--catalog") ? verifyLiveFixedCatalog(options) : verifyLiveFixedPrice({ ...options, scenario: value("--scenario") as LiveFixedOptions["scenario"], problemId: value("--problem-id") as ProblemId | undefined });
+    run.then(report => { console.log(JSON.stringify(report)); if ("error" in report && report.error || args.includes("--execute") && !report.complete) process.exitCode = 1; }).catch(error => { console.error(safeError(error)); process.exitCode = 1; });
+  }
 }

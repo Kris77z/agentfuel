@@ -3757,3 +3757,10 @@ runner、额度 ledger 与四游戏练习均有本地持久化和 writer 锁。�
 ## 2026-10-06 Strong 工具真实验收（当前）
 
 2026-10-06 strong-only真实工具验收已完成：新本地Anvil固定价信用任务经直营Kimi K3一次调用，输入307/输出86/总393 tokens，实际test_public_sample一次通过，独立Arena5/5并结算。现金40000+借款80000支付120000原始mock-USDC，费用12000、还款92000，最终cash58000、未偿0。root独立复跑12项受控脚本测试、全项目typecheck，校验原请求响应/签名/资金回执，并重新Docker判题5/5。首轮成功即停，没有人为错误或第二次模型调用，不证明自然多轮修复或真实fallback；本轮没有新增Monad交易、未经过Magpie，也不据usage推算vendor账单。 [独立验收](demo-output/live-strong-only-20261006-root/root-acceptance.json)，[复现与限制](packages/pi-loop/FIXED_PRICE.md)。这补齐此前“仅K3短探针、未验证工具”的缺口，旧运行仍保留各自原始范围。
+
+
+## 2026-10-07 当前扩展边界
+
+固定价 B 的题目白名单已覆盖求和、去重排序、括号匹配和词频统计；四题真实 Kimi 调用、独立 Arena 和本地信用结算已验收。普通 Relay 完成注入拒绝后的真实同档备用调用，仍在原报价内一次付费。两项均复用原四合约/SDK/Relay/Pi/Arena，没有增加合约、通用 Agent 框架或游戏贷款。本轮未新增 Monad 交易，未证明自然多轮修复或自然供应商故障。逐项证据与尚未开放的范围见[工程状态](docs/implementation-status.md)及[风险文档§9](AGENT_CREDIT_RISK_AND_MVP.md#9-下一阶段推进顺序2026-10-04评估)。
+
+规则驱动选择器也已落地：在预设Assigned任务与宿主能力/价格配置内选择一次SDK推理购买，受控现金/信用路径与真实现金购买均已验收。它不等于任务自动发现、接单、完整自主调度或链上独立预算隔离；没有叠加LangChain或新增分类模型。
