@@ -1,5 +1,7 @@
 # InferCredit — Agent Credit 参考架构与 ERC-8004 集成方案
 
+> **2026-10-07 产品定位补充**：用户在平台创建和管理托管 Agent，平台负责执行与钱包保管；不要求用户部署外部 Agent。新增 owner/session/Agent/预算调度层，继续共用四合约；Arena 可按链上实际接单者验签，游戏对手首版仍是平台 bot。见 [托管后端交付与边界](docs/hosted-acceptance.md)。公共 LP、外部 Agent API 和多手赛事不是此路径前置条件。
+
 > Working Capital Infrastructure for Autonomous AI Agents
 
 **项目内部代号：AgentFuel**  

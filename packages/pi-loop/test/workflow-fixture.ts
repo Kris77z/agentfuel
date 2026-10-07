@@ -24,7 +24,7 @@ export function modelToolResponse(code: string, model: string) {
   return { model, choices: [{ finish_reason: "tool_calls", message: { role: "assistant", content: null, tool_calls: [{ id: "fixture_call", type: "function", function: { name: "test_public_sample", arguments: JSON.stringify({ code }) } }] } }], usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 } };
 }
 /** Test-only owned Anvil + Docker + separate settler; models are controlled unless explicitly host-injected. */
-export async function createWorkflowFixture(directory: string, definitions: Array<{ problemId: ProblemId; open?: boolean; reward?: bigint; remaining?: number }> = [{ problemId: "sum-integers", open: true }],
+export async function createWorkflowFixture(directory: string, definitions: Array<{ problemId: ProblemId; open?: boolean; reward?: bigint; remaining?: number; agentId?: string | null }> = [{ problemId: "sum-integers", open: true }],
   trusted: { modelFetch?: typeof fetch; models?: { cheap: string; strong: string }; upstreams?: { cheap: { baseUrl: string; key: string }; strong: { baseUrl: string; key: string } }; upstreamTimeoutMs?: number } = {}) {
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const local = await startAnvil(), f = await fixture(local.rpc, join(directory, "underwriter"), 6, { refunderKey: key(4) });
@@ -49,7 +49,7 @@ export async function createWorkflowFixture(directory: string, definitions: Arra
       tasks.push({ taskId, problemId: definition.problemId, deadlineMs: Number(task.deadline) * 1000, creditLimit: "80000" });
     }
     const arenaConfig: ArenaConfig = { rpcUrl: local.rpc, chainId: "31337", escrowAddress: await f.escrow.getAddress(), ipcDirectory: ipc,
-      tasks: Object.fromEntries(tasks.map(task => [task.taskId, { agentId: "1", problemId: task.problemId }])) };
+      tasks: Object.fromEntries(tasks.map((task, i) => [task.taskId, { ...(definitions[i].agentId === null ? {} : { agentId: definitions[i].agentId ?? "1" }), problemId: task.problemId }])) };
     const arenaFile = join(directory, "arena.json"); await writeFile(arenaFile, JSON.stringify(arenaConfig), { mode: 0o600 });
     settler = spawn(process.execPath, ["--import", "tsx", new URL("../../../services/arena/src/settler-main.ts", import.meta.url).pathname], {
       cwd: new URL("../../..", import.meta.url).pathname, env: { ...process.env, ARENA_CONFIG: arenaFile, ARENA_VERIFIER_PRIVATE_KEY: key(1) }, stdio: ["ignore", "pipe", "pipe"] });
@@ -81,6 +81,6 @@ export async function createWorkflowFixture(directory: string, definitions: Arra
           solve: { version: 1, tiers: ["cheap", "strong"], maxRounds: 2, maxToolCalls: 4, maxCompletionTokens: 256 } }] }] };
     const options: WorkflowOptions = { signer: new Wallet(key(2), f.provider), provider: f.provider, rpcUrl: local.rpc,
       arenaUrl: `http://127.0.0.1:${(arena.server.address() as { port: number }).port}`, underwriterUrl: f.http, walletLockDirectory: join(directory, "wallet"), timeoutMs: 5000, pollTimeoutMs: 15000 };
-    return { directory, local, f, config, options, relayConfig, relay, refunder, arena, calls, queue: (...code: string[]) => queue.push(...code), close: cleanup };
+    return { directory, local, f, config, options, relayConfig, relay, refunder, arena, arenaConfig, calls, queue: (...code: string[]) => queue.push(...code), close: cleanup };
   } catch (error) { await cleanup(); throw error; }
 }

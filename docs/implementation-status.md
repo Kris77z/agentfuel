@@ -1,5 +1,7 @@
 # Implementation status
 
+> **最新扩展：平台托管 Agent**。用户归属、独立钱包、开户/入金、任务/免费德州和奖励消费后端已接入；root 实际本地链 HTTP 闭环通过。原预设 Agent 证据仍按原范围保留；新功能的 UI 和公开部署尚未验收。见 [托管验收](hosted-acceptance.md)。
+
 更新日期：2026-10-07。完成判据保持 ENGINEERING v5.3 §9 原范围；本地 mocks/受控模型输出不等于 Monad 部署或真实 Kimi。下表分别标明主 Agent 独立复跑与仅审代码/报告的范围。
 
 | 已有组件/证据 | 当前状态与边界 |

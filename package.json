@@ -8,6 +8,7 @@
     "packages/sdk",
     "packages/pi-loop",
     "packages/erc8004",
+    "services/hosted-agents",
     "frontend"
   ],
   "engines": {
@@ -17,7 +18,7 @@
     "typecheck": "tsc --noEmit",
     "test": "npm run test:all",
     "test:core": "npm test --workspace @agentfuel/underwriter && npm test --workspace @agentfuel/provider-relay",
-    "test:all": "npm run test:core && npm test --workspace @agentfuel/arena && npm test --workspace @agentfuel/pi-loop && npm test --workspace @agentfuel/erc8004 && npm test --workspace @agentfuel/frontend",
+    "test:all": "npm run test:core && npm test --workspace @agentfuel/arena && npm test --workspace @agentfuel/pi-loop && npm test --workspace @agentfuel/erc8004 && npm test --workspace @agentfuel/frontend && npm run test:hosted",
     "typecheck:all": "npm run typecheck && npm run typecheck --workspace @agentfuel/frontend",
     "test:fork": "npm run test:fork --workspace @agentfuel/erc8004",
     "underwriter": "npm start --workspace @agentfuel/underwriter",
@@ -30,8 +31,10 @@
     "backend": "tsx scripts/backend.ts",
     "task-runner": "tsx scripts/task-runner.ts",
     "relay:fixed": "tsx scripts/fixed-relay.ts",
-    "test:backend": "npm run test:core && npm test --workspace @agentfuel/arena && npm test --workspace @agentfuel/pi-loop && npm test --workspace @agentfuel/erc8004",
-    "test:backend:integration": "tsx --test --test-concurrency=1 scripts/test/*.test.ts"
+    "test:backend": "npm run test:core && npm test --workspace @agentfuel/arena && npm test --workspace @agentfuel/pi-loop && npm test --workspace @agentfuel/erc8004 && npm run test:hosted",
+    "test:backend:integration": "tsx --test --test-concurrency=1 scripts/test/*.test.ts",
+    "hosted-agents": "tsx scripts/hosted-agents.ts",
+    "test:hosted": "npm test --workspace @agentfuel/hosted-agents"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

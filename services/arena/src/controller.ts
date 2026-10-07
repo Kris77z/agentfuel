@@ -29,8 +29,8 @@ export class ArenaController {
     if (BigInt(await this.provider.send("eth_chainId", [])) !== BigInt(this.config.chainId)) throw new Error("NETWORK_MISMATCH");
     const task = await this.escrow.getFunction("getTask").staticCall(taskId);
     if (task.status !== 2n) throw new Error("TASK_NOT_ASSIGNED");
-    if (task.agentId !== BigInt(binding.agentId)) throw new Error("TASK_AGENT_MISMATCH");
-    return binding;
+    if (task.agentId === 0n || binding.agentId !== undefined && task.agentId !== BigInt(binding.agentId)) throw new Error("TASK_AGENT_MISMATCH");
+    return { ...binding, agentId: String(task.agentId) };
   }
   async submit(input: { taskId: string; code: string; runId?: string; signal?: AbortSignal }): Promise<Acceptance> {
     if (typeof input.code !== "string" || Buffer.byteLength(input.code) > 65536) throw new Error("INVALID_SUBMISSION");

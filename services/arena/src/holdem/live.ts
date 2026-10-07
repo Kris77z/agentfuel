@@ -10,9 +10,11 @@ export const HOLDEM_LIVE_HAND: Readonly<HandConfig> = Object.freeze({ initialSta
 export type PublicHandResult = Pick<HandResult, "reason" | "winners" | "contestedPot" | "payouts" | "refunds" | "finalStacks">;
 export interface PublicHandStep { seat: Seat; street: Street; action: Action; board: string[]; stacks: [number, number]; pot: number }
 export interface DecisionRequest {
-  model: "kimi-k2.6"; stream: false; max_completion_tokens: 512; thinking: { type: "disabled" };
+  model: string; stream: false; max_completion_tokens: 512; thinking: { type: "disabled" };
   messages: [{ role: "system"; content: string }, { role: "user"; content: string }];
 }
+/** Trusted operator presets. No arbitrary instruction or provider URL enters the hand. */
+export interface LiveDecisionProfile { model: string; strategy: "conservative" | "balanced" | "aggressive" }
 export type DecisionOutcome = "IntentPersisted" | "Applied" | "HTTPRejected" | "ResponseInvalid" | "OutcomeUnknown" | "DeadlineExpired";
 export interface PrivateDecisionTurn {
   turn: number; seat: Seat; requestDigest: string; dispatchIntent: true; request: DecisionRequest;
@@ -22,6 +24,7 @@ export interface PrivateDecisionTurn {
 export interface LiveHandSession {
   version: 1; matchId: string; phase: "Running" | "Complete" | "Stopped"; reason?: string;
   startedAtMs: number; deadlineMs: number; limits: typeof HOLDEM_LIVE_LIMITS; replay: TrustedReplay; turns: PrivateDecisionTurn[];
+  profiles?: [LiveDecisionProfile, LiveDecisionProfile];
 }
 export interface PublicDecisionAttempt {
   turn: number; seat: Seat; requestedModel: string; status?: number; outcome: DecisionOutcome; durationMs?: number;
@@ -34,10 +37,16 @@ export interface PublicLiveHand {
 
 const INSTRUCTIONS = "You are the acting player in a free-entry heads-up no-limit Texas Hold'em hand. Your entire current player view is the next message. Choose one legal action using only that view. Return exactly one JSON object and no explanation, Markdown, reasoning, or tool call. For fold, check, call, or all-in, return {\"type\":\"ACTION\"} with no other keys. For raise, return {\"type\":\"raise\",\"to\":INTEGER}; to is your total commitment on this street, within legal minTo/maxTo (if allInOnly, use maxTo). Chips are virtual and not redeemable. Choose your own action; no outcome is predetermined.";
 
-export function decisionRequest(view: PlayerView): DecisionRequest {
+const STRATEGIES = Object.freeze({
+  conservative: "Prefer preserving your stack. Avoid marginal calls and speculative raises; fold weak hands when facing meaningful pressure.",
+  balanced: "Balance stack preservation and value. Use the visible pot, legal bet sizes and your cards to choose calls, value raises and occasional pressure.",
+  aggressive: "Prefer applying pressure through legal bets and raises when justified by your cards and the visible situation; still evaluate the risk of losing your stack.",
+});
+export function decisionRequest(view: PlayerView, profile?: LiveDecisionProfile): DecisionRequest {
   if (view.handStatus !== "playing" || view.actor !== view.seat || view.legalActions.length === 0 || view.result !== undefined) throw new Error("HOLDEM_NOT_ACTOR");
-  return { model: HOLDEM_LIVE_LIMITS.model, stream: false, max_completion_tokens: HOLDEM_LIVE_LIMITS.maxCompletionTokens,
-    thinking: { type: "disabled" }, messages: [{ role: "system", content: INSTRUCTIONS }, { role: "user", content: JSON.stringify(view) }] };
+  if (profile && (!/^[A-Za-z0-9._-]{1,64}$/.test(profile.model) || !Object.hasOwn(STRATEGIES, profile.strategy))) throw new Error("HOLDEM_INVALID_PROFILE");
+  return { model: profile?.model ?? HOLDEM_LIVE_LIMITS.model, stream: false, max_completion_tokens: HOLDEM_LIVE_LIMITS.maxCompletionTokens,
+    thinking: { type: "disabled" }, messages: [{ role: "system", content: profile ? `${INSTRUCTIONS}\nStrategy preset: ${profile.strategy}. ${STRATEGIES[profile.strategy]}` : INSTRUCTIONS }, { role: "user", content: JSON.stringify(view) }] };
 }
 
 /** No coercion, Markdown stripping, repair, default fold, or second model request. */
@@ -61,10 +70,10 @@ export function parseLegalDecision(content: unknown, view: PlayerView): Action {
   return { type: action.type as "fold" | "check" | "call" | "all-in" };
 }
 
-function completionContent(rawText: string): unknown {
+function completionContent(rawText: string, expectedModel?: string): unknown {
   let body: any;
   try { body = JSON.parse(rawText); } catch { throw new Error("HOLDEM_INVALID_RESPONSE"); }
-  if (!Array.isArray(body?.choices) || body.choices.length !== 1 || body.choices[0]?.finish_reason !== "stop"
+  if (expectedModel !== undefined && body?.model !== expectedModel || !Array.isArray(body?.choices) || body.choices.length !== 1 || body.choices[0]?.finish_reason !== "stop"
     || body.choices[0]?.message?.role !== "assistant" || body.choices[0]?.message?.tool_calls !== undefined
     || body.choices[0]?.message?.function_call !== undefined) throw new Error("HOLDEM_INVALID_RESPONSE");
   return body.choices[0].message.content;
@@ -75,7 +84,7 @@ export function publicHandResult(result: HandResult): PublicHandResult {
     payouts: [...result.payouts], refunds: [...result.refunds], finalStacks: [...result.finalStacks] };
 }
 function publicAttempt(turn: PrivateDecisionTurn): PublicDecisionAttempt {
-  const attempt: PublicDecisionAttempt = { turn: turn.turn, seat: turn.seat, requestedModel: HOLDEM_LIVE_LIMITS.model, outcome: turn.outcome,
+  const attempt: PublicDecisionAttempt = { turn: turn.turn, seat: turn.seat, requestedModel: turn.request.model, outcome: turn.outcome,
     ...(turn.response ? { status: turn.response.httpStatus } : {}), ...(turn.durationMs === undefined ? {} : { durationMs: turn.durationMs }) };
   if (turn.response) {
     try {
@@ -108,20 +117,25 @@ export function publicLiveHand(session: LiveHandSession): PublicLiveHand {
 }
 
 /** One durable intent per HTTP dispatch. Existing journals are inspected, never resumed with new model calls. */
-export async function runLiveHand(directory: string, config: { matchId: string; startedAtMs: number; deadlineMs: number }, dependencies: {
+export async function runLiveHand(directory: string, config: { matchId: string; startedAtMs: number; deadlineMs: number; profiles?: [LiveDecisionProfile, LiveDecisionProfile]; recover?: boolean }, dependencies: {
   dispatch: (request: DecisionRequest, signal: AbortSignal, turn: Readonly<PrivateDecisionTurn>) => Promise<Response>;
   onProgress?: (snapshot: PublicLiveHand) => Promise<void>;
 }): Promise<LiveHandSession> {
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(config.matchId) || !Number.isSafeInteger(config.startedAtMs) || !Number.isSafeInteger(config.deadlineMs)
     || config.deadlineMs - config.startedAtMs > HOLDEM_LIVE_LIMITS.deadlineDurationMs || config.deadlineMs < config.startedAtMs) throw new Error("HOLDEM_INVALID_LIVE_CONFIG");
   const store = new SessionStore<LiveHandSession>(join(directory, "game"));
-  await store.start();
+  if (config.profiles) {
+    if (!Array.isArray(config.profiles) || config.profiles.length !== 2) throw new Error("HOLDEM_INVALID_PROFILE");
+    for (const profile of config.profiles) decisionRequest(createHand({ ...HOLDEM_LIVE_HAND }).view(0), profile);
+  }
+  await store.start(config.recover);
   let session: LiveHandSession | undefined;
   const publish = async () => { if (dependencies.onProgress) await dependencies.onProgress(publicLiveHand(session!)); };
   try {
     session = await store.read();
     if (session) {
-      if (session.matchId !== config.matchId || JSON.stringify(session.limits) !== JSON.stringify(HOLDEM_LIVE_LIMITS)) throw new Error("HOLDEM_OUTPUT_BINDING_MISMATCH");
+      if (session.matchId !== config.matchId || JSON.stringify(session.limits) !== JSON.stringify(HOLDEM_LIVE_LIMITS)
+        || JSON.stringify(session.profiles) !== JSON.stringify(config.profiles)) throw new Error("HOLDEM_OUTPUT_BINDING_MISMATCH");
       replayHand(session.replay);
       if (session.phase === "Running") {
         session.phase = "Stopped";
@@ -133,7 +147,7 @@ export async function runLiveHand(directory: string, config: { matchId: string; 
     }
     const hand = createHand({ ...HOLDEM_LIVE_HAND });
     session = { version: 1, matchId: config.matchId, phase: "Running", startedAtMs: config.startedAtMs, deadlineMs: config.deadlineMs,
-      limits: HOLDEM_LIVE_LIMITS, replay: hand.exportTrustedReplay(), turns: [] };
+      limits: HOLDEM_LIVE_LIMITS, replay: hand.exportTrustedReplay(), turns: [], ...(config.profiles ? { profiles: structuredClone(config.profiles) } : {}) };
     await store.write(session); await publish();
     const stop = async (reason: string) => { session!.phase = "Stopped"; session!.reason = reason; await store.write(session!); await publish(); };
     while (hand.view(0).handStatus === "playing") {
@@ -141,7 +155,7 @@ export async function runLiveHand(directory: string, config: { matchId: string; 
       if (session.turns.length >= HOLDEM_LIVE_LIMITS.maxCalls) { await stop("HOLDEM_CALL_LIMIT_REACHED"); break; }
       const seat = hand.view(0).actor;
       if (seat === null) throw new Error("HOLDEM_PLAYING_WITHOUT_ACTOR");
-      const view = hand.view(seat), request = decisionRequest(view);
+      const view = hand.view(seat), request = decisionRequest(view, session.profiles?.[seat]);
       const turn: PrivateDecisionTurn = { turn: session.turns.length + 1, seat, requestDigest: createHash("sha256").update(JSON.stringify(request)).digest("hex"),
         dispatchIntent: true, request, outcome: "IntentPersisted" };
       session.turns.push(turn);
@@ -163,7 +177,7 @@ export async function runLiveHand(directory: string, config: { matchId: string; 
       if (Date.now() >= session.deadlineMs) { turn.outcome = "DeadlineExpired"; await stop("HOLDEM_DEADLINE_REACHED"); break; }
       if (!response.ok) { turn.outcome = "HTTPRejected"; await stop("HOLDEM_UPSTREAM_HTTP_ERROR_NO_RETRY"); break; }
       try {
-        const action = parseLegalDecision(completionContent(turn.response.rawText), view);
+        const action = parseLegalDecision(completionContent(turn.response.rawText, session.profiles ? request.model : undefined), view);
         hand.act(seat, action); turn.action = action; turn.outcome = "Applied"; session.replay = hand.exportTrustedReplay();
       } catch {
         turn.outcome = "ResponseInvalid"; await stop("HOLDEM_INVALID_OR_ILLEGAL_RESPONSE"); break;

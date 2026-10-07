@@ -1,4 +1,5 @@
 import { Contract, Wallet, keccak256, ZeroAddress } from "ethers";
+import { setTimeout as delay } from "node:timers/promises";
 import { MANAGER_ABI, managerInterface, sameAddress, uint } from "@agentfuel/sdk/protocol";
 import { Relay, RelayError } from "./relay.js";
 import type { PaymentRecord, Refund, SignedOperation } from "./store.js";
@@ -64,7 +65,21 @@ export class Refunder {
       catch {
         if (!await provider.getTransaction(operation.txHash)) throw new RelayError("REFUND_UNCERTAIN", "Refund broadcast is uncertain; retry the same refundId");
       }
-      receipt = await provider.waitForTransaction(operation.txHash, this.relay.config.confirmations, 15_000);
+      // A block subscription can bootstrap after the automined block. Poll only
+      // this durable hash, with the same timeout and confirmation requirement;
+      // neither a delayed receipt nor timeout creates another signature/send.
+      const deadline = Date.now() + 15_000, timer = new AbortController();
+      const expired = delay(15_000, undefined, { signal: timer.signal }).then(() => { throw new RelayError("REFUND_UNCONFIRMED", "Refund confirmation is pending"); });
+      const poll = async () => {
+        do {
+          const found = await provider.getTransactionReceipt(operation.txHash);
+          if (found && (found.status === 0 || (await provider.getBlockNumber()) - found.blockNumber + 1 >= this.relay.config.confirmations)) return found;
+          const remaining = deadline - Date.now(); if (remaining > 0) await delay(Math.min(100, remaining));
+        } while (Date.now() < deadline);
+        throw new RelayError("REFUND_UNCONFIRMED", "Refund confirmation is pending");
+      };
+      try { receipt = await Promise.race([poll(), expired]); }
+      finally { timer.abort(); }
     }
     if (!receipt) throw new RelayError("REFUND_UNCONFIRMED", "Refund confirmation is pending");
     if (receipt.status !== 1) throw new RelayError("REFUND_REVERTED", "Recorded refund transaction reverted");

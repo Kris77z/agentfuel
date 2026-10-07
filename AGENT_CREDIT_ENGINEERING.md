@@ -1,5 +1,7 @@
 # InferCredit — 工程实施计划（Hackathon 版）
 
+> **2026-10-07 托管 Agent 扩展**：产品入口确定为用户在平台创建托管 Agent。已新增签名登录、独立托管钱包、动态链上开户、受限 gas 赞助、幂等入金、任务/比赛调度及 owner 隔离。原预设 TaskRunner/GameFi 入口保留作运营兼容；用户入口是 `/api/hosted/*`。本轮新链路已通过本地 Anvil + 受控模型整体验收，不代表新 Monad 用户已上线。见 [托管交付](docs/hosted-acceptance.md)。
+
 > 文档四部曲的最后一篇：
 >
 > - `AGENT_CREDIT_ARCHITECTURE.md` —— 协议长什么样

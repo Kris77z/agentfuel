@@ -13,7 +13,8 @@ export const ESCROW_ABI = [
   "function settle(uint256 taskId,bool passed)",
   "event TaskSettled(uint256 indexed taskId,bool passed,uint256 repaid,uint256 slashed,uint256 agentResidual)",
 ];
-export interface TaskBinding { agentId: string; problemId: ProblemId }
+/** Omit agentId for an operator-approved task catalog; the Assigned chain task supplies its actual Agent. */
+export interface TaskBinding { agentId?: string; problemId: ProblemId }
 export interface ArenaConfig {
   rpcUrl: string; chainId: string; escrowAddress: string;
   tasks: Record<string, TaskBinding>; ipcDirectory: string; allowManual?: boolean; settlementTimeoutMs?: number;
@@ -46,7 +47,7 @@ export function parseConfig(value: unknown): ArenaConfig {
   for (const [id, binding] of Object.entries(c.tasks)) {
     uintString(id, "TASK_ID");
     if (id === "0" || !binding || typeof binding !== "object") throw new Error("INVALID_TASK_BINDING");
-    uintString(binding.agentId, "AGENT_ID");
+    if (binding.agentId !== undefined) uintString(binding.agentId, "AGENT_ID");
     if (!isProblemId(binding.problemId)) throw new Error("INVALID_TASK_BINDING");
   }
   if (c.allowManual !== undefined && typeof c.allowManual !== "boolean") throw new Error("INVALID_MANUAL_POLICY");
@@ -60,7 +61,8 @@ export function validateVerdict(value: unknown, config: ArenaConfig): Verdict {
   uintString(v.taskId, "TASK_ID");
   if (v.chainId !== config.chainId || getAddress(v.escrowAddress) !== config.escrowAddress) throw new Error("DOMAIN_MISMATCH");
   const binding = Object.hasOwn(config.tasks, v.taskId) ? config.tasks[v.taskId] : undefined;
-  if (!binding || v.agentId !== binding.agentId || v.problemId !== binding.problemId) throw new Error("TASK_NOT_AUTHORIZED");
+  uintString(v.agentId, "AGENT_ID");
+  if (!binding || (binding.agentId !== undefined ? v.agentId !== binding.agentId : v.agentId === "0") || v.problemId !== binding.problemId) throw new Error("TASK_NOT_AUTHORIZED");
   if (typeof v.passed !== "boolean" || !["docker", "manual"].includes(v.mode) || !/^[a-f0-9]{64}$/.test(v.evidenceHash)) throw new Error("INVALID_VERDICT");
   if (v.mode === "manual" && !config.allowManual) throw new Error("MANUAL_DISABLED");
   return v;

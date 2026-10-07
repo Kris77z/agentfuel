@@ -28,11 +28,17 @@ InferCredit 用已托管的任务报酬支持 Agent 购买推理：现金不足�
 
 真实 Pi 运行均首轮成功，尚未证明自然多轮修复。K3 工具、本机预设任务的规则选单与自动接单已验收；新统一接口将选择、一次固定价购买、Pi 工具、独立 Arena 与还款接成同一持久流程。德州免费赞助测试USDC→真实推理首版已落地（见下文）；公开远程报名/任意提示词参赛、自动分类路由、逐轮储值与按用量退款、公共 LP 尚未实现；标准 x402 scheme/facilitator 兼容性尚未验证。RPC 稳定性与前端读取性能仍有边界，详见状态表。
 
+## 用户托管 Agent
+
+用户在平台创建 Agent，平台托管运行与独立钱包；首版选择运营方支持的模型、三档策略和消费预算。`/api/hosted/*` 提供钱包签名登录、创建/修改/暂停、入金、任务、免费德州与模型额度消费；不是外部 Agent 接入 API。原预设入口保留作运营兼容。
+
+root 已用两名用户、随机生成的托管钱包、实际本地链和两个生产 executor 验证：开户 → 入金 → 信用任务 → 赢赞助 USDC → 用奖励余额完成下一单 → 赢额度并消费。未新增真实供应商消费或 Monad 交易，用户界面和公开部署尚未验收。见 [托管交付](docs/hosted-acceptance.md)、[配置/API](docs/hosted-agents.md)。
+
 ## 后端运行与页面接入
 
 现有 P0、四题固定价任务与本机运营 GameFi 的后端收尾见 [后端交付](docs/backend-acceptance.md)。`npm run backend -- --manifest /absolute/private/backend.json --check` 离线检查私有配置，`--start` 启动 Underwriter、固定价 Relay、独立 settler、Arena 和 TaskRunner；详见 [运行说明](docs/backend-runtime.md)。GameFi 沿用独立 [runner 配置](docs/gamefi-runner.md)。
 
-页面通过 `GET/POST /api/tasks/runs` 获取预设任务、发起和恢复原 UUID。服务端设置 `TASK_RUNNER_URL`，浏览器不能传入钱包、模型地址、价格或任意提示词。接口及状态说明见 [TASK_RUNNER](packages/pi-loop/TASK_RUNNER.md)。后续 UI 只需完成控件、阶段展示、错误文案与浏览器验收；不要在按钮里另调用旧 selector 消费入口。
+页面通过 `GET/POST /api/tasks/runs` 获取预设任务、发起和恢复原 UUID。服务端设置 `TASK_RUNNER_URL`，浏览器不能传入钱包、模型地址、价格或任意提示词。接口及状态说明见 [TASK_RUNNER](packages/pi-loop/TASK_RUNNER.md)。此预设入口的 UI 只需完成控件、阶段展示、错误文案与浏览器验收；新增用户托管入口还需接入登录、创建和账户控件；不要在按钮里另调用旧 selector 消费入口。
 
 ## 最小本地运行
 
