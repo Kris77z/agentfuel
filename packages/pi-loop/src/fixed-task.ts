@@ -16,7 +16,8 @@ export interface FixedTaskSession extends SubmissionState {
   handle?: PaymentHandle; inference?: Inference; qualification?: SampleResult; qualificationCodeHash?: string;
   refundConfirmation?: { amount: string; loanStatus: string; taskStatus: string };
 }
-export interface FixedTaskOptions { signer: Signer; provider?: JsonRpcProvider; runner?: DockerExecutor; recoverLock?: boolean; timeoutMs?: number; pollTimeoutMs?: number }
+export interface FixedTaskOptions { signer: Signer; provider?: JsonRpcProvider; runner?: DockerExecutor; recoverLock?: boolean; timeoutMs?: number; pollTimeoutMs?: number;
+  onHandle?: (handle: PaymentHandle) => Promise<void> | void; beforePayment?: (handle: PaymentHandle) => Promise<void> | void }
 const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 function stop(code: string): never { throw new PaymentError(code, code); }
 interface SolveResult { schema: number; taskId: string; code: string; codeHash: string; run: ProviderSolveState }
@@ -82,6 +83,8 @@ export async function runFixedPriceTask(directory: string, config: FixedTaskConf
     if (prior && (prior.version !== 1 || prior.binding !== hash(config) || !isDeepStrictEqual(prior.config, config))) throw new Error("SESSION_CONFIG_MISMATCH");
     state = prior ?? { version: 1, binding: hash(config), config: structuredClone(config), reservedPrice: "0", phase: "Purchasing" };
     if (state.reservedPrice !== (state.handle?.quote.price ?? "0") || BigInt(state.reservedPrice) > BigInt(config.maxServicePrice)) throw new Error("SESSION_BUDGET_INVALID");
+    // Earlier versions treated an Arena 4xx as terminal even after payment. Resume that same delivery/payload, never purchase again.
+    if (state.phase === "Stopped" && state.inference) { state.phase = state.submission ? "SubmissionPending" : "Paused"; await save(); }
     if (["Succeeded", "Failed", "Stopped", "Refunded"].includes(state.phase)) return structuredClone(state);
     await save();
     if (!state.inference) {
@@ -92,7 +95,8 @@ export async function runFixedPriceTask(directory: string, config: FixedTaskConf
         onHandle: async handle => {
           if (handle.input.taskId !== config.taskId || (state!.handle && state!.handle.quote.paymentId !== handle.quote.paymentId)) stop("SESSION_HANDLE_MISMATCH");
           state!.handle = structuredClone(handle); state!.reservedPrice = handle.quote.price; await save();
-        }, beforePayment: () => { assertTime(); if (!state!.handle) stop("HANDLE_NOT_PERSISTED"); },
+          await options.onHandle?.(structuredClone(handle));
+        }, beforePayment: async handle => { assertTime(); if (!state!.handle) stop("HANDLE_NOT_PERSISTED"); await options.beforePayment?.(structuredClone(handle)); },
       });
       try {
         state.inference = state.handle ? await infer.resume(structuredClone(state.handle)) : await infer.forTask(config.taskId).fetch(config.relayUrl, {

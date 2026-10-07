@@ -6,9 +6,12 @@
     ".": "./src/index.ts",
     "./provider": "./src/provider.ts",
     "./public-sample": "./src/public-sample.ts",
+    "./task-runner": "./src/task-runner/index.ts",
+    "./task-runner-types": "./src/task-runner/types.ts",
     "./session": "./src/session.ts",
     "./fixed-task": "./src/fixed-task.ts",
-    "./selector": "./src/selector.ts"
+    "./selector": "./src/selector.ts",
+    "./workflow": "./src/workflow.ts"
   },
   "engines": {
     "node": ">=22.19.0"

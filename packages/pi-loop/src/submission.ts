@@ -33,7 +33,8 @@ export async function submitProgrammingCandidate(state: SubmissionState, config:
       const body = await response.json() as { runId?: string; error?: string };
       if (!response.ok || !body.runId) {
         const rejected = response.status >= 400 && response.status < 500 && response.status !== 409 && response.status !== 429;
-        state.phase = rejected ? "Stopped" : "SubmissionPending";
+        // An HTTP rejection is not a final task/loan outcome. Keep the original paid candidate and signature recoverable.
+        state.phase = "SubmissionPending";
         state.reason = rejected ? "ARENA_SUBMISSION_REJECTED" : response.status === 409 ? "SUBMISSION_CONFLICT_UNCERTAIN" : "SUBMISSION_UNCERTAIN";
         await save(); return;
       }

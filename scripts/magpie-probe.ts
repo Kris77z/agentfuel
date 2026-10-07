@@ -10,7 +10,8 @@ import { InferCredit, PaymentError, accountInterface, requestDigest, type Infere
 import { fixture, key, read, startAnvil, stopAnvil, tx } from "../services/underwriter/test/fixture.js";
 import type { RelayConfig } from "../services/provider-relay/src/config.js";
 import { createHttpServer as createRelayHttpServer } from "../services/provider-relay/src/http.js";
-import { Relay } from "../services/provider-relay/src/relay.js";
+import { Relay, RelayError } from "../services/provider-relay/src/relay.js";
+import type { PaymentRecord } from "../services/provider-relay/src/store.js";
 import { Refunder } from "../services/provider-relay/src/refunder.js";
 import { startMagpie } from "./magpie-gateway.js";
 import { magpieLock } from "./magpie-build.js";
@@ -42,8 +43,11 @@ export async function verifyMagpie(options: { binary: string; output: string; of
     const entry = { model: body.model as string, scenario, request: body, authorizationMatches: req.headers.authorization === "Bearer synthetic-magpie-upstream", result: undefined as any };
     calls.push(entry);
     res.setHeader("content-type", "application/json");
-    if (scenario === "rate") { res.writeHead(429); res.end(JSON.stringify({ error: { message: "Rate limit reached", type: "rate_limit_error" } })); return; }
+    if (scenario === "rate" || scenario === "paid-rejected") { res.writeHead(429); res.end(JSON.stringify({ error: { message: "Rate limit reached", type: "rate_limit_error" } })); return; }
     if (scenario === "bad-gateway" || scenario === "paid-failure" && failPaid) { res.writeHead(502); res.end(JSON.stringify({ error: { message: "controlled unavailable", type: "server_error" } })); return; }
+    const unknownStatus = ({ "paid-503": 503, "paid-408": 408, "paid-409": 409 } as Record<string, number>)[scenario];
+    if (unknownStatus) { res.writeHead(unknownStatus); res.end(JSON.stringify({ error: { message: "controlled uncertain outcome", type: "server_error" } })); return; }
+    if (scenario === "paid-invalid-response") { res.end(JSON.stringify({ choices: [] })); return; }
     if (scenario === "lost-response") { req.socket.destroy(); return; } // Request received and its synthetic inference ran; the response is lost.
     if (scenario === "redirect") { res.writeHead(307, { location: "/v1/chat/completions?second-dispatch=1" }); res.end(); return; }
     if (scenario === "repair-400") { res.writeHead(400); res.end(JSON.stringify({ error: { message: "max_tokens must be at least 16" } })); return; }
@@ -144,27 +148,50 @@ export async function verifyMagpie(options: { binary: string; output: string; of
     assert.equal(calls.length - beforeSame, 1); assert.notEqual(same.handle.quote.paymentId, (paymentEvidence[0] as any).handle.quote.paymentId);
     checked("equal-paid-body-distinct-quote-and-payment");
 
-    const beforeFailure = calls.length; const failedBalance = await f.providerBalance(); const failedNonce = await f.provider.getTransactionCount(f.agentAddress);
-    await assert.rejects(sdk.fetch(relayUrl, { body: body("strong", "paid-failure") }), (error: unknown) => error instanceof PaymentError && error.code === "UPSTREAM_FAILED");
-    const failed = structuredClone(latest); const failedRecord = await capturePayment(failed, "failed");
-    assert.equal(failedRecord.state, "Paid"); assert.equal(calls.length - beforeFailure, 1); assert.equal(await f.providerBalance() - failedBalance, 30000n); assert.equal(await f.provider.getTransactionCount(f.agentAddress), failedNonce + 1);
-    checked("paid-upstream-failure-keeps-original-payment-and-one-dispatch");
-    // A caller explicitly resumes the paid handle; a later operational price never changes that quote.
-    config.service.tiers!.strong.price = 90000n; failPaid = false;
-    const recovered: Inference = await sdk.resume(structuredClone(failed)); await capturePayment(recovered, "recovered");
-    assert.equal(recovered.handle.quote.paymentId, failed.quote.paymentId); assert.equal(recovered.receipt.price, "30000");
-    assert.equal(recovered.receipt.model, "strong/strong-physical"); assert.equal(calls.length - beforeFailure, 2);
-    assert.equal(await f.providerBalance() - failedBalance, 30000n); assert.equal(await f.provider.getTransactionCount(f.agentAddress), failedNonce + 1);
-    checked("explicit-paid-resume-reuses-payment-and-original-price", { paidPrice: "30000", newConfiguredPrice: "90000", requestsAcrossExplicitResume: 2, paymentTransactions: 1 });
-    config.service.tiers!.strong.price = 30000n; failPaid = true;
-    const beforeRefundFailure = calls.length;
-    await assert.rejects(sdk.fetch(relayUrl, { body: body("strong", "paid-failure") }), (error: unknown) => error instanceof PaymentError && error.code === "UPSTREAM_FAILED");
-    const refundHandle = structuredClone(latest); await capturePayment(refundHandle, "failed-refund");
-    assert.equal(calls.length - beforeRefundFailure, 1);
-    // Explicit operator refund uses the original paid amount and no model request.
-    const cash = await read(f.account, "cash", [1n]); const refundId = keccak256(toUtf8Bytes("magpie failed original payment local refund"));
+    for (const scenario of ["paid-failure", "paid-503", "paid-408", "paid-409", "lost-response", "paid-invalid-response"]) {
+      const before = calls.length, balance = await f.providerBalance(), nonce = await f.provider.getTransactionCount(f.agentAddress);
+      const refunderNonce = await f.provider.getTransactionCount(f.payee);
+      await assert.rejects(sdk.fetch(relayUrl, { body: body("strong", scenario) }), (error: unknown) => error instanceof PaymentError && error.code === "UPSTREAM_UNCERTAIN");
+      const uncertain = structuredClone(latest), record = await capturePayment(uncertain, `uncertain-${scenario}`);
+      assert.equal(record.state, "Processing"); assert.equal(record.lastError, "UPSTREAM_UNCERTAIN");
+      assert.equal(record.upstreamAttempts?.length, 1); assert.equal(record.upstreamAttempts?.[0].state, "Unknown");
+      // Even if the vendor can now succeed, an unknown original dispatch cannot be repeated.
+      config.service.tiers!.strong.price = 90000n; failPaid = false;
+      await assert.rejects(sdk.resume(structuredClone(uncertain)), (error: unknown) => error instanceof PaymentError && error.code === "UPSTREAM_UNCERTAIN");
+      const restarted = new Relay(config, { provider: f.provider });
+      try { await restarted.initialize(); await restarted.recover(); } finally { restarted.close(); }
+      await assert.rejects(refunder.refund(uncertain.quote.paymentId, keccak256(toUtf8Bytes(`magpie uncertain ${scenario}`)), uncertain.quote.price),
+        (error: unknown) => error instanceof RelayError && error.code === "UPSTREAM_UNCERTAIN");
+      const retained: PaymentRecord = await relay.store.read(uncertain.quote.paymentId);
+      const payment = await read(f.account, "getPayment", [uncertain.quote.paymentId]);
+      assert.equal(retained.state, "Processing"); assert.equal(retained.quote.price, "30000");
+      assert.equal(retained.upstreamAttempts?.length, 1); assert.equal(retained.refunds.length, 0); assert.equal(payment.refundedAmount, 0n);
+      assert.equal(calls.length - before, 1); assert.equal(await f.providerBalance() - balance, 30000n);
+      assert.equal(await f.provider.getTransactionCount(f.agentAddress), nonce + 1); assert.equal(await f.provider.getTransactionCount(f.payee), refunderNonce);
+      await save(join(output, `uncertain-${scenario}-retained.json`), { record: retained, refundedAmount: payment.refundedAmount });
+      checked(`uncertain-${scenario}-no-resume-recover-or-refund-dispatch`, { originalPrice: "30000", newConfiguredPrice: "90000", actualUpstreamCalls: 1, paymentTransactions: 1, refundedAmount: "0" });
+      config.service.tiers!.strong.price = 30000n; failPaid = true;
+    }
+    const beforeRejected = calls.length, rejectedBalance = await f.providerBalance(), rejectedNonce = await f.provider.getTransactionCount(f.agentAddress);
+    await assert.rejects(sdk.fetch(relayUrl, { body: body("strong", "paid-rejected") }), (error: unknown) => error instanceof PaymentError && error.code === "UPSTREAM_FAILED");
+    const refundHandle = structuredClone(latest), rejectedRecord = await capturePayment(refundHandle, "rejected-refund");
+    assert.equal(rejectedRecord.state, "Paid"); assert.equal(rejectedRecord.upstreamAttempts?.[0].state, "Rejected");
+    assert.equal(rejectedRecord.upstreamAttempts?.[0].httpStatus, 429); assert.equal(calls.length - beforeRejected, 1);
+    config.service.tiers!.strong.price = 90000n;
+    await assert.rejects(sdk.resume(structuredClone(refundHandle)), (error: unknown) => error instanceof PaymentError && error.code === "UPSTREAM_FAILED");
+    const refundId = keccak256(toUtf8Bytes("magpie rejected original payment local refund"));
+    await assert.rejects(refunder.refund(refundHandle.quote.paymentId, refundId, "90000"),
+      (error: unknown) => error instanceof RelayError && error.code === "REFUND_EXCEEDS_PAYMENT");
+    checked("explicit-rejection-keeps-original-price-and-never-redispatches", { paidPrice: "30000", newConfiguredPrice: "90000", httpStatus: 429, actualUpstreamCalls: calls.length - beforeRejected });
+    // Only a proven rejection permits an operator refund; use the locked original amount.
+    const cash = await read(f.account, "cash", [1n]);
     const refunded = await refunder.refund(refundHandle.quote.paymentId, refundId, refundHandle.quote.price);
-    assert.equal(refunded.state, "Refunded"); assert.equal(await read(f.account, "cash", [1n]), cash + 30000n); assert.equal(calls.length - beforeRefundFailure, 1);
+    assert.equal(refunded.state, "Refunded"); assert.equal(await read(f.account, "cash", [1n]), cash + 30000n); assert.equal(calls.length - beforeRejected, 1);
+    assert.equal(await f.providerBalance(), rejectedBalance); assert.equal(await f.provider.getTransactionCount(f.agentAddress), rejectedNonce + 1);
+    const refundedNonce = await f.provider.getTransactionCount(f.payee);
+    await refunder.refund(refundHandle.quote.paymentId, refundId, refundHandle.quote.price);
+    await assert.rejects(sdk.resume(structuredClone(refundHandle)), (error: unknown) => error instanceof PaymentError && error.code === "REFUNDED");
+    assert.equal(await f.provider.getTransactionCount(f.payee), refundedNonce); assert.equal(await read(f.account, "cash", [1n]), cash + 30000n); assert.equal(calls.length - beforeRejected, 1);
     const refundRecord = await relay.store.read(refundHandle.quote.paymentId); const refundTxHash = refundRecord.refunds[0].transaction!.txHash;
     const refundReceipt = await f.provider.getTransactionReceipt(refundTxHash); assert.ok(refundReceipt); assert.equal(refundReceipt.status, 1);
     await save(join(output, "refund.json"), { refunded, record: refundRecord, rawTransactionReceipt: refundReceipt.toJSON() });
@@ -175,7 +202,7 @@ export async function verifyMagpie(options: { binary: string; output: string; of
     const report = { verified: true, scope: "local SDK -> Relay -> actual patched official Magpie -> controlled OpenAI-compatible HTTP provider; Anvil/mock-USDC only",
       magpie: gateway.provenance, lock: magpieLock, checks, paymentCount: new Set(paymentEvidence.map((e: any) => e.handle.quote.paymentId)).size, upstreamCalls: calls.length, brokenConnections,
       balances: { provider: await f.providerBalance(), agentCash: await read(f.account, "cash", [1n]) }, rpc: local.rpc,
-      limitations: ["No public paid inference or Monad writes", "No subscription/group/classifier/Anthropic/streaming/tool validation", "Per-Magpie-request dispatch limit; explicit Relay recovery may re-execute at Relay expense", "Provider-scoped receipt.model identifies the pinned route; saved physical request/response.model is separate", "Anvil is closed after raw receipts are saved"] };
+      limitations: ["No public paid inference or Monad writes", "No subscription/group/classifier/Anthropic/streaming/tool validation", "Unknown dispatch stays Processing until operator reconciliation; resume/recover/refund cannot redispatch or decide its outcome", "Only durable explicit rejection permits another pinned candidate or original-price refund", "Provider-scoped receipt.model identifies the pinned route; saved physical request/response.model is separate", "Anvil is closed after raw receipts are saved"] };
     await save(join(output, "upstream-calls.json"), calls); await save(join(output, "report.json"), report); await writeFile(join(output, "magpie.log"), gateway.log(), { mode: 0o600 });
     return report;
   } finally { sdk?.close(); low?.close(); await close(relayServer); relay?.close(); await f?.close(); if (local) await stopAnvil(local.child); await gateway?.close(); await baseline?.close(); await close(upstream); await close(brokenNetwork); }

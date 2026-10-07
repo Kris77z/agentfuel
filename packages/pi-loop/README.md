@@ -33,7 +33,7 @@ const session = await runProgrammingLoop(sessionDirectory, config, { signer });
 
 公开样例通过后，宿主保存最终签名 payload，再 POST **现有 Arena HTTP**。最终 hidden tests 和 `settle` 留给可信 Arena/独立 settler；只有其 Docker verdict 与指定 task/agent/domain 一致，并核验真实成功 receipt 中的 `TaskSettled`，才记 `Succeeded` 或 `Failed`。样例通过、模型口头成功、HTTP 接受均不算任务成功。
 
-丢失 POST 响应、429/5xx、409冲突保留 `SubmissionPending` 和原 payload；截止前允许重发完全相同 payload，靠现有服务端幂等取得原 runId，不重新签。已知 runId 只查状态；查询错误/settler运行错误不推断链上最终失败。截止后没有 runId 的未知提交明确暂停；Arena HTTP 重启会丢失内存 runId，需可信侧核对其结算 journal，循环不会通过新提交绕过。明确其他4xx结束为 `Stopped/ARENA_SUBMISSION_REJECTED`。
+丢失 POST 响应、429/5xx、409冲突保留 `SubmissionPending` 和原 payload；截止前允许重发完全相同 payload，靠现有服务端幂等取得原 runId，不重新签。已知 runId 只查状态；查询错误/settler运行错误不推断链上最终失败。截止后没有 runId 的未知提交明确暂停；Arena HTTP 重启会丢失内存 runId，需可信侧核对其结算 journal，循环不会通过新提交绕过。明确其他4xx记 `SubmissionPending/ARENA_SUBMISSION_REJECTED`，保留已付结果与原签名；HTTP拒绝不是任务或贷款终局，恢复Arena配置后仅重试原提交。
 
 前一批本地受控验证使用新 Anvil/mock-USDC、真实 Docker 与独立 settler，覆盖错误后的修复与恢复。2026-10-04另执行一次有界真实 Kimi 验证：K2.6通过SDK→Relay→Pi返回实际 `test_public_sample` 工具调用，公开样例及独立Arena的5项判题通过，并完成本地链TaskSettled。请求/返回模型均为 `kimi-k2.6`，usage输入190/输出45/总235（reasoning1），1次请求、零付费重试，报价10000原始单位（0.01 mock-USDC）。运营报价不等于模型成本或实际账单。
 
@@ -66,6 +66,10 @@ root已独立验收[真实Kimi信用B与实际Magpie本地流程](../../demo-out
 [Monad Task11真实流程](../../demo-output/live-monad-pi-20261004-alchemy-root/root-acceptance.json)也已由root独立验收，另有[canonical固定区块审计](../../demo-output/live-monad-pi-20261004-alchemy-root/root-canonical-audit.json)。Alchemy直连和root进程500ms请求间隔下，253个宿主RPC全部成功，独立settler不计在内。一次真实K2.6经实际Magpie返回工具调用，usage输入190/输出40/总230；独立Arena5/5和目标链TaskSettled通过。实际cash105396+draw14604=120000，fee438、还款15042原始单位；最终cash134958、还款次数4、违约0、未偿0。provider=poster=refunder的有意角色复用及原provider保留已在报告中说明。首轮成功不等于多轮修复，运营报价也不是vendor账单；Task9/10失败及退款仍保留为历史证据。
 
 [真实验证脚本](../../scripts/verify-live-fixed-price.ts)支持既有Monad部署、原handle/交易journal恢复和离线证据审计；Alchemy私有RPC文件配合`--rpc-transport direct`的具体预检与审计命令见[固定价入口](FIXED_PRICE.md#真实执行入口)。[Magpie](../../docs/magpie-gateway.md)与[双Agent五子棋现金Arena](../../docs/gomoku-arena.md)已有独立实现，不再列为P1排除。棋牌当前只使用双方独立cash预算；共享奖金授信、逐轮储值退款、by-intent和完整自主选任务仍未实现，标准x402亦未验证。
+
+## 预设候选任务的统一工作流
+
+`@agentfuel/pi-loop/workflow` 已将四题候选的规则选择、必要时 Open 接单、一次固定价 B 求解、公开工具与独立 Arena/原贷款终态接成持久入口；已 Assigned 且属于本 agent 的任务也可直接进入。选择只复用纯规则，不先购买一次普通推理，因此没有额外付款。受信固定价、求解档位计划、原 accept raw/hash、子会话和 PaymentHandle 均落盘；单钱包非终局只恢复原工作流，未知不重派，到期不新广播或提交。对外只返回安全状态投影，运营 refunder 不进入模型或 client 配置。规格、宿主 API、受控证据边界与复现命令见[统一工作流](WORKFLOW.md)，HTTP/CLI 配置与命令见[运营入口](TASK_RUNNER.md)。本批 core 的 Anvil/Docker/独立 Arena 回归通过，真实模型验收仍需同一运营入口的独立证据。
 
 ## 预设候选任务的付款前选择
 
@@ -106,7 +110,7 @@ node --import tsx --test packages/pi-loop/test/selector.test.ts
 npm run typecheck:all
 ```
 
-[选择验收脚本](../../scripts/verify-live-selection.ts)固定两个预设 Assigned 候选（sum/brackets）和一个受信 provider 的两档配置，实际通过选择器选择 brackets 的 cheap 档。默认仅打印计划；`--execute` 必须使用全新绝对输出目录，最多一次K2.6、2048 completion tokens、5分钟、cash-only，未知停止，不重复执行已有 output。受控脚本回归另验证缺少原链回执不能报成功。原始请求/响应、选择会话/handle/receipt、签名付款交易、ProviderPaid raw receipt、余额和同会话恢复观察均在关链前保存；离线审计复算决策并核对模型/usage/token cap、原价、付款事件和恢复零新增付款/请求。它不执行返回代码，也不证明 Pi 工具或 Arena 任务成功。当前只有受控脚本测试，真实一次验收留给 root：
+[选择验收脚本](../../scripts/verify-live-selection.ts)固定两个预设 Assigned 候选（sum/brackets）和一个受信 provider 的两档配置，实际通过选择器选择 brackets 的 cheap 档。默认仅打印计划；`--execute` 必须使用全新绝对输出目录，最多一次K2.6、2048 completion tokens、5分钟、cash-only，未知停止，不重复执行已有 output。受控脚本回归另验证缺少原链回执不能报成功。原始请求/响应、选择会话/handle/receipt、签名付款交易、ProviderPaid raw receipt、余额和同会话恢复观察均在关链前保存；离线审计复算决策并核对模型/usage/token cap、原价、付款事件和恢复零新增付款/请求。它不执行返回代码，也不证明 Pi 工具或 Arena 任务成功；真实一次选择验收见下方独立报告：
 
 ```sh
 node --import tsx scripts/verify-live-selection.ts --config /absolute/private/demo.monad.json

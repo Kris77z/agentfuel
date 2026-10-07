@@ -16,7 +16,7 @@
 
 补丁 SHA256：`a73f41c94fd4cbee820ef2708227e35c38a575fa20b5404ae2c6c2323dfedb54`。验收范围为配置一个 key、一个显式模型、一个普通 Chat base URL 的 **非流式 OpenAI chat**。没有验收订阅、group、分类器、Anthropic、Responses、流式回复或工具调用。
 
-一次 Magpie 入站请求最多向物理上游发送一次 HTTP；这不表示整个系统 exactly-once。两个相同 body 的独立请求各可调用一次。Relay 的显式同 paymentId 恢复、Processing 崩溃恢复仍遵守原契约：可能重新执行推理，成本由 Relay 承担，不能再次向 agent 扣款。探针特意验证一次已付失败后调用方显式 resume：上游累计两次、链上付款一次、仍收原报价 30000，即使运营已将新报价调为 90000。
+一次 Magpie 入站请求最多向物理上游发送一次 HTTP；这不表示整个系统 exactly-once。两个相同 body 的独立请求各可调用一次。当前 Relay 将 5xx、408、409、断线和无效响应保留为 `Processing/UPSTREAM_UNCERTAIN`；同 paymentId 的 SDK resume 和 Relay 恢复均不能再次派发，退款也被拒绝，必须先对账原调用。完整的明确拒绝响应（400、401、403、404、413、415、422、429）才允许尝试原快照内的未调用候选，或按原付款退款；已拒绝候选本身不会因 resume 再试一次。探针使用 429 验证原报价 30000 的退款，即使运营已将新报价调为 90000。
 
 ## 复现
 
@@ -72,7 +72,11 @@ Relay 继续用现有 `TIERS_JSON`：
 
 ## 保存的验收证据
 
-[本次报告](../demo-output/magpie-20261004-final/report.json) 包含原版重试对照、补丁进程版本/hash、故障调用计数、两档付款、预算拒绝、同 body 两笔独立付款、锁价恢复及全退。原始 `ProviderPaid`/退款 receipt、SDK 原签名付款、Relay 持久记录保存在同目录；[受控上游原请求/响应](../demo-output/magpie-20261004-final/upstream-calls.json) 另保留物理 model 与 usage。Anvil 和 Magpie 均在收集证据后关闭，离线读取不能重新查询原链。
+[2026-10-04 历史报告](../demo-output/magpie-20261004-final/report.json) 包含原版重试对照、补丁进程版本/hash、故障调用计数、两档付款、预算拒绝、同 body 两笔独立付款，以及当时的锁价重发与全退。它的“502 后显式 resume 再调用/退款”记录属于旧 Relay 规则，不能作为当前恢复契约。原始 `ProviderPaid`/退款 receipt、SDK 原签名付款、Relay 持久记录保存在同目录；[受控上游原请求/响应](../demo-output/magpie-20261004-final/upstream-calls.json) 另保留物理 model 与 usage。Anvil 和 Magpie 均在收集证据后关闭，离线读取不能重新查询原链。
+
+当前探针保留上述网关隔离、两档价格、缓存与预算检查，另用实际 Magpie、受控 HTTP 和新 Anvil 验证：502/503/408/409、响应丢失及无效响应只调用一次，resume、读取持久记录的新 Relay 恢复及退款都不再派发或签退款交易；429 明确拒绝可按原价全退，重复退款和 refunded handle 均无额外模型调用。运行范围仍为本地合成资产与凭证。
+
+2026-10-07 执行 Agent 实跑：集成测试 1/1、0 fail/skip，typecheck 通过；[当前兼容性报告](../demo-output/magpie-20261007-compat-agent/report.json) 保存 22 项受控检查、20 次合成上游请求（含原版 502 三次调用的历史行为对照）。root 已独立复跑同一实际进程集成测试并通过，汇总见[后端验收](backend-acceptance.md)；本次没有调用真实模型或公网链。测试自身的临时目录会清理，独立 CLI 证据保留在该报告目录。
 
 故障覆盖 429、502、HTTP 前连接断开、端点不可连接、已收到请求但响应丢失、307 redirect 和触发 token-floor 修补的 400。每次补丁网关入站最多一次受控 HTTP dispatch 或一次失败 TCP 连接；相同 body 的两个并行独立请求各调用一次。未声称已验证自动 group fallback、真实模型能力或真实 Kimi 业务链路。
 

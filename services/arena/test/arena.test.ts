@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn, type ChildProcess } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { createServer as reservePort } from "node:net";
@@ -21,9 +22,8 @@ const key = (n: number) => `0x${n.toString(16).padStart(64, "0")}`;
 const tx = async (contract: Contract, signer: Signer, method: string, args: unknown[] = [], overrides = {}) =>
   (await contract.connect(signer).getFunction(method)(...args, overrides)).wait();
 const read = (contract: Contract, method: string, args: unknown[] = []) => contract.getFunction(method).staticCall(...args);
-
 async function stop(child?: ChildProcess): Promise<void> {
-  if (!child?.pid || child.exitCode !== null) return;
+  if (!child?.pid || child.exitCode !== null || child.signalCode !== null) return;
   const exited = once(child, "exit"); child.kill("SIGTERM");
   if (!await Promise.race([exited.then(() => true), delay(2500).then(() => false)])) { child.kill("SIGKILL"); await exited; }
 }
@@ -210,6 +210,41 @@ test("Arena borrowed RPC survives controller/HTTP/settler close and rejected sta
   }
 });
 
+test("settler polls only its persisted hash, rejects a noncanonical receipt and recovers with no second signature or broadcast", { timeout: 40000 }, async () => {
+  const directory = await mkdtemp(join(tmpdir(), "af-arena-receipt-"));
+  let anvil: ChildProcess | undefined, f: Awaited<ReturnType<typeof fixture>> | undefined, settler: ArenaSettler | undefined;
+  try {
+    const local = await startAnvil(); anvil = local.child; f = await fixture(local.rpc, directory, true);
+    const config = { ...f.config, allowManual: true }; settler = new ArenaSettler(config, key(4), f.provider); await settler.start();
+    const token = await readControllerToken(config.ipcDirectory), taskId = f.taskIds[0];
+    const verdict: Verdict = { version: 1, runId: randomUUID(), chainId: config.chainId, escrowAddress: config.escrowAddress,
+      taskId, agentId: "1", problemId: "sum-integers", passed: true, mode: "manual", evidenceHash: "0".repeat(64) };
+    const nonce = await f.provider.getTransactionCount(new Wallet(key(4)).address);
+    const send = f.provider.send.bind(f.provider), getReceipt = f.provider.getTransactionReceipt.bind(f.provider), getBlock = f.provider.getBlock.bind(f.provider);
+    let broadcasts = 0, receiptQueries = 0, badCanonical = true, eventWaits = 0;
+    f.provider.send = async (method, params) => { if (method === "eth_sendRawTransaction") broadcasts++; return send(method, params); };
+    // Delay indexing once after broadcast; a missed block event must not matter.
+    f.provider.getTransactionReceipt = async hash => { receiptQueries++; return receiptQueries <= 2 ? null : getReceipt(hash); };
+    f.provider.waitForTransaction = async () => { eventWaits++; throw new Error("BLOCK_SUBSCRIPTION_MUST_NOT_BE_USED"); };
+    f.provider.getBlock = async (...args) => {
+      const block = await getBlock(...args);
+      if (badCanonical && block) { badCanonical = false; return { ...block, hash: "0x" + "f".repeat(64) } as typeof block; }
+      return block;
+    };
+    await assert.rejects(requestSettlement(config.ipcDirectory, token, verdict), /SETTLEMENT_NOT_CANONICAL/);
+    const beforeRecovery = JSON.parse(await readFile(join(config.ipcDirectory, "settlements.json"), "utf8"))[taskId];
+    assert.equal(beforeRecovery.settlement, undefined); assert.equal(keccak256(beforeRecovery.rawTx), beforeRecovery.txHash);
+    assert.equal(broadcasts, 1); assert.equal(eventWaits, 0); assert.ok(receiptQueries >= 3);
+    assert.equal(await f.provider.getTransactionCount(new Wallet(key(4)).address), nonce + 1);
+    const recovered = await requestSettlement(config.ipcDirectory, token, verdict);
+    assert.equal(recovered.txHash, beforeRecovery.txHash); assert.equal(recovered.passed, true);
+    const afterRecovery = JSON.parse(await readFile(join(config.ipcDirectory, "settlements.json"), "utf8"))[taskId];
+    assert.equal(afterRecovery.rawTx, beforeRecovery.rawTx); assert.equal(broadcasts, 1); assert.equal(eventWaits, 0);
+    assert.equal(await f.provider.getTransactionCount(new Wallet(key(4)).address), nonce + 1);
+    assert.equal((await read(f.escrow, "getTask", [taskId])).status, 3n);
+  } finally { await settler?.close(); f?.provider.destroy(); await stop(anvil); await rm(directory, { recursive: true, force: true }); }
+});
+
 test("separate settler process consumes controller verdicts on real USDC/native Anvil contracts", { timeout: 180000 }, async t => {
   const directory = await mkdtemp(join(tmpdir(), "af-arena-"));
   let anvil: ChildProcess | undefined;
@@ -220,7 +255,8 @@ test("separate settler process consumes controller verdicts on real USDC/native 
       await import("node:fs/promises").then(fs => fs.mkdir(scenario));
       const f = await fixture(local.rpc, scenario, erc20);
       let signer: ChildProcess | undefined;
-      const controller = new ArenaController(f.config, { timeoutMs: 700, maxOutputBytes: 1024 });
+      // Exercise settlement semantics without racing Docker startup under full-suite load.
+      const controller = new ArenaController(f.config, { timeoutMs: 3000, maxOutputBytes: 1024 });
       try {
         signer = await startSettler(f.config, scenario);
         assert.notEqual(signer.pid, process.pid);

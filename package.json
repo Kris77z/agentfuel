@@ -26,7 +26,12 @@
     "demo": "tsx scripts/demo.ts",
     "pretest:demo": "forge build --root contracts --skip-lint",
     "test:demo": "tsx --test scripts/test/demo.test.ts",
-    "test:demo:monad": "tsx --test scripts/test/monad.test.ts"
+    "test:demo:monad": "tsx --test scripts/test/monad.test.ts",
+    "backend": "tsx scripts/backend.ts",
+    "task-runner": "tsx scripts/task-runner.ts",
+    "relay:fixed": "tsx scripts/fixed-relay.ts",
+    "test:backend": "npm run test:core && npm test --workspace @agentfuel/arena && npm test --workspace @agentfuel/pi-loop && npm test --workspace @agentfuel/erc8004",
+    "test:backend:integration": "tsx --test --test-concurrency=1 scripts/test/*.test.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -1,6 +1,6 @@
 # InferCredit：3 分钟本地链演示稿
 
-当前版本用于可复现的本地排练：`chainId 31337 / Local Anvil / MOCK registries / FAKE inference`。四合约、USDC-6 转账、SDK / Relay / Underwriter、Python Docker 验收和独立 settler 都实际执行；推理文本由受控本地上游返回。Monad canonical registries 和付费模型的最终短片，等待真实部署与调用证据后另录。
+本页脚本保留为可复现的本地排练：`chainId 31337 / Local Anvil / MOCK registries / FAKE inference`。四合约、USDC-6 转账、SDK / Relay / Underwriter、Python Docker 验收和独立 settler 都实际执行；推理文本由受控本地上游返回。Monad canonical registries、付费模型和 Task11 信用闭环已有真实验收；本页数字只对应该本地排练，最新真实路径及新HTTP闭环见 [工程状态](implementation-status.md) 与 [后端交付](backend-acceptance.md)。
 
 ## 录制步骤
 

@@ -82,8 +82,10 @@ test("timeout, flood, nonzero exit and cancellation fail and clean own container
   try {
     const runner = new DockerExecutor({ dockerBin: wrapper, timeoutMs: 600, maxOutputBytes: 1024 });
     assert.equal((await runner.execute("while True: pass\n", "")).failure, "timeout");
-    assert.equal((await runner.execute("while True: print('x'*2048,flush=True)\n", "")).failure, "output-limit");
-    assert.equal((await runner.execute("print(5)\nraise SystemExit(1)\n", "")).failure, "runtime");
+    // These cases test output/exit classification, not a sub-second startup race on a busy daemon.
+    const exitRunner = new DockerExecutor({ dockerBin: wrapper, timeoutMs: 3000, maxOutputBytes: 1024 });
+    assert.equal((await exitRunner.execute("while True: print('x'*2048,flush=True)\n", "")).failure, "output-limit");
+    assert.equal((await exitRunner.execute("print(5)\nraise SystemExit(1)\n", "")).failure, "runtime");
     const abort = new AbortController();
     const pending = runner.execute("while True: pass\n", "", abort.signal);
     setTimeout(() => abort.abort(), 250);

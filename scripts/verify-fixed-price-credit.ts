@@ -195,7 +195,14 @@ export async function verifyFixedPriceCredit(directory: string) {
   finally {
     try {
       await arena?.close(); arena = undefined;
-      if (ipcRuntime) await writeFile(join(directory, "settlement-journal.json"), await readFile(join(ipcRuntime, "settlements.json")), { mode: 0o600 });
+      if (ipcRuntime) {
+        try { await writeFile(join(directory, "settlement-journal.json"), await readFile(join(ipcRuntime, "settlements.json")), { mode: 0o600 }); }
+        catch (error) {
+          // An early failure may precede the first settlement. Preserve that original failure.
+          if ((error as NodeJS.ErrnoException).code !== "ENOENT" || report.complete) throw error;
+          report.settlementJournalCreated = false;
+        }
+      }
       if (f && relay) {
         for (const receipt of extraReceipts) await writeFile(join(directory, `${receipt.hash}.receipt.json`), json(receipt), { mode: 0o600 });
         report.tasks = Object.fromEntries(await Promise.all((report.taskIds ?? []).map(async (taskId: string) => {

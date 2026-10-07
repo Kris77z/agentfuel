@@ -14,9 +14,9 @@
 > Monad 测试网七轮真实业务结算已完成（六次还款、一次违约），主角第三次还款从 640/B 升至 710/A。
 > 合约离线验收为 408 tests：404 passed / 0 failed / 4 skipped。详细证据和测试边界见
 > [implementation-status](docs/implementation-status.md)，§9 是演示验收范围，不代表本文全部长期规划已实现。
-> 真实流程经恢复完成；读取性能、运行稳定性及正式材料仍需收尾。
+> 2026-10-07 新统一后端已接通预设选单→Open 接单→一次固定价 Pi 消费→独立 Arena→还款；HTTP 发起、轮询、原 UUID 恢复与五进程启动入口已落地。当前验收与 UI 交接见 [后端交付](docs/backend-acceptance.md)。外部 RPC 的长期可用性不由一次成功保证。
 > **§6.6 扩展已验收：真实 Magpie/Kimi/Pi 固定价信用服务在 Monad Task11 完成还款；五子棋真实模型对局以格式违例判负终局，费用仍在本地现金结算。德州真实 Kimi → Monad 赞助测试 USDC → 真实推理消费已有历史验收；网页真实开局、4096 Kimi 额度发放/消费及练习持久化已实现，当前验收见文末。真实四题固定价求解与“注入拒绝后调用真实备用模型”已于2026-10-07验收；自然多轮修复、自然供应商故障仍没有真实运行证据。**
-> 下一阶段按 [RISK_AND_MVP §9](AGENT_CREDIT_RISK_AND_MVP.md#9-下一阶段推进顺序2026-10-04评估) 推进；该节是待实施/验收计划，不改变 §4 的现有资金不变量。
+> 后续新增范围按 [RISK_AND_MVP §9](AGENT_CREDIT_RISK_AND_MVP.md#9-下一阶段推进顺序2026-10-04评估) 判断；现有后端收尾不扩展公共 LP、通用仓库任务或公开游戏赛事，也不改变 §4 资金不变量。
 
 ## 开工依据与边界
 
@@ -169,7 +169,7 @@ Day-0 结束时必须能回答："demo 里那笔钱，是什么资产，走哪�
 > releaseForLiquidation）与 §4.6 调用表 + 防重入原则；任务 deadline 与
 > cancel/expire 出口；processRefund 退款冲减债务；裁决改为宿主持答案
 > 比对输出；underwriter 按 I6 预裁剪 principalCap；demo 余额工程化。
-> §4.5–§4.6 是实现验收标准；测试基线已建立，当前按 TEST_PLAN §5 开始业务实现。
+> §4.5–§4.6 是实现验收标准；对应 P0 业务实现和合约验收已完成，当前状态以 implementation-status 为准。
 > 下列代码为接口摘要，完整声明以 `contracts/src/interfaces/` 和对应合约公开入口为准。
 
 公共约定：金额单位统一为结算资产最小单位；`taskId` 全局唯一由 TaskEscrow 分配。
@@ -1009,7 +1009,7 @@ Anvil/mock-USDC 通过 SDK/Relay 调用真实 K2.6/K3，各一次128输出上限
 
 - Relay 已实现同一锁价报价内的顺序上游 fallback；真实业务只验证了 Kimi。
   Claude 等模型的额度耗尽/限流属于上游不可用；agent 余额/预算不足属于支付与选档问题，两者分开处理。
-- 当前 demo 由脚本指定任务、调用一次模型生成代码，再提交 Arena 最终判题和结算。
+- 统一 workflow 由宿主配置候选任务和求解预算，规则选择后自动接 Open 任务，或继续该 Agent 的 Assigned 任务；一次购买固定价 B，内部 Pi 在轮数、工具数和 token 上限内生成/验证代码，最后提交独立 Arena 结算。旧单次脚本保留为历史与专项探针。
   旧 demo 的选任务、接单和轮次仍由脚本安排。新增 Pi 入口只处理一个已指定任务、有限 cash 修复轮次，不称为完整自主选任务或自主融资；没有引入 LangChain。
 - 题库代码 `services/arena/src/problems.ts` 有四道 Python JSON stdin/stdout 题：
   `sum-integers`、`unique-sorted`、`balanced-brackets`、`word-frequency`。
@@ -1031,7 +1031,7 @@ Anvil/mock-USDC 通过 SDK/Relay 调用真实 K2.6/K3，各一次128输出上限
 
 验收：预算不足时不付款；cheap 报价确实低于 strong；fallback 不重复收费且模型归因准确；
 无可用合规上游时保留现有同 paymentId 恢复/退款语义。本地受控测试与两档真实API短探针已完成；
-真实模型fallback、模型能力对比及真实链两档付款尚未验证，不由两次OK输出推断。
+2026-10-07 已单独验收“宿主注入完整拒绝→真实同档备用 Kimi”；这不是自然供应商故障。模型能力对比及真实链两档付款不能由早期两次 OK 输出推断。
 
 ### Pi：一个任务、有限轮次、有限花费
 
@@ -1262,3 +1262,12 @@ runner、额度 ledger 与四游戏练习均有本地持久化和 writer 锁。�
 
 
 规则选择入口 `@agentfuel/pi-loop/selector` 已实现，按宿主白名单的能力、价格、cash/creditLimit、Assigned状态和期限做确定性筛选，决策与报价先持久化再付款。真实单次验收从两个候选中选括号题cheap并完成现金购买；受控测试另覆盖显式forTask信用、资金变化与未知恢复。当前不自动接单、不执行生成代码、不接网页调度，host creditLimit也不改变原链上policy；[选择器边界与复现](packages/pi-loop/README.md)及[当前状态](docs/implementation-status.md)为准。
+
+
+## 2026-10-07 后端收尾与 UI 交接
+
+现有 P0 / 四道 Python 任务 / 本机运营 GameFi 后端的本轮交付见 [后端验收](docs/backend-acceptance.md)。新 `workflow` 使用纯规则选择，不先购买旧 selector 的原始推理；Open 接单、固定价 B、Pi 工具、独立 Arena、偿还与安全状态查询在一个持久请求中完成。HTTP 仅接受预设 profile 与 UUID，恢复复用原接单签名、PaymentHandle 和提交；未知请求不能靠换 UUID 重买。`npm run backend` 提供固定五角色启动和退出，GameFi 保留现有独立入口。
+
+root 通过同款 Next 服务端桥接与真实 HTTP 完成一次 Kimi K2.6：190 输入 + 39 输出 = 229 tokens，付款120000（cash40000 + credit80000），偿还92000、最终cash58000、未偿0。接单/付款/结算三份回执已核对 canonical block，生成代码另经3项新Docker复判，原UUID恢复无新增消费。此为新本地Anvil/mock-USDC验证，没有新增Monad交易，也没有经过Magpie；旧Monad Task11和本轮Magpie实际进程回归分别作为各自证据。
+
+剩余 UI 工作是预设任务控件、阶段/资金/错误展示、原请求恢复交互和桌面/手机浏览器验收。自然模型错误修复的观察证据、通用仓库任务、公开报名、第三方provider、公共LP和标准x402兼容，不应借“后端收尾”改写为已完成。

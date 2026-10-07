@@ -319,10 +319,12 @@ test("Private RPC file keeps its sentinel out of public artifacts and CLI errors
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
 
-test("SDK, Underwriter, Relay, controller and independent settler consume the private effective endpoint and still reject the wrong chain", async () => {
+test("SDK, Underwriter, Relay, controller and independent settler consume the private effective endpoint and still reject the wrong chain", async t => {
   const directory = await mkdtemp(join(tmpdir(), "af-private-rpc-routing-"));
   const endpoint = "https://rpc.invalid/v2/FAKE_RPC_ROUTING_SENTINEL", seen: string[] = [];
   const originalGetUrl = new FetchRequest("https://unused.invalid").getUrlFunc;
+  // Restore the process-wide transport even if fixture construction itself throws.
+  t.after(async () => { FetchRequest.registerGetUrl(originalGetUrl); await rm(directory, { recursive: true, force: true }); });
   FetchRequest.registerGetUrl(async request => {
     seen.push(request.url); const input = JSON.parse(new TextDecoder().decode(request.body!));
     const calls = Array.isArray(input) ? input : [input];
@@ -336,7 +338,7 @@ test("SDK, Underwriter, Relay, controller and independent settler consume the pr
   const underwriter = new Underwriter({ rpcUrl: config.rpcUrl, chainId: 10143n, managerAddress: address, settlementAsset: MONAD_USDC,
     assetDecimals: 6, tokenUsdPrice: 10n ** 18n, privateKey: syntheticKey(2), evidenceDir: directory, host: "127.0.0.1", port: 8787 }, provider);
   const relay = new Relay({ rpcUrl: config.rpcUrl, chainId: 10143n, account: address, asset: MONAD_USDC, assetDecimals: 6, payTo: config.roles.provider,
-    service: { id: "infercredit/coder", model: "coder", price: 120000n, upstreams: [] }, dataDir: directory,
+    service: { id: "infercredit/coder", model: "coder", price: 120000n, upstreams: [{ name: "controlled", model: "controlled", baseUrl: "https://model.invalid/v1", key: "synthetic-test-key" }] }, dataDir: directory,
     quoteTtl: 300, confirmations: 1, logScanChunkBlocks: 100, upstreamTimeout: 1000, host: "127.0.0.1", port: 8788 }, { provider });
   const controller = new ArenaController(arenaConfig, {}, provider), settler = new ArenaSettler(arenaConfig, syntheticKey(3));
   const sdk = new InferCredit({ agentId: "0", signer: new Wallet(syntheticKey(11), provider), chainId: 10143n, account: address,

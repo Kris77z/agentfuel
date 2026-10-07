@@ -4,6 +4,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdtemp, readFile, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { SessionStore } from "../../../packages/pi-loop/src/session.js";
 import { createHand } from "../src/holdem/index.js";
@@ -185,7 +186,7 @@ test("the real credit ledger receives a terminal replay grant exactly once", asy
 });
 
 test("the IPC worker exits without a command and can launch the fixed CLI help without a model or chain call", async () => {
-  const root = process.cwd(), loader = join(root, "node_modules/tsx/dist/loader.mjs"), worker = join(root, "scripts/gamefi-runner-worker.ts");
+  const root = await realpath(fileURLToPath(new URL("../../../", import.meta.url))), loader = join(root, "node_modules/tsx/dist/loader.mjs"), worker = join(root, "scripts/gamefi-runner-worker.ts");
   const start = () => spawn(process.execPath, ["--import", loader, worker], { cwd: root, stdio: ["ignore", "ignore", "ignore", "ipc"] });
   const disconnected = start();
   const closed = new Promise<number | null>(done => disconnected.once("exit", done));

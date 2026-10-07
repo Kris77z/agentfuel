@@ -2,7 +2,9 @@
   "name": "@agentfuel/frontend",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "next dev --webpack --hostname 127.0.0.1",
     "build": "next build --webpack",
@@ -18,7 +20,8 @@
     "ethers": "^6.15.0",
     "next": "16.3.8",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "@agentfuel/pi-loop": "*"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

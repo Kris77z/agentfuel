@@ -4,7 +4,6 @@ import { once } from "node:events";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { setTimeout as delay } from "node:timers/promises";
 import { Wallet, id } from "ethers";
 import { EMPTY_AUTH } from "@agentfuel/sdk";
 import { problemCatalog } from "@agentfuel/arena";
@@ -117,12 +116,12 @@ test("actual selector SDK boundary stops before payment, buys only its pinned ro
         assert.equal(stopped.reason, "SELECTION_QUOTE_CHANGED"); assert.deepEqual(await state(), before); assert.equal(stopped.decision.selected?.price, "10000");
       } finally { relay!.quote = original; }
     });
-    await t.test("deadline after selection and before quote delivery prevents signing/payment", async () => {
-      const c = await make(taskIds[2], { deadlineMs: Date.now() + 120, minRemainingMs: 0 }); const original = relay!.quote.bind(relay), before = await state();
-      relay!.quote = async input => { const quote = await original(input); await delay(150); return quote; };
+    await t.test("deadline after selection and before quote delivery prevents signing/payment", async child => {
+      const c = await make(taskIds[2], { minRemainingMs: 0 }); const original = relay!.quote.bind(relay), before = await state();
+      relay!.quote = async input => { const quote = await original(input); child.mock.method(Date, "now", () => c.deadlineMs + 1); return quote; };
       try { const stopped = await runSelectedInference(join(directory, "deadline"), c, options);
-        assert.equal(stopped.reason, "SELECTION_DEADLINE"); assert.deepEqual(await state(), before); assert.ok(stopped.handle);
-      } finally { relay!.quote = original; }
+        assert.equal(stopped.reason, "SELECTION_DEADLINE"); assert.deepEqual(await state(), before); assert.ok(stopped.handle); assert.ok(stopped.decision.selected);
+      } finally { child.mock.restoreAll(); relay!.quote = original; }
     });
     await t.test("durable quote callback failure prevents any payment", async () => {
       const c = await make(taskIds[3]), before = await state(), original = SessionStore.prototype.write;

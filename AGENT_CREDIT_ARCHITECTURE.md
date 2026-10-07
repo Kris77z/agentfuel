@@ -3764,3 +3764,12 @@ runner、额度 ledger 与四游戏练习均有本地持久化和 writer 锁。�
 固定价 B 的题目白名单已覆盖求和、去重排序、括号匹配和词频统计；四题真实 Kimi 调用、独立 Arena 和本地信用结算已验收。普通 Relay 完成注入拒绝后的真实同档备用调用，仍在原报价内一次付费。两项均复用原四合约/SDK/Relay/Pi/Arena，没有增加合约、通用 Agent 框架或游戏贷款。本轮未新增 Monad 交易，未证明自然多轮修复或自然供应商故障。逐项证据与尚未开放的范围见[工程状态](docs/implementation-status.md)及[风险文档§9](AGENT_CREDIT_RISK_AND_MVP.md#9-下一阶段推进顺序2026-10-04评估)。
 
 规则驱动选择器也已落地：在预设Assigned任务与宿主能力/价格配置内选择一次SDK推理购买，受控现金/信用路径与真实现金购买均已验收。它不等于任务自动发现、接单、完整自主调度或链上独立预算隔离；没有叠加LangChain或新增分类模型。
+
+
+## 2026-10-07 后端收尾与 UI 交接
+
+现有 P0 / 四道 Python 任务 / 本机运营 GameFi 后端的本轮交付见 [后端验收](docs/backend-acceptance.md)。新 `workflow` 使用纯规则选择，不先购买旧 selector 的原始推理；Open 接单、固定价 B、Pi 工具、独立 Arena、偿还与安全状态查询在一个持久请求中完成。HTTP 仅接受预设 profile 与 UUID，恢复复用原接单签名、PaymentHandle 和提交；未知请求不能靠换 UUID 重买。`npm run backend` 提供固定五角色启动和退出，GameFi 保留现有独立入口。
+
+root 通过同款 Next 服务端桥接与真实 HTTP 完成一次 Kimi K2.6：190 输入 + 39 输出 = 229 tokens，付款120000（cash40000 + credit80000），偿还92000、最终cash58000、未偿0。接单/付款/结算三份回执已核对 canonical block，生成代码另经3项新Docker复判，原UUID恢复无新增消费。此为新本地Anvil/mock-USDC验证，没有新增Monad交易，也没有经过Magpie；旧Monad Task11和本轮Magpie实际进程回归分别作为各自证据。
+
+剩余 UI 工作是预设任务控件、阶段/资金/错误展示、原请求恢复交互和桌面/手机浏览器验收。自然模型错误修复的观察证据、通用仓库任务、公开报名、第三方provider、公共LP和标准x402兼容，不应借“后端收尾”改写为已完成。

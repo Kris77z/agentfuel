@@ -2,7 +2,7 @@
 
 InferCredit 用已托管的任务报酬支持 Agent 购买推理：现金不足时，按任务获取授信，把借款直接支付给白名单 Provider；任务通过独立验收后，在一笔交易中还清本金与费用，剩余收入进入 Agent 现金账本。真实还款与违约写回 ERC-8004 声誉，供后续授信使用。
 
-仓库采用 npm workspaces、TypeScript、ethers v6、Foundry 和 Next.js。当前是 Hackathon P0 与已落地扩展的实现，不是长期架构文档中所有功能的集合。**截至 2026-10-06 的完成状态与证据边界，以 [implementation-status](docs/implementation-status.md) 为入口。**
+仓库采用 npm workspaces、TypeScript、ethers v6、Foundry 和 Next.js。当前是 Hackathon P0 与已落地扩展的实现，不是长期架构文档中所有功能的集合。**截至 2026-10-07 的完成状态与证据边界，以 [implementation-status](docs/implementation-status.md) 为入口。**
 
 ## 核心资金路径
 
@@ -20,13 +20,19 @@ InferCredit 用已托管的任务报酬支持 Agent 购买推理：现金不足�
 | P0 四合约与原演示 | Foundry 离线 408 tests：404 pass、0 fail、4 skip。Monad 原演示完成六次还款、一次违约；主角第三次还款从 `640/B` 升至 `710/A`。 | [合约测试索引](contracts/TEST_PLAN.md)、[原演示最终证据](demo-output/monad-20261002-deployment-89b14f6d/evidence/demo.json) |
 | 固定价 Pi 信用 B | 一次 `forTask` 购买最多 N 轮求解；受控上游覆盖修复、恢复、未交付退款和隐藏测试失败清算。真实 K2.6 经 Magpie 的本地信用运行首轮成功，`cash40000 + draw80000` 支付 `120000`，偿还 `92000`。 | [服务规格与复现](packages/pi-loop/FIXED_PRICE.md)、[本地真实模型验收](demo-output/live-local-credit-20261004-root/root-acceptance.json) |
 | Monad Pi Task 11 | 实际 Magpie → 真实 K2.6 一次工具调用 → Pi → 独立 Arena `5/5` → `TaskSettled/Repaid`。`cash105396 + draw14604` 支付 `120000`，fee `438`、偿还 `15042`；最终 cash `134958`、还款 4、违约 0、未偿 0。Task 9/10 的失败及托管款全退仍作为历史保留。 | [Task 11 独立验收](demo-output/live-monad-pi-20261004-alchemy-root/root-acceptance.json)、[canonical 链状态核对](demo-output/live-monad-pi-20261004-alchemy-root/root-canonical-audit.json) |
-| Magpie 网关 | 实际进程已通过 17 项独立验证，锁定 `v0.1.814` 与禁用隐式重发的小补丁。`cheap/strong` 由调用方显式选档，报价、付款和退款仍属于 Relay/SDK。 | [接入说明](docs/magpie-gateway.md)、[网关验收](demo-output/magpie-20261004-root/root-acceptance.json) |
+| Magpie 网关 | 实际进程已按最新未知响应规则通过 22 项检查，锁定 `v0.1.814` 与禁用隐式重发的小补丁。`cheap/strong` 由调用方显式选档，报价、付款和退款仍属于 Relay/SDK。 | [接入说明](docs/magpie-gateway.md)、[本轮验收](docs/backend-acceptance.md) |
 | Pi 早期现金路径 | 真实 K2.6 首轮返回 `test_public_sample`，独立 Arena `5/5` 并在本地 Anvil 结算；报价 `10000`，SDK 推理付款 `taskId=0`，没有借款。这份历史证据不包含 Magpie 或 Monad。 | [Pi 入口](packages/pi-loop/README.md)、[现金路径验收](demo-output/live-pi-20261004-kimi-once/root-acceptance.json) |
 | 德州免费赞助奖励（2026-10-04 历史） | 真实Kimi合法终局，Monad Agent1999获0.1测试USDC并入cash，以0.01购买真实K2.6，剩0.09、借款0；CLI执行与只读桌面/手机回放。 | [运行说明](docs/holdem-arena.md)、[本轮总验收](demo-output/holdem-live-20261004-root/root-acceptance.json) |
 | 网页 GameFi 与 Kimi 额度 | 本机运营网页调用固定两位 Agent；可信终局共发放 4096 token，真实 Agent1999 消费 24 后余额 4072，同 ID 返回缓存。新 USDC 局已完成：Agent1998获0.1测试USDC入cash，消费0.01完成真实Kimi推理（29 tokens），余额0.09、借款0；练习跨重启保存已实现。 | [runner 配置](docs/gamefi-runner.md)、[额度规则](services/arena/src/inference-rewards/README.md)、[本轮验收](demo-output/gamefi-complete-20261005-root/root-acceptance.json) |
 | 双 Agent 五子棋 | 真实 K2.6 完成 12 个合法落子、13 次调用与付款。黑方第 13 次回答截断且格式无效，白方按规则 `forfeit` 胜。费用使用本地 Anvil/mock-USDC、双方独立现金预算，非五连胜。 | [规则与运行](docs/gomoku-arena.md)、[真实终局验收](demo-output/gomoku-live-20261004-retry-root/root-acceptance.json) |
 
-真实 Pi 运行均首轮成功，尚未证明真实多轮修复、strong/K3 工具兼容或完整自主选单。德州免费赞助测试USDC→真实推理首版已落地（见下文）；公开远程报名/任意提示词参赛、自动分类路由、逐轮储值与按用量退款、公共 LP 尚未实现；标准 x402 scheme/facilitator 兼容性尚未验证。RPC 稳定性与前端读取性能仍有边界，详见状态表。
+真实 Pi 运行均首轮成功，尚未证明自然多轮修复。K3 工具、本机预设任务的规则选单与自动接单已验收；新统一接口将选择、一次固定价购买、Pi 工具、独立 Arena 与还款接成同一持久流程。德州免费赞助测试USDC→真实推理首版已落地（见下文）；公开远程报名/任意提示词参赛、自动分类路由、逐轮储值与按用量退款、公共 LP 尚未实现；标准 x402 scheme/facilitator 兼容性尚未验证。RPC 稳定性与前端读取性能仍有边界，详见状态表。
+
+## 后端运行与页面接入
+
+现有 P0、四题固定价任务与本机运营 GameFi 的后端收尾见 [后端交付](docs/backend-acceptance.md)。`npm run backend -- --manifest /absolute/private/backend.json --check` 离线检查私有配置，`--start` 启动 Underwriter、固定价 Relay、独立 settler、Arena 和 TaskRunner；详见 [运行说明](docs/backend-runtime.md)。GameFi 沿用独立 [runner 配置](docs/gamefi-runner.md)。
+
+页面通过 `GET/POST /api/tasks/runs` 获取预设任务、发起和恢复原 UUID。服务端设置 `TASK_RUNNER_URL`，浏览器不能传入钱包、模型地址、价格或任意提示词。接口及状态说明见 [TASK_RUNNER](packages/pi-loop/TASK_RUNNER.md)。后续 UI 只需完成控件、阶段展示、错误文案与浏览器验收；不要在按钮里另调用旧 selector 消费入口。
 
 ## 最小本地运行
 

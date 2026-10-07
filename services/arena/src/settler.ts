@@ -2,6 +2,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { access, chmod, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer, type Server, type Socket } from "node:net";
 import { join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { Contract, JsonRpcProvider, keccak256, Wallet } from "ethers";
 import { atomicJson, digest, ESCROW_ABI, privateDirectory, settlementTimeout, validateVerdict, type ArenaConfig, type Settlement, type Verdict } from "./protocol.js";
 
@@ -121,9 +122,28 @@ export class ArenaSettler {
         // A previously broadcast tx can already be mined/pending after restart.
         if (!await this.provider.getTransaction(entry.txHash)) throw error;
       }
-      receipt = await this.provider.waitForTransaction(entry.txHash, 1, 25000);
+      // Poll only this persisted hash. A block subscription can miss the first
+      // automined block while it bootstraps, leaving a mined tx waiting forever
+      // on a quiet chain. Never sign or broadcast again in this read-only wait.
+      const until = Date.now() + 25000;
+      const timer = new AbortController();
+      const expired = delay(25000, undefined, { signal: timer.signal }).then(() => { throw new Error("SETTLEMENT_RECEIPT_PENDING"); });
+      const poll = async () => {
+        do {
+          const found = await this.provider.getTransactionReceipt(entry.txHash);
+          if (found) return found;
+          const remaining = until - Date.now();
+          if (remaining > 0) await delay(Math.min(100, remaining));
+        } while (Date.now() < until);
+        throw new Error("SETTLEMENT_RECEIPT_PENDING");
+      };
+      try { receipt = await Promise.race([poll(), expired]); }
+      finally { timer.abort(); }
     }
-    if (!receipt || receipt.status !== 1) throw new Error("SETTLEMENT_TRANSACTION_FAILED");
+    if (!receipt) throw new Error("SETTLEMENT_RECEIPT_PENDING");
+    if (receipt.status !== 1) throw new Error("SETTLEMENT_TRANSACTION_FAILED");
+    const canonical = await this.provider.getBlock(receipt.blockNumber);
+    if (!canonical || canonical.hash !== receipt.blockHash) throw new Error("SETTLEMENT_NOT_CANONICAL");
     const settled = receipt.logs.some(log => {
       if (log.address.toLowerCase() !== this.config.escrowAddress.toLowerCase()) return false;
       try {
