@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 test("fixture is explicit, three financial identities, evidence expands, mobile fits", async ({ page }) => {
   const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
-  await page.goto("/");
+  await page.goto("/advanced");
   await expect(page.getByText("本地演示 · FIXTURE")).toBeVisible();
   await expect(page.getByRole("heading", { name: /Atlas\s*#1842/ })).toBeVisible();
   await expect(page.getByRole("button", { name: "连接钱包" })).toBeDisabled();
@@ -28,7 +28,7 @@ test("fixture is explicit, three financial identities, evidence expands, mobile 
 
 test("manual and automatic refresh share one in-flight request", async ({ page }) => {
   await page.clock.install();
-  await page.goto("/");
+  await page.goto("/advanced");
   const fixture = await (await page.request.get("/api/dashboard")).json();
   // Controlled test snapshot enables the real refresh interval; no network/chain is represented here.
   const snapshot = { ...fixture, mode: "chain", config: { ...fixture.config, network: "LOCAL REFRESH TEST" } };

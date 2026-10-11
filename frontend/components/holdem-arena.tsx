@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { amount, short } from "../lib/format";
 import type { HoldemPhase, HoldemReport, HoldemSnapshot, HoldemStep } from "../lib/holdem-types";
-import { Icon, Mark } from "./icons";
+import { Icon } from "./icons";
+import { TerminalHeader } from "./terminal/terminal-header";
 import { HoldemMonadEvidence } from "./holdem-monad-evidence";
 
 const streets = { preflop: "翻牌前", flop: "翻牌", turn: "转牌", river: "河牌" };
@@ -68,8 +69,7 @@ export default function HoldemArena({ initial, embedded = false }: { initial: Ho
       <footer className="data-footer"><span><span className="dot" />{fixture ? "Fixture snapshot" : "Public report snapshot"}{report.chainId ? ` · Chain ${report.chainId}` : ""}</span><span>读取时间 {snapshot.loadedAt.replace("T", " ").slice(0, 19)} UTC · 手动刷新 · 只读页面</span></footer></> : <div className="holdem-panel holdem-empty"><Icon name="shield" size={32} /><h2>公开报告暂不可用</h2><p>服务端尚未提供可用的真实对局报告。配置公开 report.json 后刷新；当前没有可展示的奖励或现金余额。</p></div>}
   </>;
   if (embedded) return <section className="af-gamefi-report" id="gamefi-match"><div className="af-gamefi-report-heading"><span className="af-badge">GAMEFI · 公开结果</span><button className="af-button" onClick={() => void refresh()} disabled={refreshing} aria-label="刷新德州报告"><Icon name="refresh" size={14} />{refreshing ? "读取中" : "刷新报告"}</button></div>{content}<p className="af-gamefi-cli">真实模型开赛、USDC 派奖与奖励现金购买推理由项目 CLI 执行。此页只读公开报告，不会发起模型付费或链上交易。</p></section>;
-  return <div className="app-shell holdem-shell"><aside className="sidebar"><a className="brand" href="/"><Mark small /><span>InferCredit</span></a><div className="sidebar-caption">REPUTATION YOU CAN SPEND.</div><nav className="primary-nav" aria-label="主导航"><a className="nav-link" href="/"><Icon name="identity" />信用档案<span>01</span></a><a className="nav-link active" href="/arena/holdem" aria-current="page"><Icon name="routing" />德州 Arena<span>03</span></a></nav><div className="holdem-sidebar-note"><span className="eyebrow">FREE ENTRY</span><strong>先赢奖励，再购买推理。</strong><p>双人单手德州。游戏筹码独立于钱包、现金与债务。</p></div><div className="sidebar-footer"><div className="sidebar-network"><span className="dot" />{fixture ? "本地视觉演示" : report ? networks[report.network] : "报告未读取"}</div><p>公开结果查看<br />CLI 执行比赛与结算</p><div className="sidebar-bottom">ARENA <span>READ ONLY</span></div></div></aside><div className="main-shell"><header className="topbar"><div className="breadcrumbs">Workspace <span>/</span><strong>Holdem Arena</strong></div><button className="refresh-button" onClick={() => void refresh()} disabled={refreshing} aria-label="刷新德州报告"><Icon name="refresh" size={16} /><span>{refreshing ? "读取中" : "刷新报告"}</span></button></header><main id="main-content">
-{content}</main></div></div>;
+  return <div className="holdem-shell"><TerminalHeader workspace="holdem" section="holdem" status={fixture ? "FIXTURE" : report ? "REPORT FILE" : "UNAVAILABLE"} actions={<button className="button secondary small" onClick={() => void refresh()} disabled={refreshing} aria-label="刷新德州报告"><Icon name="refresh" size={13} />{refreshing ? "读取中" : "刷新报告"}</button>} boundary={<>公开报告与证据档案 · 固定运行记录独立于你的托管 Agent · 文件快照，页面未连接链核验</>} /><main id="main-content" className="holdem-main">{content}</main></div>;
 }
 
 

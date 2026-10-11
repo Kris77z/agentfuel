@@ -1,3 +1,4 @@
+import { TerminalTheme } from "../../components/terminal/terminal-theme";
 import type { Metadata } from "next";
 import ArenaPlay from "../../components/arena-play";
 import type { PlayGame, PlayMode } from "../../lib/play-types";
@@ -13,5 +14,5 @@ export default async function ArenaPage({ searchParams }: { searchParams: Promis
   const selected = value("game");
   const game: PlayGame | null = selected === "poker" || selected === "holdem" ? "holdem" : ["gomoku", "chess", "balatro"].includes(selected) ? selected as PlayGame : null;
   const mode: PlayMode = value("mode") === "practice" || value("mode") === "invite" ? "invite" : "challenge";
-  return <ArenaPlay initialGame={game} initialMode={mode} initialMatchId={value("matchId")} initialInviteCode={value("inviteCode")} ranked={value("mode") === "ranked"} holdem={holdem} />;
+  return <TerminalTheme><ArenaPlay initialGame={game} initialMode={mode} initialMatchId={value("matchId")} initialInviteCode={value("inviteCode")} ranked={value("mode") === "ranked"} holdem={holdem} /></TerminalTheme>;
 }

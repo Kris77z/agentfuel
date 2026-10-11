@@ -32,13 +32,15 @@ InferCredit 用已托管的任务报酬支持 Agent 购买推理：现金不足�
 
 用户在平台创建 Agent，平台托管运行与独立钱包；首版选择运营方支持的模型、三档策略和消费预算。`/api/hosted/*` 提供钱包签名登录、创建/修改/暂停、入金、任务、免费德州与模型额度消费；不是外部 Agent 接入 API。原预设入口保留作运营兼容。
 
-root 已用两名用户、随机生成的托管钱包、实际本地链和两个生产 executor 验证：开户 → 入金 → 信用任务 → 赢赞助 USDC → 用奖励余额完成下一单 → 赢额度并消费。未新增真实供应商消费或 Monad 交易，用户界面和公开部署尚未验收。见 [托管交付](docs/hosted-acceptance.md)、[配置/API](docs/hosted-agents.md)。
+root 已用两名用户、随机生成的托管钱包、实际本地链和两个生产 executor 验证：开户 → 入金 → 信用任务 → 赢赞助 USDC → 用奖励余额完成下一单 → 赢额度并消费。未新增真实供应商消费或 Monad 交易，真实扩展钱包与公开部署尚未验收。见 [托管交付](docs/hosted-acceptance.md)、[配置/API](docs/hosted-agents.md)。
+
+首页现已接入托管 API，并直接迁移 Agora Mesh Dashboard 的浅灰/白色方角面板、紫色强调、Geist Mono、紧凑三栏与请求时间线。`/arena`、四种练习、`/arena/holdem` 和 `/advanced` 共用同一终端页头与导航，棋盘、牌桌与红黑花色保留原操作辨识。个人托管 Agent、固定运营演示与免费练习明确分开；服务未配置时显示真实空态。2026-10-10 本地浏览器 76 项、类型检查与生产构建通过，来源、截图和未验证范围见 [前端迁移记录](docs/frontend-agora-migration.md)。
 
 ## 后端运行与页面接入
 
 现有 P0、四题固定价任务与本机运营 GameFi 的后端收尾见 [后端交付](docs/backend-acceptance.md)。`npm run backend -- --manifest /absolute/private/backend.json --check` 离线检查私有配置，`--start` 启动 Underwriter、固定价 Relay、独立 settler、Arena 和 TaskRunner；详见 [运行说明](docs/backend-runtime.md)。GameFi 沿用独立 [runner 配置](docs/gamefi-runner.md)。
 
-页面通过 `GET/POST /api/tasks/runs` 获取预设任务、发起和恢复原 UUID。服务端设置 `TASK_RUNNER_URL`，浏览器不能传入钱包、模型地址、价格或任意提示词。接口及状态说明见 [TASK_RUNNER](packages/pi-loop/TASK_RUNNER.md)。此预设入口的 UI 只需完成控件、阶段展示、错误文案与浏览器验收；新增用户托管入口还需接入登录、创建和账户控件；不要在按钮里另调用旧 selector 消费入口。
+页面通过 `GET/POST /api/tasks/runs` 获取预设任务、发起和恢复原 UUID。服务端设置 `TASK_RUNNER_URL`，浏览器不能传入钱包、模型地址、价格或任意提示词。接口及状态说明见 [TASK_RUNNER](packages/pi-loop/TASK_RUNNER.md)。此预设入口保留在 `/advanced`；首页通过同源 `/api/hosted/*` 接入签名登录、创建、设置、暂停和账户操作。托管额度目前仅执行固定短确认消费，不作为通用聊天入口。
 
 ## 最小本地运行
 
@@ -66,7 +68,7 @@ npm run demo -- --mode local --serve --pause-before-third
 FRONTEND_MODE=chain FRONTEND_MANIFEST_PATH=/absolute/path/to/manifest.json npm run dev --workspace @agentfuel/frontend
 ```
 
-打开 `http://127.0.0.1:3000`；原终端按 Enter 执行主角第三单，结束后 Ctrl-C 关闭本次服务。只查看合成 UI 可运行 `npm run dev:fixture --workspace @agentfuel/frontend`，页面标记 `FIXTURE` 且关闭钱包广播。金额、输出文件和恢复边界见 [本地 demo runbook](docs/demo-runbook.md#本地飞轮复现) 与 [前端说明](frontend/README.md)。
+打开 `http://127.0.0.1:3000/advanced` 查看固定运营 Agent 协议演示；原终端按 Enter 执行主角第三单，结束后 Ctrl-C 关闭本次服务。只查看合成 UI 可运行 `npm run dev:fixture --workspace @agentfuel/frontend`，页面标记 `FIXTURE` 且关闭钱包广播。金额、输出文件和恢复边界见 [本地 demo runbook](docs/demo-runbook.md#本地飞轮复现) 与 [前端说明](frontend/README.md)。
 
 ## 检查与验收
 
@@ -121,7 +123,7 @@ node --import tsx scripts/verify-live-fixed-price.ts --audit-output demo-output/
 | [packages/sdk/](packages/sdk/README.md) | Node/浏览器签名者入口、现金优先付款及 PaymentHandle 恢复 |
 | [packages/pi-loop/](packages/pi-loop/README.md) | 受限现金循环与独立固定价求解服务 B |
 | [packages/erc8004/](packages/erc8004/README.md) | canonical 身份、钱包绑定和指定 reporter 声誉读取 |
-| [frontend/](frontend/README.md) | Agent Financial Identity 档案、任务与证据面板 |
+| [frontend/](frontend/README.md) | Agora 终端工作台、托管 Agent、游戏练习与协议证据 |
 | `scripts/`、`demo-output/` | 本地/真实验证入口、脚本回归与既有运行证据 |
 
 先读 [implementation-status](docs/implementation-status.md) 与相关模块 runbook，再查 [工程规格 §4](AGENT_CREDIT_ENGINEERING.md) 和 [风险与 MVP](AGENT_CREDIT_RISK_AND_MVP.md)。[架构](AGENT_CREDIT_ARCHITECTURE.md) 保留长期方案，[赛道叙事](AGENT_CREDIT_TRACK_NARRATIVE.md) 与 [demo pitch](docs/demo-pitch.md) 用于解释项目；历史排期和早期模块状态不代表新增功能已完成。

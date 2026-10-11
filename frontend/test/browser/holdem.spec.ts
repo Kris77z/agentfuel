@@ -3,8 +3,7 @@ import type { HoldemSnapshot } from "../../lib/holdem-types";
 
 test("configured report is explicit and read-only, public replay reaches terminal, refresh preserves evidence", async ({ page }) => {
   const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
-  await page.goto("/");
-  await page.getByRole("navigation", { name: "主导航" }).getByRole("link", { name: /德州 Arena/ }).click();
+  await page.goto("/arena/holdem");
   await expect(page.getByRole("heading", { name: "德州 Arena", exact: true })).toBeVisible();
   await expect(page.getByText("公开报告 · 文件快照", { exact: true })).toBeVisible();
   await expect(page.getByText(/本地 Anvil \/ mock-USDC.*页面未联机核验/)).toBeVisible();

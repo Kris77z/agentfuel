@@ -42,7 +42,11 @@
     ".next-practice-restart-3695e63d/types/**/*.ts",
     ".next-practice-restart-3695e63d/dev/types/**/*.ts",
     ".next-gamefi-final/types/**/*.ts",
-    ".next-gamefi-final/dev/types/**/*.ts"
+    ".next-gamefi-final/dev/types/**/*.ts",
+    ".next-hosted-test/types/**/*.ts",
+    ".next-hosted-test/dev/types/**/*.ts",
+    ".next-terminal-test/types/**/*.ts",
+    ".next-terminal-test/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

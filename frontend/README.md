@@ -1,8 +1,32 @@
-# InferCredit frontend
+# AgentFuel frontend
 
-Next.js 16 / React 19 的 Agent Financial Identity 档案页与演示面板。默认 `chain` 模式；没有真实部署清单时显示“未配置”，不会补上示例余额。至少 3 个 Agent 可切换，现金、Tier 单任务本金上限、未偿本金与 fee、真实还款/违约、镜像反馈、身份、任务和链上回执都来自已配置的服务与合约。
+Next.js 16 / React 19。首页是用户平台托管 Agent 工作区，直接迁移 Agora Mesh 终端 Dashboard 的浅灰紫色主题、Geist Mono、紧凑标题栏、固定视口三栏、身份面板、请求时间线和底部操作区；手机使用 Agent / 请求 / 资源面板切换。来源与适配记录见 [迁移说明](../docs/frontend-agora-migration.md)。
 
-`/arena/holdem` 提供免费双人德州的公开结果、动作逐步回放、虚拟筹码奖池、奖励→cash→推理消费证据。主导航可直接进入；比赛、发奖与付款仍通过 CLI 执行，页面只有读取、刷新和回放控件。
+首页通过同源 `/api/hosted/*` 连接钱包个人消息签名登录、创建/设置/暂停 Agent、任务、免费德州、USDC 入账和固定短确认奖励额度消费。服务未配置时显示服务不可用，不生成示例 Agent。模型目录来自当前登录用户的服务端快照，Agent 的独立钱包私钥仅由平台保管；浏览器只用 Next 管理的 HttpOnly 会话。
+
+托管服务启动与环境变量见 [hosted-agents](../docs/hosted-agents.md)。未知 POST 保存原 UUID 与公开参数，刷新后以同一钱包身份继续确认；可恢复的服务端记录使用原 requestId、rewardKind、amountRaw。该恢复提示保存在 localStorage 中，不保存 token、私钥或模型原文。
+
+原 Agent Financial Identity 档案页与固定 Agent 演示面板保留在 `/advanced`，从首页底部“高级与演示入口”进入。该入口继续按 `FRONTEND_MODE=chain` / `fixture` 运行，至少 3 个运营 Agent 可切换，现金、Tier、债务与协议回执来自原服务和合约。未配置真实清单时不会补上示例余额。
+
+`/arena`、四种练习界面、`/arena/holdem` 与 `/advanced` 同样使用源 Dashboard 的浅灰/白色方角面板、紫色强调、Geist Mono 和紧凑终端页头。页面导航互通，手机按内容改为单列。棋盘材质、黑白棋子、牌桌及红黑花色保留原辨识与操作。游戏大厅明确区分固定运营演示、免费虚拟筹码练习与个人托管参赛；用户托管 Agent 的参赛控件位于首页“竞技场”。
+
+托管 UI 的本地浏览器验收使用合成 API 和本地个人签名，所有 API 均拦截，不会广播交易或调用付费模型：
+
+```sh
+PATH=/Users/jungle/.nvm/versions/node/v22.23.2/bin:$PATH \
+  npm run test:browser --workspace @agentfuel/frontend -- --config playwright.hosted.config.ts
+```
+
+其他页面的结构、导航和四种练习操作可用独立 3015 / `.next-terminal-test` 验收。所有 API 拦截；练习动作仅在测试进程内执行免费游戏引擎，钱包、外网请求与付费模型均不可达。合成截图保存在 `frontend/acceptance/terminal-pages/`。
+
+```sh
+PATH=/Users/jungle/.nvm/versions/node/v22.23.2/bin:$PATH \
+  npm run test:browser --workspace @agentfuel/frontend -- --config playwright.terminal.config.ts
+```
+
+2026-10-10 终端统一后，托管 40/40、跨页 14/14、运营控制台 16/16、德州报告 6/6 共 76 项通过；类型检查与最终生产构建通过。生产桌面/手机 8 页核对字体、主题和宽度，截图为 `production-local-*`，其中未配置德州明确标记 fixture。
+
+此套件的 UI 验收不代表真实钱包扩展、供应商或公开部署端到端已验收。最近确认 cash 与额度消费记录是服务端返回的历史事实，界面不将它们显示为当前实时余额。
 
 从仓库根目录运行（依赖由根 npm workspace 统一安装）：
 

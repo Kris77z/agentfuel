@@ -89,7 +89,7 @@ test("browser wallet → real task/SDK payment → signed Python Arena submissio
     });
     await page.route("**/api/dashboard", async route => { await route.fulfill({ json: await readDashboard(config) }); });
     page.on("request", request => { if (request.url() === `${relayUrl}/v1/chat` && request.method() === "POST") logicalRequests.push(JSON.parse(request.postData()!)); });
-    await page.goto("/"); await page.getByRole("button", { name: "刷新链上数据" }).click();
+    await page.goto("/advanced"); await page.getByRole("button", { name: "刷新链上数据" }).click();
     await expect(page.getByText("Local Anvil browser integration", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "连接钱包" }).click();
     await page.getByRole("navigation", { name: "主导航" }).getByRole("button", { name: /演示面板/ }).click();

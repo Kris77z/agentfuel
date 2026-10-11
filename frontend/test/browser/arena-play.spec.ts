@@ -26,7 +26,7 @@ test("GameFi lobby keeps all four practice games and local covers", async ({ pag
   page.on("requestfailed", request => failures.push(request.url()));
   page.on("request", request => { if (!request.url().startsWith("http://127.0.0.1") && !request.url().startsWith("data:")) external.push(request.url()); });
   await page.goto("/arena");
-  await expect(page.getByRole("heading", { name: "AgentFuel GameFi", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "游戏大厅", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: /^进入/ })).toHaveCount(8);
   for (const game of ["扑克", "五子棋", "国际象棋", "小丑牌"]) await expect(page.getByRole("link", { name: `进入策略练习${game}对局`, exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "德州奖励档案", exact: false })).toHaveAttribute("href", "/arena/holdem");

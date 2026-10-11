@@ -18,3 +18,5 @@
 所有用例监听 pageerror。布局验收断言无横向溢出，并保存桌面/手机控制台截图：`completed`、`recovered`、`credits-completed`、`credits-unknown`、`credits-awarded`、`unconfigured`。
 
 复现：Node 22 下运行 `GAMEFI_CONSOLE_TEST_URL=http://127.0.0.1:3022 npm exec --workspace @agentfuel/frontend -- playwright test --config playwright.gamefi-console.config.ts`。frontend typecheck 通过。
+
+2026-10-10 终端统一回归：同一 16 项在独立 3016 的 Next 生产构建上全部通过，全部付费 API 继续拦截，未操作 3020 用户预览。上述 12 张桌面/手机控制台截图已更新为 Agora 灰白/紫色等宽终端界面；图中的比赛、金额与 token 仍为受控响应。

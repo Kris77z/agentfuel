@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PlayAction, PlayCommand, PlayGame, PlayList, PlayMatchSummary, PlayMatchView, PlayMode, PlayPlayer, PlaySession } from "../lib/play-types";
 import type { HoldemSnapshot } from "../lib/holdem-types";
-import { Icon, Mark } from "./icons";
+import { Icon } from "./icons";
+import { TerminalHeader } from "./terminal/terminal-header";
 import { ArenaBoard } from "./arena-play-boards";
 import HoldemArena from "./holdem-arena";
 import GameFiConsole from "./gamefi-console";
@@ -37,7 +38,6 @@ export default function ArenaPlay({ initialGame, initialMode, initialMatchId = "
   const [chips, setChips] = useState<500 | 1000 | 5000>(1000);
   const [hands, setHands] = useState(initialMode === "invite" ? 3 : 10);
   const [inviteCode, setInviteCode] = useState(initialInviteCode);
-  const [collapsed, setCollapsed] = useState(false);
   const mutationInFlight = useRef(false);
   const refreshInFlight = useRef(false);
   const activeId = useRef(matchId);
@@ -134,18 +134,14 @@ export default function ArenaPlay({ initialGame, initialMode, initialMatchId = "
   const activeMatches = catalog?.matches.filter(m => !game || m.game === game) || [];
   const agentPrompt = match && token ? `你正在参加 AgentFuel 练习模式。虚拟筹码没有货币价值。服务端负责规则、轮次与结算。\nAPI: ${typeof window === "undefined" ? "" : window.location.origin}/api/arena/play\nmatchId: ${match.id}\n只在请求头使用 Authorization: Bearer ${token}；不要转发、记录或放入 URL。\nGET ?matchId=${match.id} 读取当前 gameView。仅在 actor 等于 yourSeat 时行动。\nPOST {"op":"ready","matchId":"${match.id}","version":当前version,"requestId":"每次新操作唯一UUID"} 准备。\nPOST {"op":"action","matchId":"${match.id}","version":当前version,"requestId":"每次新操作唯一UUID","action":合法动作} 行动。\n合法动作以 gameView 和下方 API 契约为准。收到409时重新GET；重试同一请求复用requestId。\n游戏: ${match.game}。完成后停止行动。` : "先开始游戏，取得自己的席位后即可复制 Agent 接入提示词。";
 
-  return <div className={`af-arena${collapsed ? " sidebar-collapsed" : ""}`}>
-    <aside className="af-arena-sidebar"><a className="af-arena-brand" href="/"><Mark small /><strong>AgentFuel</strong></a><button className="af-collapse" onClick={() => setCollapsed(c => !c)} aria-label={collapsed ? "展开侧边栏" : "收起侧边栏"}>◧</button>
-      <nav aria-label="工作空间导航"><a className="active" href="/arena"><span>♧</span><span>GameFi</span></a><a href="/"><Icon name="identity" /><span>信用档案</span></a><div className="af-nav-divider" /><small>Agent × Task</small><a href="/"><Icon name="routing" /><span>推理与资金流</span></a><a href="/arena/holdem"><Icon name="shield" /><span>德州奖励档案</span></a><a href="/arena#agent-api"><span>⌘</span><span>Agent API</span></a></nav>
-      <div className="af-sidebar-bottom"><div><span className="af-avatar">A</span><span>本地挑战者</span><span>—</span></div><p>USDC 奖励 · 推理消费</p><a href="/arena/holdem">查看同局奖励与消费档案 <Icon name="external" size={13} /></a></div>
-    </aside>
+  return <div className="af-arena">
+    <TerminalHeader workspace="arena" section="arena" status={busy ? "SENDING" : pending ? "PENDING" : error ? "ERROR" : catalog ? "PRACTICE" : "LOADING"} actions={<button className="af-button" disabled={busy} onClick={() => { void refreshList(); if (matchId) void refreshMatch(matchId, token); }}><Icon name="refresh" size={13} />刷新对局</button>} boundary={<>练习席位独立于托管 Agent · 虚拟筹码无货币价值 · <a href="/">在工作台选择自己的 Agent 参加赞助比赛 →</a></>} />
     <main className="af-arena-main">
       {pending ? <div className="af-alert error" role="status"><span>有一项操作等待确认：{pending.command.op}。原请求已保留。</span><button disabled={busy} onClick={() => void send(pending.command, pending.seatToken)}>重试同一请求</button></div> : null}
       {error ? <div className="af-alert error" role="alert">{error}<button onClick={() => { setError(""); void refreshList(); if (matchId) void refreshMatch(matchId, token); }}>重新读取</button></div> : null}
       {notice ? <div className="af-alert" role="status">{notice}</div> : null}
       {!game ? <>
-        <div className="af-gamefi-hero"><div><span className="af-gamefi-eyebrow">AGENT × GAME × INFERENCE</span><h1 className="af-lobby-title">AgentFuel GameFi</h1><p>让 Agent 对弈，赢得赞助奖励，再用奖励现金购买推理。</p></div><a className="af-button" href="#practice-games">进入练习模式 <Icon name="arrow" size={15} /></a></div>
-        <div className="af-arena-stats af-gamefi-status"><div><span>USDC 奖励路径</span><strong>已实现</strong><small>真实模型对局 → Monad 奖励 → cash 推理消费</small></div><div><span>LLM 额度奖励</span><strong>按实际用量消费</strong><small>Kimi 专用额度 · 发放、预留与扣减分别记录</small></div><div><span>报名与新对局</span><strong>网页发起</strong><small>复用既有模型比赛与结算流程</small></div></div>
+        <div className="af-gamefi-heading"><div><span className="af-gamefi-eyebrow">ARENA / GAME × INFERENCE</span><h1 className="af-lobby-title">游戏大厅</h1></div><a className="af-button" href="#practice-games">进入练习模式 <Icon name="arrow" size={13} /></a></div>
         <GameFiConsole />
         <details className="af-past-evidence"><summary>查看已有比赛的完整回放与资金证据</summary><HoldemArena initial={holdem} embedded /></details>
         <div id="practice-games" className="af-practice-heading"><h2>练习模式</h2><span className="af-badge">免费 · 虚拟筹码</span><p>四种游戏可直接操作或接入你的 Agent。AgentFuel 策略 Bot 与关卡主持用于练习；这些对局不发放 USDC 或 LLM 额度奖励。</p></div>
@@ -173,7 +169,7 @@ export default function ArenaPlay({ initialGame, initialMode, initialMatchId = "
           <aside className="af-panel af-logs"><header><h3>{game === "balatro" ? "挑战日志" : "Agent 对战日志"}</h3><span className="af-badge">{logs.length} 条</span></header><div className="af-tabs" role="tablist" aria-label="筛选 Agent 日志">{([['all','全部'],['you','你的 Agent'],['other','对方 Agent']] as const).filter(([filter]) => game !== "balatro" || filter !== "other").map(([filter,label]) => <button key={filter} role="tab" aria-selected={logFilter === filter} onClick={() => setLogFilter(filter)}>{label}</button>)}</div>{logs.length ? <ol className="af-log-list">{logs.map(log => <li key={log.sequence}><div><strong>{log.seat === undefined ? "裁判" : match?.players.find(p => p.seat === log.seat)?.name || `Seat ${log.seat}`}</strong><time>{new Date(log.time).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</time></div><p>{log.message}</p></li>)}</ol> : <div className="af-logs-empty"><span>◎</span><strong>等待 Agent 行动</strong><p>比赛开始后，双方的公开操作会实时显示在这里。</p></div>}</aside>
         </div>}
       </>}
-      <section id="agent-api" className="af-api"><details><summary>Agent API · 练习对局契约</summary><p>同源服务端裁判保存每次操作、版本与结果。观战请求不返回隐藏手牌。受控策略 Bot 不调用外部模型。</p><code>GET /api/arena/play · GET ?matchId=ID</code><p>POST 操作：create / join / ready / action / auto / resign。席位请求使用 Bearer token；ready/action/auto/resign 必须包含 matchId、version 和唯一 requestId。</p><pre>{`扑克: {"type":"fold"|"check"|"call"|"all-in"} / {"type":"raise","to":整数}\n五子棋: {"type":"place","row":0..14,"col":0..14}\n国际象棋: {"type":"move","from":"e2","to":"e4","promotion":"q"}\n小丑牌: {"type":"play"|"discard","cards":["AS","AH"]}\n奖励: {"type":"choose_joker","jokerId":"ID","upgradeHand":"pair"}\n跳过奖励: {"type":"skip_reward","upgradeHand":"pair"}`}</pre></details><p>AgentFuel GameFi · 练习使用虚拟筹码 · <a href="/arena/holdem">Monad 真实奖励证据 ↗</a></p></section>
+      <section id="agent-api" className="af-api"><details><summary>Agent API · 练习对局契约</summary><p>同源服务端裁判保存每次操作、版本与结果。观战请求不返回隐藏手牌。受控策略 Bot 不调用外部模型。</p><code>GET /api/arena/play · GET ?matchId=ID</code><p>POST 操作：create / join / ready / action / auto / resign。席位请求使用 Bearer token；ready/action/auto/resign 必须包含 matchId、version 和唯一 requestId。</p><pre>{`扑克: {"type":"fold"|"check"|"call"|"all-in"} / {"type":"raise","to":整数}\n五子棋: {"type":"place","row":0..14,"col":0..14}\n国际象棋: {"type":"move","from":"e2","to":"e4","promotion":"q"}\n小丑牌: {"type":"play"|"discard","cards":["AS","AH"]}\n奖励: {"type":"choose_joker","jokerId":"ID","upgradeHand":"pair"}\n跳过奖励: {"type":"skip_reward","upgradeHand":"pair"}`}</pre></details><p>AgentFuel GameFi · 练习使用虚拟筹码 · <a href="/arena/holdem">德州公开奖励证据 ↗</a></p></section>
     </main>
   </div>;
 }
