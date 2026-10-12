@@ -25,10 +25,10 @@ async function noOverflow(page: Page) {
 }
 
 test("Oberon landing loads local fonts/assets and stays readable across viewport sizes", async ({ page }, info) => {
-  await page.goto("/");
+  await page.goto("/?lang=zh");
   await expect(page.getByTestId("oberon-landing")).toBeVisible();
   const headline = page.getByRole("heading", { level: 1 });
-  await expect(headline).toHaveText("Give your Agentthe credit tokeep working.");
+  await expect(headline).toHaveText("让你的 Agent拥有信用，持续执行。");
   const creationLinks = page.getByRole("link", { name: "创建你的 AGENT", exact: true });
   await expect(creationLinks).toHaveCount(2);
   for (let index = 0; index < 2; index++) await expect(creationLinks.nth(index)).toHaveAttribute("href", "/onboarding");
@@ -63,7 +63,7 @@ test("Oberon landing loads local fonts/assets and stays readable across viewport
 });
 
 test("Oberon scenarios switch content and destinations with keyboard without creating operations", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?lang=zh");
   const story = page.getByRole("region", { name: "Agent 运行场景" });
   await story.scrollIntoViewIfNeeded();
   await expect(story.getByRole("button", { name: "上一个场景" })).toBeDisabled();
@@ -82,7 +82,7 @@ test("Oberon scenarios switch content and destinations with keyboard without cre
 });
 
 test("landing menu anchors, Escape and FAQ work without transactions", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?lang=zh");
   await page.getByRole("button", { name: "打开导航菜单", exact: true }).click();
   await expect(page.getByRole("navigation", { name: "首页导航" })).toBeVisible();
   await page.keyboard.press("Escape");
@@ -90,7 +90,7 @@ test("landing menu anchors, Escape and FAQ work without transactions", async ({ 
   await expect(page.getByRole("button", { name: "打开导航菜单", exact: true })).toBeFocused();
   await page.getByRole("button", { name: "打开导航菜单", exact: true }).click();
   await page.getByRole("navigation", { name: "首页导航" }).getByRole("link", { name: "运行方式", exact: false }).click();
-  await expect(page).toHaveURL(/\/#how-it-works$/);
+  await expect(page).toHaveURL(/\/\?lang=zh#how-it-works$/);
   await expect(page.getByRole("navigation", { name: "首页导航" })).toHaveCount(0);
   await page.getByRole("button", { name: "打开导航菜单", exact: true }).click();
   await page.getByRole("navigation", { name: "首页导航" }).getByRole("link", { name: "常见问题", exact: false }).click();
@@ -104,7 +104,7 @@ test("landing menu anchors, Escape and FAQ work without transactions", async ({ 
 });
 
 test("primary CTA opens onboarding and workbench keeps its own route", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?lang=zh");
   await page.getByRole("link", { name: "创建你的 AGENT", exact: true }).first().click();
   await expect(page).toHaveURL(/\/onboarding$/);
   await expect(page.getByTestId("onboarding-terminal-shell")).toBeVisible();
@@ -115,5 +115,38 @@ test("primary CTA opens onboarding and workbench keeps its own route", async ({ 
   await page.getByRole("link", { name: "返回 AgentFuel 产品首页", exact: true }).click();
   await expect(page).toHaveURL(/:3024\/$/);
   await expect(page.getByTestId("oberon-landing")).toBeVisible();
+  await noOverflow(page);
+});
+
+test("landing defaults to English and language links preserve the chapter on refresh", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByTestId("oberon-landing")).toHaveAttribute("lang", "en");
+  await expect(page).toHaveTitle("AgentFuel · Credit to keep your Agent working");
+  await expect(page.getByRole("link", { name: "CREATE YOUR AGENT", exact: true })).toHaveCount(2);
+  const visibleChinese = await page.locator("body").innerText();
+  expect(visibleChinese.match(/[\u4e00-\u9fff]+/g)).toEqual(["中文"]);
+  await page.getByRole("button", { name: "Open navigation menu", exact: true }).click();
+  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "In action", exact: false }).click();
+  const story = page.getByRole("region", { name: "Agent use cases" });
+  await expect(story.locator("img")).toHaveAttribute("src", "/landing/agent-execution.png");
+  await story.getByRole("button", { name: "Next scenario", exact: true }).click();
+  await expect(story.locator("img")).toHaveAttribute("src", "/landing/agent-rewards.png");
+  await story.getByRole("button", { name: "Next scenario", exact: true }).click();
+  await expect(story.locator("img")).toHaveAttribute("src", "/landing/agent-reputation.png");
+  await expect(story.getByRole("link", { name: "VIEW REPUTATION & LEDGER", exact: true })).toHaveAttribute("href", "/dashboard");
+  await noOverflow(page);
+  await page.getByRole("navigation", { name: "Language", exact: true }).getByRole("link", { name: "中文", exact: true }).click();
+  await expect(page).toHaveURL(/\?lang=zh#credit$/);
+  await page.reload();
+  await expect(page.getByTestId("oberon-landing")).toHaveAttribute("lang", "zh-CN");
+  await expect(page.getByRole("region", { name: "Agent 运行场景" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Agent 的运行场景。" })).toBeVisible();
+  await noOverflow(page);
+  await page.getByRole("navigation", { name: "语言", exact: true }).getByRole("link", { name: "EN", exact: true }).click();
+  await expect(page).toHaveURL(/\?lang=en#credit$/);
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("region", { name: "Agent use cases" })).toBeVisible();
+  await page.goto("/?lang=unsupported");
+  await expect(page.getByTestId("oberon-landing")).toHaveAttribute("lang", "en");
   await noOverflow(page);
 });

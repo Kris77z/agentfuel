@@ -12,7 +12,7 @@ test("onboarding: source terminal signs in, reviews six actual settings and sele
   const harness = await syntheticHosted(page, { authenticated: false, agents: [makeAgent({ id: "older-agent", name: "已有 Agent" })], createAtEnd: true });
   await page.goto("/");
   expect(harness.commands).toEqual([]);
-  await page.getByRole("link", { name: "创建你的 AGENT", exact: true }).first().click();
+  await page.getByRole("link", { name: "CREATE YOUR AGENT", exact: true }).first().click();
   await expect(page).toHaveURL(/\/onboarding$/);
   await expect(page.getByTestId("onboarding-terminal-header").locator('[data-testid="terminal-page-dot"]')).toHaveCount(3);
   const shell = page.getByTestId("onboarding-terminal-shell");

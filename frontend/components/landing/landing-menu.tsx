@@ -2,18 +2,21 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { translate, type LandingLocale } from "./landing-locale";
 import styles from "./landing.module.css";
 
-const links = [
-  { href: "#capabilities", label: "产品能力", number: "02" },
-  { href: "#how-it-works", label: "运行方式", number: "03" },
-  { href: "#reputation", label: "信誉与信用", number: "04" },
-  { href: "#credit", label: "运行场景", number: "05" },
-  { href: "#arena", label: "免费竞技场", number: "06" },
-  { href: "#faq", label: "常见问题", number: "08" },
-];
+export function LandingMenu({ locale }: { locale: LandingLocale }) {
+  const t = (text: string) => translate(locale, text);
+  const links = [
+    { href: "#capabilities", label: t("产品能力"), number: "02" },
+    { href: "#how-it-works", label: t("运行方式"), number: "03" },
+    { href: "#reputation", label: t("信誉与信用"), number: "04" },
+    { href: "#credit", label: t("运行场景"), number: "05" },
+    { href: "#arena", label: t("免费竞技场"), number: "06" },
+    { href: "#faq", label: t("常见问题"), number: "08" },
+  ];
 
-export function LandingMenu() {
+
   const [open, setOpen] = useState(false);
   const menu = useRef<HTMLDivElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -32,14 +35,14 @@ export function LandingMenu() {
   }, [open]);
 
   return <div className={styles.menu} ref={menu}>
-    <button ref={toggle} type="button" className={styles.menuToggle} aria-label={open ? "关闭导航菜单" : "打开导航菜单"} aria-expanded={open} aria-controls="landing-navigation" onClick={() => setOpen(value => !value)}>
+    <button ref={toggle} type="button" className={styles.menuToggle} aria-label={open ? t("关闭导航菜单") : t("打开导航菜单")} aria-expanded={open} aria-controls="landing-navigation" onClick={() => setOpen(value => !value)}>
       <span /><span />
     </button>
-    {open ? <nav id="landing-navigation" className={styles.menuPanel} aria-label="首页导航">
+    {open ? <nav id="landing-navigation" className={styles.menuPanel} aria-label={t("首页导航")}>
       {links.map(link => <a key={link.href} href={link.href} onClick={() => setOpen(false)}><span>{link.number}</span>{link.label}<span>↗</span></a>)}
-      <Link href="/dashboard" onClick={() => setOpen(false)}><span>→</span>进入工作台<span>↗</span></Link>
-      <Link href="/arena" onClick={() => setOpen(false)}><span>→</span>游戏大厅<span>↗</span></Link>
-      <Link href="/advanced" onClick={() => setOpen(false)}><span>→</span>高级协议<span>↗</span></Link>
+      <Link href="/dashboard" onClick={() => setOpen(false)}><span>→</span>{t("进入工作台")}<span>↗</span></Link>
+      <Link href="/arena" onClick={() => setOpen(false)}><span>→</span>{t("游戏大厅")}<span>↗</span></Link>
+      <Link href="/advanced" onClick={() => setOpen(false)}><span>→</span>{t("高级协议")}<span>↗</span></Link>
     </nav> : null}
   </div>;
 }

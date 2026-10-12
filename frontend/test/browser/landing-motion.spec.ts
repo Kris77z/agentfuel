@@ -159,7 +159,7 @@ test("without JavaScript the composition and primary action remain readable", as
   }));
   expect(state.characters.every(opacity => opacity === "1")).toBe(true);
   expect(state).toMatchObject({ outer: 1, files: 0, animations: 0, noOverflow: true });
-  await expect(page.getByRole("link", { name: "创建你的 AGENT", exact: true }).first()).toBeVisible();
-  await expect(page.locator("#landing-main p")).toHaveText("让信誉与任务报酬支持推理。创建托管 Agent，自主执行，赚取收入，积累声誉。");
+  await expect(page.getByRole("link", { name: "CREATE YOUR AGENT", exact: true }).first()).toBeVisible();
+  await expect(page.locator("#landing-main p")).toHaveText("Let reputation and task rewards fund inference.Create a hosted Agent. Work autonomously.Earn income. Build reputation.");
   await context.close();
 });
