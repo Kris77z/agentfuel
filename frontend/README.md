@@ -1,14 +1,22 @@
 # AgentFuel frontend
 
-Next.js 16 / React 19。首页是用户平台托管 Agent 工作区，直接迁移 Agora Mesh 终端 Dashboard 的浅灰紫色主题、Geist Mono、紧凑标题栏、固定视口三栏、身份面板、请求时间线和底部操作区；手机使用 Agent / 请求 / 资源面板切换。来源与适配记录见 [迁移说明](../docs/frontend-agora-migration.md)。
+2026-10-11 最新结果见 [上线测试前验收](../docs/frontend-release-acceptance-20261011.md)：Oberon 落地页、个人金融信息与恢复入口已完成，首轮本地浏览器覆盖 93 个用例；后续补齐首次进入动效与独立终端创建，相关 92 项补验通过。下文 2026-10-10 数字保留为历史记录。
 
-首页通过同源 `/api/hosted/*` 连接钱包个人消息签名登录、创建/设置/暂停 Agent、任务、免费德州、USDC 入账和固定短确认奖励额度消费。服务未配置时显示服务不可用，不生成示例 Agent。模型目录来自当前登录用户的服务端快照，Agent 的独立钱包私钥仅由平台保管；浏览器只用 Next 管理的 HttpOnly 会话。
+Next.js 16 / React 19。首页 `/` 是 Oberon 风格的产品落地页；“创建你的 AGENT”进入 `/onboarding` 终端创建页，“进入工作台”进入 `/dashboard`。落地页来源、字体许可和适配见 [Oberon 说明](../docs/frontend-oberon-landing.md)。托管工作台保留 Agora Mesh 的浅灰紫色主题、Geist Mono、紧凑标题栏、固定视口三栏、身份面板、请求时间线和底部操作区；手机使用 Agent / 请求 / 资源面板切换。来源与适配记录见 [迁移说明](../docs/frontend-agora-migration.md)。
+
+`/onboarding` 使用源 Agora 暖白棕色与 Geist Mono，依次显示启动文本、钱包登录、六项配置和确认；创建成功选中新 Agent 并进入工作台。创建与工作台共享会话、请求锁和原 UUID 恢复记录，离开这两个页面停止读取及轮询。
+
+`/dashboard` 通过同源 `/api/hosted/*` 连接钱包个人消息签名登录、创建/设置/暂停 Agent、任务、免费德州、USDC 入账和奖励额度驱动的 Pi 任务、独立验收与补额后恢复。服务未配置时显示服务不可用，不生成示例 Agent。模型目录来自当前登录用户的服务端快照，Agent 的独立钱包私钥仅由平台保管；浏览器只用 Next 管理的 HttpOnly 会话。
 
 托管服务启动与环境变量见 [hosted-agents](../docs/hosted-agents.md)。未知 POST 保存原 UUID 与公开参数，刷新后以同一钱包身份继续确认；可恢复的服务端记录使用原 requestId、rewardKind、amountRaw。该恢复提示保存在 localStorage 中，不保存 token、私钥或模型原文。
 
-原 Agent Financial Identity 档案页与固定 Agent 演示面板保留在 `/advanced`，从首页底部“高级与演示入口”进入。该入口继续按 `FRONTEND_MODE=chain` / `fixture` 运行，至少 3 个运营 Agent 可切换，现金、Tier、债务与协议回执来自原服务和合约。未配置真实清单时不会补上示例余额。
+原 Agent Financial Identity 档案页与固定 Agent 演示面板保留在 `/advanced`，从页面导航“高级协议”进入。该入口继续按 `FRONTEND_MODE=chain` / `fixture` 运行，至少 3 个运营 Agent 可切换，现金、Tier、债务与协议回执来自原服务和合约。未配置真实清单时不会补上示例余额。
 
-`/arena`、四种练习界面、`/arena/holdem` 与 `/advanced` 同样使用源 Dashboard 的浅灰/白色方角面板、紫色强调、Geist Mono 和紧凑终端页头。页面导航互通，手机按内容改为单列。棋盘材质、黑白棋子、牌桌及红黑花色保留原辨识与操作。游戏大厅明确区分固定运营演示、免费虚拟筹码练习与个人托管参赛；用户托管 Agent 的参赛控件位于首页“竞技场”。
+`/arena`、四种练习界面、`/arena/holdem` 与 `/advanced` 同样使用源 Dashboard 的浅灰/白色方角面板、紫色强调、Geist Mono 和紧凑终端页头。手机按内容改为单列。德州历史只读报告入口收在高级协议的“历史演示与证据”，不放在主导航，也不是创建或个人参赛必经页。棋盘材质、黑白棋子、牌桌及红黑花色保留原辨识与操作。游戏大厅明确区分固定运营演示、免费虚拟筹码练习与个人托管参赛；用户托管 Agent 的参赛控件位于 `/dashboard` 的“竞技场”。
+
+个人金融快照通过独立 `GET /api/hosted/agents/:id/finance` 读取。服务端先核验归属，再按 Underwriter 的同一链上区块读取 cash、policy 和完整任务债务；评分与 Tier 沿用 Underwriter。普通列表轮询不扫描金融账本；切换 Agent、请求状态变化或手动刷新才读取，失败保留并标记旧快照，首次失败不显示虚构的零余额。任务分别展示接单、付款与核验后的 `TaskSettled` 交易；“结算入账”不等于扣除所有成本后的利润。
+
+请求列表按更新时间保留最近 100 条，以及所有未结束或仍被 Agent 引用的请求。旧暂停请求不会因其他 Agent 的新记录被挤掉，恢复沿用原 ID、金额与奖励选择。
 
 托管 UI 的本地浏览器验收使用合成 API 和本地个人签名，所有 API 均拦截，不会广播交易或调用付费模型：
 

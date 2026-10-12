@@ -33,3 +33,8 @@ Run controlled tests with Node 22:
 ```sh
 node --import tsx --test services/arena/test/inference-rewards.test.ts
 ```
+
+
+Hosted task consumption uses the server-only `redeemChat` / `taskResponse` interface. It admits bounded Pi messages and public-sample tool schemas, fixes Kimi K2.6, and reserves the serialized messages/tools byte length plus framing and completion bounds. Completed tool responses share the same game balance and actual-usage ledger; they never execute inside the ledger. The Pi solver runs public tests, while the separate Arena owns hidden tests and settlement. Browser credit endpoints still accept only their existing plain prompt schema.
+
+`HostedGameExecutor.rewardTask` binds every round to the original hosted request ID and opens the same private ledger as game awards. Admission before a Pi dispatch can pause with `INFERENCE_FUNDING_REQUIRED`; a new award can resume that round without replaying earlier model calls. Unknown dispatches remain non-retryable. This is reward-funded inference, not a loan or USDC-denominated token purchase.

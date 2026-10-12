@@ -1,5 +1,7 @@
 # Agora Dashboard → AgentFuel 终端界面迁移
 
+2026-10-11 更新：本文记录原终端迁移过程。补充独立 `/onboarding`，复用源 `src/components/onboarding/terminal-onboarding.tsx` 的启动文本、逐行输入和确认流程；六项设置接当前托管接口。德州历史证据入口已收至 `/advanced` 的“历史演示与证据”，下方导航描述保留当时状态。工作台现已从 `/` 移到 `/dashboard`，`/` 使用 [Oberon 产品落地页](frontend-oberon-landing.md)。请求记录现保留最近 100 条及所有未结束请求；个人信用、Tier、完整债务与真实任务结算通过独立金融快照补齐，详见 [托管接口](hosted-agents.md)。下方 2026-10-10 的截图和测试数字是当时的验收记录。
+
 源项目为同机只读 `/Users/jungle/Desktop/dev/bnb-hackathon/frontend`。用户指定复用 Agora Mesh 的终端 Dashboard；实现前已读取 `src/app/dashboard/page.tsx`、`layout.tsx`、`terminal.css` 与面板/时间线，并实际查看 `/Users/jungle/Desktop/dev/bnb-hackathon/assets/dashboard.jpg`。
 
 原版是浅灰背景、白色方角面板、深紫强调、全等宽字体。默认入口复用其紧凑标题栏、会话细栏、固定视口的 3/6/3 工作区、独立面板滚动、中央时间线和底部操作区、手机三面板切换、底部状态条。布局、样式和组件来自源 Dashboard；没有大标题 hero 或 Marketplace 目录页结构。

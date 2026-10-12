@@ -46,7 +46,11 @@
     ".next-hosted-test/types/**/*.ts",
     ".next-hosted-test/dev/types/**/*.ts",
     ".next-terminal-test/types/**/*.ts",
-    ".next-terminal-test/dev/types/**/*.ts"
+    ".next-terminal-test/dev/types/**/*.ts",
+    ".next-monad-final/types/**/*.ts",
+    ".next-monad-final/dev/types/**/*.ts",
+    ".next-monad-verified/types/**/*.ts",
+    ".next-monad-verified/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

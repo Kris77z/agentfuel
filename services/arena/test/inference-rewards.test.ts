@@ -247,3 +247,27 @@ test("close drains an admitted redemption before releasing its durable writer", 
     try { assert.equal((await recovered.balance(players[0])).consumedTokens, 12); } finally { await recovered.close(); }
   } finally { if (release) release(answer()); await f.cleanup(); }
 });
+
+test("task tool calls share rewards, meter actual usage, bind payload and survive restart without another dispatch", async () => {
+  let calls = 0;
+  const f = await fixture(async () => { calls++; return answer({ choices: [{ finish_reason: "tool_calls", message: { role: "assistant", content: null,
+    tool_calls: [{ id: "sample", type: "function", function: { name: "test_public_sample", arguments: JSON.stringify({ code: "print(9)" }) } }] } }] }); });
+  const task = { redemptionId: "task:round:0", request: { model: "kimi-k2.6", messages: [{ role: "user", content: "Solve sum." }],
+    max_completion_tokens: 256, tools: [{ type: "function", function: { name: "test_public_sample" } }] } };
+  try {
+    await assert.rejects(f.ledger.redeemChat(players[0], task), /INSUFFICIENT_AVAILABLE/); assert.equal(calls, 0);
+    await f.ledger.grantTerminal(award);
+    const record = await f.ledger.redeemChat(players[0], task);
+    assert.equal(record.status, "Completed"); assert.equal(record.chargedTokens, 12);
+    assert.ok(await f.ledger.taskResponse(players[0], task.redemptionId));
+    assert.equal(await f.ledger.taskResponse(players[1], task.redemptionId), undefined);
+    assert.equal(await f.ledger.taskUsage(players[0], "task:round:"), 12);
+    assert.equal((await f.ledger.balance(players[0])).availableTokens, 4084);
+    await assert.rejects(f.ledger.redeemChat(players[0], { ...task, request: { ...task.request, model: "another-model" } }), /INVALID_TASK/);
+    await assert.rejects(f.ledger.redeemChat(players[0], { ...task, request: { ...task.request, messages: [{ role: "user", content: "Changed" }] } }), /BINDING_MISMATCH/);
+    await f.ledger.close();
+    const recovered = await InferenceRewardLedger.open(f.directory, { accounts: players, dispatch: async () => { throw new Error("must not dispatch"); } });
+    try { assert.deepEqual(await recovered.redeemChat(players[0], task), record); } finally { await recovered.close(); }
+    assert.equal(calls, 1);
+  } finally { await f.cleanup(); }
+});

@@ -40,7 +40,7 @@ function deliveredResult(state: FixedTaskSession, config: FixedTaskConfig): Solv
     return result;
   } catch { stop("SERVICE_RESULT_INVALID"); }
 }
-async function confirmPaidDelivery(state: FixedTaskSession, config: FixedTaskConfig, rpc: JsonRpcProvider, signer: Signer) {
+export async function confirmPaidDelivery(state: Pick<FixedTaskSession, "inference" | "handle">, config: Pick<FixedTaskConfig, "chainId" | "account" | "agentId" | "provider" | "taskId">, rpc: JsonRpcProvider, signer: Signer) {
   try {
     if (BigInt(await rpc.send("eth_chainId", [])) !== BigInt(config.chainId)) stop("NETWORK_MISMATCH");
     const receipt = state.inference!.receipt, quote = state.handle!.quote;

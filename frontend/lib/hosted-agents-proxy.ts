@@ -15,10 +15,24 @@ function agent(value: unknown) {
   return result;
 }
 function run(value: unknown) {
-  const result = select(value, ["requestId", "agentId", "action", "rewardKind", "amountRaw", "status", "createdAt", "updatedAt", "reservedRaw", "chargedRaw", "recoverable", "reason"]);
+  const result = select(value, ["requestId", "agentId", "action", "fundingFor", "rewardKind", "amountRaw", "status", "createdAt", "updatedAt", "reservedRaw", "chargedRaw", "recoverable", "reason"]);
   if (object(value) && value.result !== undefined) {
-    result.result = select(value.result, ["phase", "terminal", "success", "chargedRaw", "reason", "taskId", "paymentId", "txHash", "matchId", "cashRaw", "principalRaw", "feeRaw", "rewardRaw", "creditsGranted", "creditsUsed"]);
+    result.result = select(value.result, ["phase", "terminal", "success", "chargedRaw", "reason", "taskId", "paymentId", "txHash", "matchId", "cashRaw", "principalRaw", "feeRaw", "rewardRaw", "creditsGranted", "creditsUsed", "chainId", "acceptTxHash", "paymentTxHash", "fromCashRaw", "fromCreditRaw", "refundedRaw", "autonomousTasks"]);
     if (object(value.result) && value.result.binding !== undefined) result.result.binding = select(value.result.binding, ["chainId", "agentId", "wallet"]);
+    if (object(value.result) && value.result.settlement !== undefined) {
+      result.result.settlement = select(value.result.settlement, ["txHash", "passed", "loanStatus", "repaidRaw", "slashedRaw", "residualRaw"]);
+      result.result.settlement.block = select(value.result.settlement.block, ["number", "hash", "timestamp"]);
+    }
+  }
+  return result;
+}
+function finance(value: unknown) {
+  const result = select(value, ["status", "observedAt", "reason", "chainId", "agentId", "wallet", "cashRaw", "debtRaw", "scannedTaskCount", "ownedTaskCount"]);
+  if (object(value) && value.status === "confirmed") {
+    result.block = select(value.block, ["number", "hash", "timestamp"]);
+    result.credit = select(value.credit, ["score", "tier", "tierCapRaw", "feeBps", "eligible", "rejection"]);
+    result.policy = select(value.policy, ["maxCashPerTxRaw", "maxDebtPerTxRaw", "maxDebtPerDayRaw", "ownerFrozen"]);
+    result.counts = select(value.counts, ["repayments", "defaults", "mirrorRepayments", "successes", "mirrorDefaults"]);
   }
   return result;
 }
@@ -39,7 +53,10 @@ function configuredOrigin(value: string | undefined) {
 }
 function authorize(request: Request, expected: URL) {
   const url = new URL(request.url), host = request.headers.get("host") ?? url.host, origin = request.headers.get("origin");
-  if (host !== expected.host || url.host !== expected.host || !["http:", "https:"].includes(url.protocol) || origin !== null && origin !== expected.origin || request.method !== "GET" && origin !== expected.origin || ["cross-site", "same-site"].includes(request.headers.get("sec-fetch-site") ?? "")) fail("HOSTED_INVALID_ORIGIN", 403);
+  // NextURL normalizes loopback IPs to localhost; Host and Origin retain the browser's exact authority.
+  const normalizedLoopback = request.headers.get("host") === expected.host && ["127.0.0.1", "[::1]"].includes(expected.hostname)
+    && url.hostname === "localhost" && url.port === expected.port && url.protocol === expected.protocol;
+  if (host !== expected.host || (url.host !== expected.host && !normalizedLoopback) || !["http:", "https:"].includes(url.protocol) || origin !== null && origin !== expected.origin || request.method !== "GET" && origin !== expected.origin || ["cross-site", "same-site"].includes(request.headers.get("sec-fetch-site") ?? "")) fail("HOSTED_INVALID_ORIGIN", 403);
   if (["authorization", "x-owner", "x-wallet", "x-agent-owner"].some(key => request.headers.has(key))) fail("HOSTED_BROWSER_CREDENTIAL_REJECTED", 403);
 }
 function session(request: Request) {
@@ -61,7 +78,7 @@ export async function hostedAgentsRequest(request: Request, config: { upstreamUr
     const url = new URL(request.url); if (url.search) fail("HOSTED_QUERY_INVALID");
     path = url.pathname.slice("/api/hosted".length);
     if (!url.pathname.startsWith("/api/hosted/")) fail("HOSTED_ROUTE_NOT_FOUND", 404);
-    const match = /^\/agents\/([a-zA-Z0-9_-]{1,80})(?:\/(pause|runs))?$/.exec(path);
+    const match = /^\/agents\/([a-zA-Z0-9_-]{1,80})(?:\/(pause|runs|finance))?$/.exec(path);
     let allowed: string[] | undefined;
     if (["/auth/challenge", "/auth/login", "/auth/logout"].includes(path)) {
       if (request.method !== "POST") fail("HOSTED_METHOD_NOT_ALLOWED", 405);
@@ -70,8 +87,8 @@ export async function hostedAgentsRequest(request: Request, config: { upstreamUr
       if (!["GET", "POST"].includes(request.method)) fail("HOSTED_METHOD_NOT_ALLOWED", 405);
       if (request.method === "POST") allowed = ["requestId", ...settings];
     } else if (match) {
-      if (request.method !== (match[2] ? "POST" : "PATCH")) fail("HOSTED_METHOD_NOT_ALLOWED", 405);
-      allowed = match[2] === "pause" ? ["paused"] : match[2] === "runs" ? ["action", "requestId", "rewardKind", "amountRaw"] : settings;
+      if (request.method !== (match[2] === "finance" ? "GET" : match[2] ? "POST" : "PATCH")) fail("HOSTED_METHOD_NOT_ALLOWED", 405);
+      allowed = match[2] === "finance" ? undefined : match[2] === "pause" ? ["paused"] : match[2] === "runs" ? ["action", "requestId", "rewardKind", "amountRaw"] : settings;
     } else fail("HOSTED_ROUTE_NOT_FOUND", 404);
     const publicAuth = ["/auth/challenge", "/auth/login"].includes(path), token = publicAuth ? undefined : session(request);
     let input;
@@ -82,7 +99,7 @@ export async function hostedAgentsRequest(request: Request, config: { upstreamUr
     }
     const upstream = await (config.fetcher ?? fetch)(new URL(path, base), { method: request.method, redirect: "error", cache: "no-store",
       headers: { "content-type": "application/json", origin: base.origin, ...(token ? { authorization: `Bearer ${token}` } : {}) },
-      body: input ? JSON.stringify(input) : undefined, signal: AbortSignal.any([request.signal, AbortSignal.timeout(10000)]) });
+      body: input ? JSON.stringify(input) : undefined, signal: AbortSignal.any([request.signal, AbortSignal.timeout(match?.[2] === "finance" ? 50000 : 10000)]) });
     const payload = await readJson(upstream, 1048576);
     if (!upstream.ok) {
       const error = object(payload) && typeof payload.error === "string" && /^HOSTED_[A-Z_0-9]{1,80}$/.test(payload.error) ? payload.error : "HOSTED_UNAVAILABLE";
@@ -102,7 +119,14 @@ export async function hostedAgentsRequest(request: Request, config: { upstreamUr
     else if (path === "/agents" && request.method === "GET") {
       if (!object(payload) || !Array.isArray(payload.agents) || !Array.isArray(payload.runs) || !Array.isArray(payload.models)) fail("HOSTED_UNAVAILABLE", 503);
       value = { agents: payload.agents.map(agent), runs: payload.runs.map(run), models: payload.models.map((model: unknown) => select(model, ["id", "label"])) };
-    } else value = match?.[2] === "runs" ? run(payload) : agent(payload);
+      if (object(payload.capabilities)) {
+        const capabilities: Record<string, unknown> = {};
+        if (object(payload.capabilities.inference) && Array.isArray(payload.capabilities.inference.models)) capabilities.inference = {
+          ...select(payload.capabilities.inference, ["priceRaw", "creditsRaw"]), models: payload.capabilities.inference.models.map((model: unknown) => select(model, ["id", "inputMicroCreditsPerToken", "outputMicroCreditsPerToken"])) };
+        if (object(payload.capabilities.autonomy)) capabilities.autonomy = select(payload.capabilities.autonomy, ["maxTasks", "durationMs", "plannerPriceRaw"]);
+        value = { ...value, capabilities } as typeof value;
+      }
+    } else value = match?.[2] === "finance" ? finance(payload) : match?.[2] === "runs" ? run(payload) : agent(payload);
     return Response.json(value, { status: upstream.status, headers: responseHeaders });
   } catch (error) {
     return Response.json({ error: error instanceof BridgeError ? error.code : "HOSTED_UNAVAILABLE" }, { status: error instanceof BridgeError ? error.status : 503,

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { createServer } from "node:http";
 import test from "node:test";
+import { NextRequest } from "next/server.js";
 import { hostedAgentsRequest } from "../lib/hosted-agents-proxy.js";
 
 const origin = "http://127.0.0.1:3000", upstreamUrl = "http://127.0.0.1:8791", token = "s".repeat(64);
@@ -92,4 +93,63 @@ test("real HTTP redirect never receives a session bearer and is attempted only o
   } finally {
     await Promise.all([upstream, target].map(server => new Promise<void>(resolve => server.close(() => resolve()))));
   }
+});
+
+test("finance is a cookie-authenticated read-only path with closed nested projections and distinct settlement evidence", async () => {
+  const block = { number: 50, hash: "0x" + "a".repeat(64), timestamp: 1791676800, rpcUrl: "SECRET" };
+  const publicFinance = { status: "confirmed", observedAt: "2026-10-11T00:00:00.000Z", chainId: "10143", agentId: "1999", wallet: "wallet", cashRaw: "58000", debtRaw: "0", scannedTaskCount: 12, ownedTaskCount: 1,
+    block, credit: { score: "570", tier: "C", tierCapRaw: "200000", feeBps: "1500", eligible: true, rejection: null, privateKey: "SECRET" },
+    counts: { repayments: "1", defaults: "0", mirrorRepayments: "1", successes: "1", mirrorDefaults: "0", token: "SECRET" },
+    policy: { maxCashPerTxRaw: "120000", maxDebtPerTxRaw: "120000", maxDebtPerDayRaw: "1000000", ownerFrozen: false, config: "SECRET" }, privateKey: "SECRET" };
+  let calls = 0;
+  const fetcher = (async (url, options) => {
+    calls++; assert.equal(String(url), `${upstreamUrl}/agents/agent-1/finance`); assert.equal(options?.method, "GET"); assert.equal(options?.body, undefined);
+    assert.equal(new Headers(options?.headers).get("authorization"), `Bearer ${token}`); return Response.json(publicFinance);
+  }) as typeof fetch;
+  const response = await hostedAgentsRequest(request("/agents/agent-1/finance"), { ...config, fetcher });
+  assert.equal(response.status, 200); const text = await response.text(), result = JSON.parse(text);
+  assert.equal(result.credit.score, "570"); assert.equal(result.counts.repayments, "1"); assert.equal(result.block.number, 50);
+  assert.doesNotMatch(text, /SECRET|privateKey|rpcUrl|token|config/);
+  for (const method of ["POST", "PATCH", "DELETE"]) assert.equal((await hostedAgentsRequest(request("/agents/agent-1/finance", method), { ...config, fetcher })).status, 405);
+  assert.equal(calls, 1);
+  const hash = "0x" + "b".repeat(64);
+  const snapshot = await hostedAgentsRequest(request("/agents"), { ...config, fetcher: (async () => Response.json({ agents: [], models: [], runs: [{ action: "task", result: {
+    phase: "Succeeded", chainId: "10143", acceptTxHash: "0x" + "c".repeat(64), paymentTxHash: "0x" + "d".repeat(64), fromCashRaw: "40000", fromCreditRaw: "80000", refundedRaw: "0",
+    settlement: { txHash: hash, block, passed: true, loanStatus: "2", repaidRaw: "92000", slashedRaw: "0", residualRaw: "58000", rawTransaction: "SECRET" } } }] })) as typeof fetch });
+  const payload = await snapshot.text(); assert.doesNotMatch(payload, /SECRET|rpcUrl|rawTransaction/); assert.equal(JSON.parse(payload).runs[0].result.settlement.txHash, hash);
+});
+
+test("capability projection exposes rates and limits without gateway routes, keys or planner credentials", async () => {
+  const response = await hostedAgentsRequest(request("/agents"), { ...config, fetcher: (async () => Response.json({ agents: [], runs: [], models: [], capabilities: {
+    inference: { priceRaw: "120000", creditsRaw: "100000", keyFile: "SECRET", models: [{ id: "cheap", inputMicroCreditsPerToken: "1", outputMicroCreditsPerToken: "2", route: "SECRET", apiKey: "SECRET" }] },
+    autonomy: { maxTasks: 2, durationMs: 180000, plannerPriceRaw: "10000", plannerRelayUrl: "SECRET" }, privateKey: "SECRET",
+  } })) as typeof fetch });
+  assert.equal(response.status, 200); const body = await response.json();
+  assert.deepEqual(body.capabilities, { inference: { priceRaw: "120000", creditsRaw: "100000", models: [{ id: "cheap", inputMicroCreditsPerToken: "1", outputMicroCreditsPerToken: "2" }] }, autonomy: { maxTasks: 2, durationMs: 180000, plannerPriceRaw: "10000" } });
+  assert.doesNotMatch(JSON.stringify(body), /SECRET|keyFile|route|apiKey|plannerRelayUrl/);
+});
+
+test("Next loopback URL normalization preserves exact browser Host and Origin checks", async () => {
+  let calls = 0;
+  const fetcher = (async (_url, init) => { calls++; assert.equal(new Headers(init?.headers).get("origin"), upstreamUrl); return Response.json({ id: "challenge", message: "message", expiresAt: Date.now() + 10000 }); }) as typeof fetch;
+  const unauthenticated = new NextRequest(`${origin}/api/hosted/agents`, { headers: { host: "127.0.0.1:3000" } });
+  assert.equal(new URL(unauthenticated.url).hostname, "localhost");
+  const missing = await hostedAgentsRequest(unauthenticated, { ...config, fetcher });
+  assert.equal(missing.status, 401); assert.deepEqual(await missing.json(), { error: "HOSTED_AUTH_REQUIRED" });
+  const login = new NextRequest(`${origin}/api/hosted/auth/challenge`, { method: "POST", headers: { host: "127.0.0.1:3000", origin, "content-type": "application/json" }, body: JSON.stringify({ wallet: "wallet" }) });
+  assert.equal((await hostedAgentsRequest(login, { ...config, fetcher })).status, 200); assert.equal(calls, 1);
+  for (const [url, headers] of [
+    ["http://localhost:3000", { host: "localhost:3000", origin }],
+    ["http://localhost:3000", { host: "127.0.0.1:3000", origin: "http://localhost:3000" }],
+    ["http://localhost:3001", { host: "127.0.0.1:3000", origin }],
+    ["https://localhost:3000", { host: "127.0.0.1:3000", origin }],
+    ["http://evil.example:3000", { host: "127.0.0.1:3000", origin }],
+    ["http://localhost:3000", { host: "evil.example", origin, "x-forwarded-host": "127.0.0.1:3000" }],
+    ["http://localhost:3000", { host: "127.0.0.1:3000", origin, "sec-fetch-site": "cross-site" }],
+    ["http://localhost:3000", { origin }],
+  ] as [string, Record<string, string>][]) {
+    const response = await hostedAgentsRequest(new Request(`${url}/api/hosted/auth/challenge`, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify({ wallet: "wallet" }) }), { ...config, fetcher });
+    assert.equal(response.status, 403, JSON.stringify({ url, headers }));
+  }
+  assert.equal(calls, 1);
 });

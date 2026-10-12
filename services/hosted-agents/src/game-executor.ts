@@ -7,7 +7,9 @@ import { readWorkflowStatus } from "../../../packages/pi-loop/src/workflow.js";
 import { taskPrivateFile } from "../../../packages/pi-loop/src/task-runner/config.js";
 import { runLiveHand, HOLDEM_LIVE_LIMITS, type LiveDecisionProfile } from "../../arena/src/holdem/live.js";
 import { replayHand, type Seat } from "../../arena/src/holdem/engine.js";
-import { InferenceRewardLedger, INFERENCE_REWARD_POLICY } from "../../arena/src/inference-rewards/index.js";
+import { InferenceRewardLedger, INFERENCE_REWARD_POLICY, prepareRewardChat } from "../../arena/src/inference-rewards/index.js";
+import { InferenceFundingRequired } from "../../../packages/pi-loop/src/provider.js";
+import type { WorkflowOptions } from "../../../packages/pi-loop/src/workflow.js";
 import { createKimiRewardDispatch } from "../../arena/src/inference-rewards/provider.js";
 import { DemoJournal } from "../../../scripts/demo-journal.js";
 import { saveJson } from "../../../scripts/demo-common.js";
@@ -27,7 +29,7 @@ interface WalletJournal { chainId: string; signer: string; account: string; dire
 interface OperatorJournal { directory?: string; hash?: string }
 interface GameJournal {
   version: 1; binding: string; startedAtMs: number; deadlineMs: number; phase: string;
-  result?: HostedResult; award?: { allocations: [string, string]; replayDigest: string; cashBefore: [string, string] };
+  result?: HostedResult; suspended?: WalletJournal; award?: { allocations: [string, string]; replayDigest: string; cashBefore: [string, string] };
 }
 const TOKEN_ABI = ["function decimals() view returns(uint8)", "function balanceOf(address) view returns(uint256)",
   "function transfer(address,uint256) returns(bool)", "function approve(address,uint256) returns(bool)",
@@ -141,12 +143,18 @@ export class HostedGameExecutor implements HostedExecutor {
     if (!same(actorWallet.address, actor.wallet) || !same(botWallet.address, bot.wallet) || [actor.wallet, bot.wallet].some(w => same(w, sponsor.address))) fail("HOSTED_GAME_KEY_BINDING_MISMATCH");
     const profiles: [LiveDecisionProfile, LiveDecisionProfile] = [{ model: input.agent.modelId, strategy: input.agent.strategy }, { model: this.config.opponent.modelId, strategy: this.config.opponent.strategy }];
     const frozen = { owner: address(input.agent.owner), hostedAgentId: input.agent.id, requestId: input.run.requestId, action: input.run.action,
-      rewardKind: input.run.rewardKind, players: [actor, bot], profiles, sponsor: sponsor.address, chainId: this.config.chainId,
+      rewardKind: input.run.rewardKind, ...(input.run.fundingFor ? { fundingFor: input.run.fundingFor } : {}), players: [actor, bot], profiles, sponsor: sponsor.address, chainId: this.config.chainId,
       identity: this.config.identity, account: this.config.account, token: this.config.token };
     const bound = digest(frozen), store = new SessionStore<GameJournal>(input.directory);
     const walletStore = new SessionStore<WalletJournal>(join(this.config.walletDirectory, actor.wallet.toLowerCase()));
     await walletStore.start(input.recover); let held = false, state: GameJournal | undefined;
-    const updateWallet = (phase: string) => walletStore.write({ chainId: actor.chainId, signer: actorWallet.address, account: this.config.account, directory: input.directory, binding: bound, phase });
+    const updateWallet = async (phase: string) => {
+      if (state?.suspended && terminal(phase)) {
+        const current = await readWorkflowStatus(state.suspended.directory);
+        if (!current) fail("HOSTED_GAME_RECOVER_ORIGINAL_REQUIRED");
+        await walletStore.write({ ...state.suspended, phase: current.phase });
+      } else await walletStore.write({ chainId: actor.chainId, signer: actorWallet.address, account: this.config.account, directory: input.directory, binding: bound, phase });
+    };
     const result = (phase: string, success: boolean, terminalValue: boolean, extra: Partial<HostedResult> = {}): HostedResult => ({ phase, terminal: terminalValue, success, chargedRaw: "0", principalRaw: "0", feeRaw: "0", ...extra });
     try {
       const active = await walletStore.read();
@@ -155,11 +163,20 @@ export class HostedGameExecutor implements HostedExecutor {
         if (!workflow) fail("HOSTED_GAME_RECOVER_ORIGINAL_REQUIRED");
         active.phase = workflow.phase; await walletStore.write(active);
       }
-      if (active && (!same(active.signer, actor.wallet) || !terminal(active.phase) && (active.directory !== input.directory || active.binding !== bound))) fail("HOSTED_GAME_RECOVER_ORIGINAL_REQUIRED");
+      let suspended: WalletJournal | undefined;
+      if (active && !terminal(active.phase) && active.directory !== input.directory && input.run.fundingFor) {
+        if (!UUID.test(input.run.fundingFor) || input.run.action !== "game" || input.run.rewardKind !== "llm-credits"
+          || active.directory !== join(resolve(input.directory, ".."), input.run.fundingFor, "task-executor", "workflow")
+          || !same(active.signer, actor.wallet) || active.chainId !== actor.chainId || !same(active.account, this.config.account)) fail("HOSTED_GAME_RECOVER_ORIGINAL_REQUIRED");
+        const waiting = await readWorkflowStatus(active.directory);
+        if (waiting?.phase !== "Paused" || waiting.reason !== "INFERENCE_FUNDING_REQUIRED" || waiting.choice?.funding !== "reward-tokens") fail("HOSTED_GAME_RECOVER_ORIGINAL_REQUIRED");
+        suspended = structuredClone(active);
+      }
+      if (!suspended && active && (!same(active.signer, actor.wallet) || !terminal(active.phase) && (active.directory !== input.directory || active.binding !== bound))) fail("HOSTED_GAME_RECOVER_ORIGINAL_REQUIRED");
       await store.start(input.recover); held = true; state = await store.read();
       if (state && (state.version !== 1 || state.binding !== bound)) fail("HOSTED_GAME_RUN_BINDING_CHANGED");
       if (state?.result?.terminal) { await updateWallet(state.result.success ? "Succeeded" : "Failed"); return structuredClone(state.result); }
-      if (!state) { const startedAtMs = Date.now(); state = { version: 1, binding: bound, startedAtMs, deadlineMs: startedAtMs + HOLDEM_LIVE_LIMITS.deadlineDurationMs, phase: input.run.action === "game" ? "Game" : "CreditsPending" }; await store.write(state); }
+      if (!state) { const startedAtMs = Date.now(); state = { version: 1, binding: bound, startedAtMs, deadlineMs: startedAtMs + HOLDEM_LIVE_LIMITS.deadlineDurationMs, phase: input.run.action === "game" ? "Game" : "CreditsPending", ...(suspended ? { suspended } : {}) }; await store.write(state); }
       await updateWallet("Running");
       await this.preflight(rpc, actor, bot);
       const account = new Contract(this.config.account, ACCOUNT_ABI, rpc);
@@ -226,6 +243,37 @@ export class HostedGameExecutor implements HostedExecutor {
     for (const player of [actor, bot]) {
       if (!same(await identity.getFunction("ownerOf").staticCall(player.agentId), player.wallet) || !same(await identity.getFunction("getAgentWallet").staticCall(player.agentId), player.wallet)) fail("HOSTED_GAME_IDENTITY_CHANGED");
     }
+  }
+  /** Shares the exact reward ledger used by trusted game settlement. No cash or credit fallback. */
+  async rewardTask(input: HostedExecution): Promise<NonNullable<WorkflowOptions["reward"]> & { close: () => Promise<void> }> {
+    if (!input.agent.binding || input.agent.modelId !== INFERENCE_REWARD_POLICY.model) fail("HOSTED_REWARD_MODEL_UNSUPPORTED");
+    const actor = binding(input.agent.binding), bot = this.config.opponent.binding;
+    if (actor.chainId !== this.config.chainId || !same(actor.wallet, input.agent.wallet)) fail("HOSTED_GAME_IDENTITY_MISMATCH");
+    await this.preflight(await this.rpc(), actor, bot);
+    const ledger = await this.ledger(input.agent.id, actor, bot, input.recover);
+    const prefix = `${input.run.requestId}:round:`, model = this.config.models.find(m => m.id === INFERENCE_REWARD_POLICY.model)!;
+    let round = 0;
+    return {
+      solver: {
+        routes: { cheap: { name: model.id, model: model.id, baseUrl: model.baseUrl }, strong: { name: model.id, model: model.id, baseUrl: model.baseUrl } },
+        beforeDispatch: async (body, index) => {
+          round = index;
+          const prepared = prepareRewardChat({ redemptionId: `${prefix}${index}`, request: body });
+          const balance = await ledger.balance(actor);
+          if (balance.blocked) throw new Error("REWARD_ACCOUNT_BLOCKED_BY_USAGE_OVERRUN");
+          if (balance.availableTokens < prepared.reservedTokens) throw new InferenceFundingRequired();
+        },
+        recoverResponse: async (_body, index) => (await ledger.taskResponse(actor, `${prefix}${index}`)) ?? undefined,
+        invoke: async (_tier, body) => {
+          const redemptionId = `${prefix}${round}`;
+          const record = await ledger.redeemChat(actor, { redemptionId, request: body });
+          const response = await ledger.taskResponse(actor, redemptionId);
+          if (!response) throw new Error(record.error ?? "REWARD_TASK_RESPONSE_UNAVAILABLE");
+          return response;
+        },
+      },
+      creditsUsed: () => ledger.taskUsage(actor, prefix), close: () => ledger.close(),
+    };
   }
   private async ledger(hostedId: string, actor: HostedBinding, bot: HostedBinding, recover: boolean) {
     const model = this.config.models.find(m => m.id === INFERENCE_REWARD_POLICY.model)!;

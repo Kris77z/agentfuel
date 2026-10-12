@@ -112,9 +112,10 @@ async function terminalStructure(page: Page, panel: Locator) {
   expect(await panel.evaluate(element => getComputedStyle(element).borderTopLeftRadius)).toBe("0px");
   const sizes = await shell.getByRole("heading").evaluateAll(elements => elements.map(element => Number.parseFloat(getComputedStyle(element).fontSize)));
   expect(sizes.every(size => size <= 24)).toBe(true);
-  for (const path of ["/", "/arena", "/arena/holdem", "/advanced"]) {
+  for (const path of ["/", "/dashboard", "/arena", "/advanced"]) {
     await expect(navigation.locator(`a[href="${path}"]`)).toBeVisible();
   }
+  await expect(navigation.locator('a[href="/arena/holdem"]')).toHaveCount(0);
   await noOverflow(page);
 }
 async function capture(page: Page, name: string, info: TestInfo) {
@@ -148,11 +149,17 @@ test("terminal lobby keeps safe practice entries and navigation through the shar
   const loadedCovers = await page.locator(".af-game-card img").evaluateAll(images => images.every(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0));
   expect(loadedCovers).toBe(true);
   await capture(page, "arena-lobby", info);
-  await page.getByRole("navigation", { name: "页面导航", exact: true }).locator('a[href="/arena/holdem"]').click();
-  await expect(page.getByRole("heading", { name: "德州 Arena", exact: true })).toBeVisible();
   await page.getByRole("navigation", { name: "页面导航", exact: true }).locator('a[href="/advanced"]').click();
+  await expect(page).toHaveURL(/\/advanced$/);
+  await expect(page.getByRole("heading", { name: /Atlas\s*#1842/ })).toBeVisible();
   await expect(page.getByText("本地演示 · FIXTURE", { exact: true })).toBeVisible();
-  await page.getByRole("navigation", { name: "页面导航", exact: true }).locator('a[href="/"]').click();
+  await page.getByText("历史演示与证据", { exact: true }).click();
+  await page.getByRole("link", { name: "德州历史回放与奖励凭证 →", exact: true }).click();
+  await expect(page).toHaveURL(/\/arena\/holdem$/);
+  await expect(page.getByRole("heading", { name: "德州 Arena", exact: true })).toBeVisible();
+  await page.getByRole("navigation", { name: "页面导航", exact: true }).locator('a[href="/dashboard"]').click();
+  // This is the suite's first visit to the relocated route; Next dev compiles it on demand.
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 20_000 });
   await expect(page.getByRole("button", { name: "签名登录", exact: true })).toBeVisible();
   expect(harness.commands).toEqual([]);
 });

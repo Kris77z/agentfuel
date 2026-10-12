@@ -1,0 +1,1845 @@
+{
+  "origin": 1791719592037.1,
+  "firstHero": 458.5,
+  "selected": [
+    {
+      "requested": 0,
+      "captured": 272,
+      "state": {
+        "time": 275.39999985694885,
+        "first": "0.001",
+        "last": "0.001",
+        "file": "Step 0",
+        "chip": "Step 0"
+      }
+    },
+    {
+      "requested": 300,
+      "captured": 277,
+      "state": {
+        "time": 275.39999985694885,
+        "first": "0.001",
+        "last": "0.001",
+        "file": "Step 0",
+        "chip": "Step 0"
+      }
+    },
+    {
+      "requested": 800,
+      "captured": 790,
+      "state": {
+        "time": 802.3999998569489,
+        "first": "1",
+        "last": "0.001",
+        "file": "Step 0",
+        "chip": "Step 0"
+      }
+    },
+    {
+      "requested": 1500,
+      "captured": 1504,
+      "state": {
+        "time": 1501.5999999046326,
+        "first": "1",
+        "last": "1",
+        "file": "Step 4",
+        "chip": "Step 1"
+      }
+    },
+    {
+      "requested": 3000,
+      "captured": 3029,
+      "state": {
+        "time": 3035,
+        "first": "1",
+        "last": "1",
+        "file": "Step 4",
+        "chip": "Step7"
+      }
+    },
+    {
+      "requested": 4000,
+      "captured": 3980,
+      "state": {
+        "time": 3986.7999999523163,
+        "first": "1",
+        "last": "1",
+        "file": "Step 4",
+        "chip": "Step7"
+      }
+    }
+  ],
+  "samples": [
+    {
+      "time": 0.20000004768371582,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 23.700000047683716,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 103.39999985694885,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 120.5,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 135.5,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 152,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 168.70000004768372,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 218.20000004768372,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 224.79999995231628,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 243.20000004768372,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 256.7000000476837,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 275.39999985694885,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 287.89999985694885,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 305.39999985694885,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 322.5,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 335.89999985694885,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 354,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 371.09999990463257,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 405.2999999523163,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 417.89999985694885,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 428.59999990463257,
+      "first": "0.001",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 448.7000000476837,
+      "first": "0.913695",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 468.5,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 480,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 499.39999985694885,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 518.7999999523163,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 530.8999998569489,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 542.7999999523163,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 564.7999999523163,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 575.7999999523163,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 592.3999998569489,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 609.8999998569489,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 625,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 715.5,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 802.3999998569489,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 815.7999999523163,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 829.2000000476837,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 841.0999999046326,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 852.5999999046326,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 869.2999999523163,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 886.2999999523163,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 0",
+      "chip": "Step 0"
+    },
+    {
+      "time": 915.0999999046326,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 1",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1070.7999999523163,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 1",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1110.7000000476837,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 2",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1131.2000000476837,
+      "first": "1",
+      "last": "0.001",
+      "file": "Step 2",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1165.7000000476837,
+      "first": "1",
+      "last": "0.672222",
+      "file": "Step 2",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1176.8999998569489,
+      "first": "1",
+      "last": "1",
+      "file": "Step 2",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1186,
+      "first": "1",
+      "last": "1",
+      "file": "Step 2",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1203,
+      "first": "1",
+      "last": "1",
+      "file": "Step 2",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1219.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 2",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1235.8999998569489,
+      "first": "1",
+      "last": "1",
+      "file": "Step 2",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1258.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 3",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1269,
+      "first": "1",
+      "last": "1",
+      "file": "Step 3",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1285.8999998569489,
+      "first": "1",
+      "last": "1",
+      "file": "Step 3",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1301.3999998569489,
+      "first": "1",
+      "last": "1",
+      "file": "Step 3",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1318,
+      "first": "1",
+      "last": "1",
+      "file": "Step 3",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1335.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 3",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1351.5999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 3",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1369.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 3",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1385.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 3",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1402.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 3",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1418.3999998569489,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1435.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1451.5999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1469,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1484.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1501.5999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1518.8999998569489,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1535.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1552.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1569,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1584.5999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1602.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1618.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 1"
+    },
+    {
+      "time": 1635,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 2"
+    },
+    {
+      "time": 1651.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 2"
+    },
+    {
+      "time": 1668.8999998569489,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 2"
+    },
+    {
+      "time": 1685.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 2"
+    },
+    {
+      "time": 1701.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 2"
+    },
+    {
+      "time": 1719.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 2"
+    },
+    {
+      "time": 1735.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 2"
+    },
+    {
+      "time": 1752.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 2"
+    },
+    {
+      "time": 1769.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 2"
+    },
+    {
+      "time": 1784.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 2"
+    },
+    {
+      "time": 1802.2999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 2"
+    },
+    {
+      "time": 1819,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 2"
+    },
+    {
+      "time": 1836.2999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 3"
+    },
+    {
+      "time": 1851.8999998569489,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 3"
+    },
+    {
+      "time": 1868.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 3"
+    },
+    {
+      "time": 1885.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 3"
+    },
+    {
+      "time": 1902.3999998569489,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 3"
+    },
+    {
+      "time": 1918.8999998569489,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 3"
+    },
+    {
+      "time": 1936.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 3"
+    },
+    {
+      "time": 1952.3999998569489,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 3"
+    },
+    {
+      "time": 1967.8999998569489,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 3"
+    },
+    {
+      "time": 1990.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 3"
+    },
+    {
+      "time": 2002.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 3"
+    },
+    {
+      "time": 2018.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 3"
+    },
+    {
+      "time": 2043.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 4"
+    },
+    {
+      "time": 2053.5999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 4"
+    },
+    {
+      "time": 2068.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 4"
+    },
+    {
+      "time": 2085.899999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 4"
+    },
+    {
+      "time": 2101.5999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 4"
+    },
+    {
+      "time": 2118.5999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 4"
+    },
+    {
+      "time": 2135.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 4"
+    },
+    {
+      "time": 2152.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 4"
+    },
+    {
+      "time": 2168.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 4"
+    },
+    {
+      "time": 2184.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 4"
+    },
+    {
+      "time": 2202.2999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 4"
+    },
+    {
+      "time": 2218.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 4"
+    },
+    {
+      "time": 2235.399999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 4"
+    },
+    {
+      "time": 2252.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 5"
+    },
+    {
+      "time": 2268.5999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 5"
+    },
+    {
+      "time": 2285.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 5"
+    },
+    {
+      "time": 2302.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 5"
+    },
+    {
+      "time": 2319.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 5"
+    },
+    {
+      "time": 2335.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 5"
+    },
+    {
+      "time": 2352.2999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 5"
+    },
+    {
+      "time": 2368.899999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 5"
+    },
+    {
+      "time": 2385.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 5"
+    },
+    {
+      "time": 2402.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 5"
+    },
+    {
+      "time": 2418.2999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 5"
+    },
+    {
+      "time": 2435.899999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 5"
+    },
+    {
+      "time": 2456.399999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 6"
+    },
+    {
+      "time": 2468.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 6"
+    },
+    {
+      "time": 2485.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 6"
+    },
+    {
+      "time": 2502.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 6"
+    },
+    {
+      "time": 2518.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 6"
+    },
+    {
+      "time": 2536,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 6"
+    },
+    {
+      "time": 2551.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 6"
+    },
+    {
+      "time": 2568.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 6"
+    },
+    {
+      "time": 2585.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 6"
+    },
+    {
+      "time": 2601.5999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 6"
+    },
+    {
+      "time": 2618.399999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 6"
+    },
+    {
+      "time": 2634.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step 6"
+    },
+    {
+      "time": 2659.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2671.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2686.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2702.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2718.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2735.5999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2752.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2768.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2785.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2804,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2819.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2836.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2851.899999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2868.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2885.399999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2901.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2918.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2935.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2953.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2968.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 2988.399999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3007.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3023.399999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3035,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3052.5999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3068.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3085.2999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3101.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3118.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3135.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3151.899999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3168,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3185.2999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3201.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3218.2999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3235.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3251.5999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3267.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3285.5999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3301.2999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3317.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3335.899999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3351.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3368.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3384.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3402.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3419,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3435.2999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3451.5999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3469,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3484.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3501.899999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3519.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3535.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3551.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3568.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3585.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3604.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3618.899999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3637,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3652.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3668.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3686.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3703.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3719,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3735.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3755.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3770.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3792.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3810.5999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3820.899999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3835.5999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3851.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3867.899999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3884.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3901.2000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3919.2999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3935.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3952.2999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3970.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 3986.7999999523163,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4003.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4019.399999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4035.7000000476837,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4052.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4069.0999999046326,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4086,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4102.700000047684,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4124.299999952316,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4136.899999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4159.599999904633,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4174.799999952316,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4185.799999952316,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4201.599999904633,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4218.399999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4235.799999952316,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4252.299999952316,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4268.099999904633,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4285.399999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4302.700000047684,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4321.200000047684,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4335.799999952316,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4351.399999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4369.299999952316,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4386,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4402.700000047684,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4419.099999904633,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4436.099999904633,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4451.399999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4468.899999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4485,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4503.099999904633,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4519.299999952316,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4534.5,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4551.200000047684,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4568.799999952316,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4584.399999856949,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    },
+    {
+      "time": 4602.099999904633,
+      "first": "1",
+      "last": "1",
+      "file": "Step 4",
+      "chip": "Step7"
+    }
+  ]
+}

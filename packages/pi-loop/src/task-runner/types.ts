@@ -20,7 +20,7 @@ export function parseTaskRunnerCommand(value: unknown): TaskRunnerCommand {
 export type TaskWorkflowPhase = "Selected" | "AcceptPending" | "Running" | "Succeeded" | "Failed" | "Refunded" | "Stopped" | "Paused" | "SubmissionPending" | "RefundPending";
 export interface TaskWorkflowView {
   version: 1; phase: TaskWorkflowPhase; reason?: string; deadlineMs: number; reservedPrice: string;
-  choice?: { taskId: string; problemId: ProblemId; providerId: string; tier: "cheap" | "strong"; price: string; funding: "cash" | "task-credit" };
+  choice?: { taskId: string; problemId: ProblemId; providerId: string; tier: "cheap" | "strong"; price: string; funding: "cash" | "task-credit" | "reward-tokens" | "inference-allowance" };
   acceptTxHash?: string; paymentId?: string; childPhase?: string;
   tools?: { rounds: number; attempts: number; passed: number };
   finance?: { taskStatus: string; loanStatus: string; principal: string; fee: string; fromCash?: string; fromCredit?: string; repaid?: string; slashed?: string; residual?: string };

@@ -1,0 +1,26 @@
+[
+  {
+    "name": "desktop",
+    "origin": "http://127.0.0.1:3024",
+    "build": ".next-oberon-restored",
+    "errors": [],
+    "overflow": false,
+    "canvasReady": "true"
+  },
+  {
+    "name": "mobile",
+    "origin": "http://127.0.0.1:3024",
+    "build": ".next-oberon-restored",
+    "errors": [],
+    "overflow": false,
+    "canvasReady": "true"
+  },
+  {
+    "name": "narrow",
+    "origin": "http://127.0.0.1:3024",
+    "build": ".next-oberon-restored",
+    "errors": [],
+    "overflow": false,
+    "canvasReady": "true"
+  }
+]

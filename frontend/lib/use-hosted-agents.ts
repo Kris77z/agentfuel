@@ -2,8 +2,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { hostedRequest, HostedClientError, hostedError, signedLogin, injectedWallet, readPending, savePending, replayInput,
   type HostedSnapshot, type HostedAgent, type HostedRun, type AgentSettings, type PendingCommand, type RunInput } from "./hosted-client";
+import { useHostedFinance } from "./use-hosted-finance";
 
-export function useHostedAgents() {
+// Mounted once in HostedAgentsProvider so auth queues and transport leases survive
+// navigation between the terminal onboarding and dashboard.
+export function useHostedAgentsController(enabled: boolean) {
+  const enabledRef = useRef(enabled); enabledRef.current = enabled;
+  const walletListening = useRef(enabled); if (enabled) walletListening.current = true;
+  const listenForWallet = walletListening.current;
   const [snapshot, setSnapshot] = useState<HostedSnapshot | null>(null);
   const [access, setAccess] = useState<"loading" | "signed-out" | "authenticated" | "unavailable">("loading");
   const [owner, setOwner] = useState<string | null>(null), [selectedId, setSelectedId] = useState("");
@@ -41,7 +47,7 @@ export function useHostedAgents() {
   }, []);
 
   const refresh = useCallback(async () => {
-    if (requireLogin.current) return;
+    if (!enabledRef.current || requireLogin.current) return;
     if (readInFlight.current) { await readCompletion.current; return; }
     readInFlight.current = true; setRefreshing(true);
     let completeRead!: () => void;
@@ -59,14 +65,14 @@ export function useHostedAgents() {
       else { setAccess(current => current === "authenticated" ? current : "unavailable"); setError(hostedError(cause)); }
     } finally { readInFlight.current = false; readCompletion.current = null; completeRead(); setRefreshing(false); }
   }, [invalidate]);
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => { if (enabled) void refresh(); }, [enabled, refresh]);
   useEffect(() => { setPending(owner ? readPending(owner) : null); }, [owner]);
   useEffect(() => {
-    if (access !== "authenticated") return;
+    if (!enabled || access !== "authenticated") return;
     const active = snapshot?.agents.some(agent => !!agent.activeRequestId);
     const timer = setInterval(() => { if (!mutationInFlight.current && document.visibilityState === "visible") void refresh(); }, active ? 4_000 : 20_000);
     return () => clearInterval(timer);
-  }, [access, snapshot?.agents, refresh]);
+  }, [enabled, access, snapshot?.agents, refresh]);
 
   const logout = useCallback(async () => {
     if (mutationInFlight.current) return;
@@ -77,6 +83,7 @@ export function useHostedAgents() {
     finally { finishMutation(lease); }
   }, [invalidate, queueLogout]);
   useEffect(() => {
+    if (!listenForWallet) return;
     const wallet = injectedWallet();
     if (!wallet?.on) return;
     const changed = () => {
@@ -90,7 +97,7 @@ export function useHostedAgents() {
     };
     wallet.on("accountsChanged", changed); wallet.on("chainChanged", changed);
     return () => { wallet.removeListener?.("accountsChanged", changed); wallet.removeListener?.("chainChanged", changed); };
-  }, [invalidate, queueLogout]);
+  }, [listenForWallet, invalidate, queueLogout]);
 
   async function login() {
     if (mutationInFlight.current) return;
@@ -102,7 +109,7 @@ export function useHostedAgents() {
     try {
       await cleanupBeforeLogin?.catch(() => undefined);
       // An earlier 401 read can also clear cookies, so finish it before login.
-      await readCompletion.current;
+      await Promise.all([readCompletion.current, finance.waitUntilIdle()]);
       if (requestedWalletVersion !== walletVersion.current) return;
       // Expiry of an earlier cookie is compatible with this explicit new login;
       // a wallet change while waiting is handled by walletVersion above.
@@ -182,6 +189,9 @@ export function useHostedAgents() {
     finally { finishMutation(lease); }
   }
   const selected = snapshot?.agents.find(agent => agent.id === selectedId) ?? null;
+  const financeRevision = snapshot?.runs.filter(run => run.agentId === selectedId && !["Queued", "Running"].includes(run.status))
+    .map(run => `${run.requestId}:${run.status}:${run.updatedAt}`).join("|") ?? "";
+  const finance = useHostedFinance(selected, enabled && access === "authenticated", financeRevision, invalidate);
   return { snapshot, selected, selectedId, select: setSelectedId, access, owner, error, notice, busy, refreshing, pending,
-    refresh, login, logout, create, run, recover, update, pause, retryPending: () => pending ? command(pending) : Promise.resolve(false) };
+    finance, refresh, login, logout, create, run, recover, update, pause, retryPending: () => pending ? command(pending) : Promise.resolve(false) };
 }

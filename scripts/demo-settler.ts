@@ -27,7 +27,7 @@ try {
     if (transport !== "direct" && transport !== "system-https-proxy") throw new Error("UNKNOWN_RPC_TRANSPORT");
     const rpcUrl = process.env.ARENA_RPC_URL_FILE ? await readRpcUrlFile(process.env.ARENA_RPC_URL_FILE)
       : process.env.ARENA_RPC_CONFIG_FILE ? (await loadMonadConfig(process.env.ARENA_RPC_CONFIG_FILE)).rpcUrl : arenaConfig.rpcUrl;
-    if (transport === "system-https-proxy") connection = await monadProvider(rpcUrl, transport as RpcTransport);
+    if (transport === "system-https-proxy" || arenaConfig.chainId === "10143") connection = await monadProvider(rpcUrl, transport as RpcTransport);
     else if (process.env.ARENA_RPC_URL_FILE) {
       const transport = rpcRequest(rpcUrl);
       const provider = new JsonRpcProvider(transport.request, undefined, { cacheTimeout: -1, pollingInterval: 100 });

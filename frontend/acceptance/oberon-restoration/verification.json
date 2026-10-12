@@ -1,0 +1,20 @@
+{
+  "build": ".next-oberon-restored",
+  "production_build": "passed",
+  "landing_browser": {
+    "passed": 12,
+    "failed": 0
+  },
+  "motion_browser": {
+    "passed": 12,
+    "failed": 0
+  },
+  "widths": [
+    1440,
+    393,
+    320
+  ],
+  "preview": "http://127.0.0.1:3024",
+  "real_model_calls": 0,
+  "public_chain_writes": 0
+}

@@ -2,7 +2,7 @@ import { Contract, JsonRpcProvider, hexlify, randomBytes, ZeroAddress } from "et
 import { ACCOUNT_ABI, MANAGER_ABI, accountInterface, paymentId, requestDigest, sameAddress, uint,
   type ChatInput, type Json, type PaymentProof, type Quote } from "@agentfuel/sdk/protocol";
 import { upstreamUrl, validateService, type RelayConfig, type TierRoute, type Upstream } from "./config.js";
-import { Store, type PaymentRecord, type UpstreamAttempt } from "./store.js";
+import { Store, upstreamAttemptsDigest, validOperatorResolution, validResolutionInput, type PaymentRecord, type UpstreamAttempt } from "./store.js";
 
 // Complete request/auth/route/size/quota rejections from the configured upstream.
 // Timeouts, conflicts and server errors do not prove that inference never ran.
@@ -165,11 +165,42 @@ export class Relay {
     return record.upstreamAttempts?.some(attempt => attempt.state !== "Rejected") ||
       (record.upstreamAttempts === undefined && (record.state === "Processing" || record.lastError === "UPSTREAM_FAILED"));
   }
-  view(record: PaymentRecord) { return { state: record.state, paymentId: record.quote.paymentId, expiredPayment: Boolean(record.expiredPayment), refundPending: record.refunds.length > 0,
+  async resolveUndelivered(input: unknown) {
+    if (!validResolutionInput(input)) throw new RelayError("INVALID_OPERATOR_RESOLUTION", "Use paymentId, resolutionId, expectedAttemptsDigest and evidenceDigest only", 400);
+    return this.store.lock(input.paymentId, async () => {
+      let record: PaymentRecord;
+      try { record = await this.store.read(input.paymentId); } catch { throw new RelayError("QUOTE_NOT_FOUND", "Unknown quote", 404); }
+      this.assertRecord(record);
+      if (record.operatorResolution) {
+        const saved = record.operatorResolution;
+        if (!validOperatorResolution(record) || ["paymentId", "resolutionId", "expectedAttemptsDigest", "evidenceDigest"].some(key => saved[key as keyof typeof input] !== input[key as keyof typeof input]))
+          throw new RelayError("OPERATOR_RESOLUTION_CONFLICT", "Original operator decision is immutable");
+        return this.view(record);
+      }
+      if (!record.proof || record.state !== "Processing" || record.result !== undefined || record.receipt !== undefined || record.refunds.length ||
+        !record.upstreamAttempts?.some(attempt => attempt.state === "Unknown") || record.upstreamAttempts.some(attempt => !["Unknown", "Rejected"].includes(attempt.state)))
+        throw new RelayError("OPERATOR_RESOLUTION_NOT_ALLOWED", "Only a confirmed, undelivered Unknown dispatch with no refund or active dispatch can be resolved");
+      if (upstreamAttemptsDigest(record.upstreamAttempts) !== input.expectedAttemptsDigest) throw new RelayError("OPERATOR_RESOLUTION_CONFLICT", "Dispatch evidence changed");
+      // Revalidate the original canonical payment, including external refunds.
+      await this.proof(record.quote, record.proof.txHash);
+      const payment = await this.account.getFunction("getPayment").staticCall(input.paymentId);
+      if (payment.agentId !== BigInt(record.quote.agentId) || payment.fromCash + payment.fromCredit !== BigInt(record.quote.price) || payment.refundedAmount !== 0n)
+        throw new RelayError("OPERATOR_RESOLUTION_NOT_ALLOWED", "Payment is missing or already refunded");
+      record.operatorResolution = { version: 1, ...input, reason: "operator-accepted-nondelivery-cost", resolvedAt: Date.now() };
+      await this.store.write(record); // Preserve the Unknown evidence; this permanently disables dispatch.
+      return this.view(record);
+    });
+  }
+  async compensateAllowance(_input: unknown): Promise<ReturnType<Relay["view"]>> { throw new RelayError("ALLOWANCE_COMPENSATION_DISABLED", "Only the allowance relay with a trusted sealed-ledger verifier supports compensation"); }
+  async verifyCompensation(_record: PaymentRecord): Promise<void> { throw new RelayError("ALLOWANCE_COMPENSATION_DISABLED", "A trusted sealed-ledger verifier is required"); }
+  view(record: PaymentRecord) { return { state: record.operatorCompensation && record.state === "Delivered" ? "CompensationPending" : record.state, paymentId: record.quote.paymentId, expiredPayment: Boolean(record.expiredPayment), refundPending: record.refunds.length > 0 && record.state !== "Refunded",
     refundedAmount: record.refunds.filter(refund => refund.state === "Confirmed").reduce((sum, refund) => sum + BigInt(refund.amount), 0n).toString(),
+    confirmedRefunds: record.refunds.filter(refund => refund.state === "Confirmed" && refund.transaction).map(refund => ({ refundId: refund.id, amount: refund.amount, txHash: refund.transaction!.txHash })),
     ...(this.isDeliveryUncertain(record) ? { deliveryError: "UPSTREAM_UNCERTAIN" } : record.lastError ? { deliveryError: record.lastError } : {}),
     ...(record.upstreamAttempts?.length ? { upstreamAttempts: record.upstreamAttempts } : {}),
-    ...(record.state === "Delivered" ? { result: record.result, receipt: record.receipt } : {}) }; }
+    ...(record.operatorResolution ? { operatorResolution: record.operatorResolution } : {}),
+    ...(record.operatorCompensation ? { operatorCompensation: record.operatorCompensation, originalDelivery: { result: record.result, receipt: record.receipt } } : {}),
+    ...(record.state === "Delivered" && !record.operatorCompensation ? { result: record.result, receipt: record.receipt } : {}) }; }
   async status(id: string, agentId: string, digest: string) {
     const peek = await this.record(id, agentId, digest);
     if (peek.state === "Processing") { this.assertRecord(peek); return this.view(peek); }
@@ -194,6 +225,8 @@ export class Relay {
   }
   async deliver(record: PaymentRecord) {
     this.assertRecord(record);
+    if (record.operatorCompensation) throw new RelayError("ALLOWANCE_COMPENSATED", "Original delivered allowance is permanently closed for operator compensation");
+    if (record.operatorResolution) throw new RelayError("OPERATOR_RESOLVED_UNDELIVERED", "Operator accepted unknown vendor cost; this payment can only be fully refunded, never dispatched again");
     if (record.state === "Delivered") return { result: record.result, receipt: record.receipt };
     if (this.isDeliveryUncertain(record)) {
       record.state = "Processing"; record.lastError = "UPSTREAM_UNCERTAIN"; await this.store.write(record);

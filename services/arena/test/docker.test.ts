@@ -26,7 +26,7 @@ test("fixed Docker arguments restrict mounts, network, uid, privileges and resou
   assert.equal(value("--cap-drop"), "ALL");
   assert.equal(value("--security-opt"), "no-new-privileges");
   assert.equal(value("--mount"), "type=bind,src=/tmp/one-submission,dst=/submission,readonly");
-  assert.ok(args.includes("--read-only") && args.includes("--rm"));
+  assert.ok(args.includes("--read-only") && !args.includes("--rm")); // Own finally cleanup follows runtime-state inspection.
   assert.equal(args.filter(arg => arg === "--mount").length, 1);
   assert.ok(!args.includes("--privileged") && !args.includes("--env") && !args.includes("--env-file"));
   assert.ok(!args.join(" ").includes("docker.sock"));
@@ -112,4 +112,25 @@ test("timeout, flood, nonzero exit and cancellation fail and clean own container
 
 test("missing Docker executable fails closed and never executes submitted code on host", async () => {
   await assert.rejects(new DockerExecutor({ dockerBin: "/definitely/not/a/docker" }).ready(), /ENOENT/);
+});
+
+test("Docker startup delay does not consume the submitted program's execution budget", { timeout: 30000 }, async () => {
+  const directory = await mkdtemp(join(tmpdir(), "arena-startup-delay-")), wrapper = join(directory, "docker-delayed");
+  await writeFile(wrapper, '#!/bin/sh\nif [ "$1" = start ]; then sleep 1; fi\nexec docker "$@"\n', { mode: 0o700 });
+  try {
+    const result = await new DockerExecutor({ dockerBin: wrapper, timeoutMs: 600 }).execute("print(9)\n", "");
+    assert.equal(result.failure, undefined, JSON.stringify(result)); assert.equal(result.stdout, "9\n");
+    await assert.rejects(new DockerExecutor({ dockerBin: wrapper, timeoutMs: 600, startupTimeoutMs: 100 }).execute("print(9)\n", ""), /DOCKER_START_TIMEOUT/);
+    const replayMarker = "import os,re,time\nm=re.search(rb'AF_EXECUTION_STARTED_[0-9a-f-]+',open('/proc/self/cmdline','rb').read()).group()\nfor i in range(20):\n os.write(2,m+b'\\n');time.sleep(0.1)\nprint(9)\n";
+    assert.equal((await new DockerExecutor({ dockerBin: wrapper, timeoutMs: 600 }).execute(replayMarker, "")).failure, "timeout", "A submitted program cannot reset its timer by replaying the visible startup marker");
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test("Docker attach delay after container exit drains without consuming the execution budget", { timeout: 15000 }, async () => {
+  const directory = await mkdtemp(join(tmpdir(), "arena-attach-delay-")), wrapper = join(directory, "docker-delayed-exit");
+  await writeFile(wrapper, '#!/bin/sh\nif [ "$1" = start ]; then docker "$@"; result=$?; sleep 1; exit "$result"; fi\nexec docker "$@"\n', { mode: 0o700 });
+  try {
+    const result = await new DockerExecutor({ dockerBin: wrapper, timeoutMs: 600 }).execute("print(9)\n", "");
+    assert.equal(result.failure, undefined, JSON.stringify(result)); assert.equal(result.stdout, "9\n");
+  } finally { await rm(directory, { recursive: true, force: true }); }
 });

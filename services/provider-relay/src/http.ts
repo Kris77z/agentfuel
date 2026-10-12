@@ -18,19 +18,20 @@ export function createHttpServer(relay: Relay, refunder: Refunder) {
       let result;
       if (req.method === "GET" && /^\/payments\/0x[0-9a-f]{64}$/.test(url.pathname)) {
         result = await relay.status(url.pathname.split("/")[2], url.searchParams.get("agentId") || "", url.searchParams.get("requestDigest") || "");
-      } else if (req.method === "POST" && ["/v1/chat", "/ops/refund"].includes(url.pathname)) {
+      } else if (req.method === "POST" && ["/v1/chat", "/ops/refund", "/ops/resolve-undelivered", "/ops/compensate-allowance"].includes(url.pathname)) {
         if (req.headers["content-type"]?.split(";")[0] !== "application/json") throw new RelayError("INVALID_CONTENT_TYPE", "Use application/json", 415);
         if (Number(req.headers["content-length"] || 0) > 131072) throw new RelayError("BODY_TOO_LARGE", "Request exceeds 128KiB", 413);
         const chunks: Buffer[] = []; let size = 0;
         for await (const chunk of req) { size += chunk.length; if (size > 131072) throw new RelayError("BODY_TOO_LARGE", "Request exceeds 128KiB", 413); chunks.push(Buffer.from(chunk)); }
         let body;
         try { body = JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch { throw new RelayError("INVALID_JSON", "Invalid JSON", 400); }
-        if (url.pathname === "/ops/refund") {
+        if (url.pathname.startsWith("/ops/")) {
           const token = Buffer.from(relay.config.operatorToken || ""); const supplied = Buffer.from(String(req.headers.authorization || "").replace(/^Bearer /, ""));
           if (origin || !["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress || "") || !token.length || token.length !== supplied.length || !timingSafeEqual(token, supplied)) {
             throw new RelayError("OPERATOR_REQUIRED", "Loopback and operator token required", 403);
           }
-          result = await refunder.refund(body.paymentId, body.refundId, body.amount);
+          result = url.pathname === "/ops/resolve-undelivered" ? await relay.resolveUndelivered(body)
+            : url.pathname === "/ops/compensate-allowance" ? await relay.compensateAllowance(body) : await refunder.refund(body.paymentId, body.refundId, body.amount);
         } else {
           const id = req.headers["x-payment-id"];
           const input = relay.validate(body, !id); // Existing payments use their persisted request/route, even after a config change.

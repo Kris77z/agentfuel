@@ -59,7 +59,7 @@ export async function createWorkflowFixture(directory: string, definitions: Arra
       settler!.stdout!.on("data", data => { if (String(data).includes('"ready":true')) finish(); });
       settler!.stderr!.on("data", () => finish(new Error("SETTLER_START_FAILED"))); settler!.once("error", finish); settler!.once("exit", () => finish(new Error("SETTLER_EXITED")));
     });
-    arena = createArenaHttpServer(arenaConfig, [], f.provider); arena.server.listen(0, "127.0.0.1"); await once(arena.server, "listening");
+    arena = createArenaHttpServer(arenaConfig, [], f.provider, { save: journal => writeFile(join(directory, "arena-http-journal.json"), JSON.stringify(journal), { mode: 0o600 }) }); arena.server.listen(0, "127.0.0.1"); await once(arena.server, "listening");
     const relayConfig: RelayConfig = { rpcUrl: local.rpc, chainId: 31337n, account: await f.account.getAddress(), asset: f.config.settlementAsset, assetDecimals: 6, payTo: f.payee,
       service: { id: "infercredit/solve-fixed", model: "pi-fixed-v1", price: 120000n, upstreams: [
         { name: "cheap", model: trusted.models?.cheap ?? "controlled-cheap", baseUrl: trusted.upstreams?.cheap.baseUrl ?? "https://cheap.invalid/v1", key: trusted.upstreams?.cheap.key ?? "synthetic-key" },

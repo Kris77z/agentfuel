@@ -204,3 +204,72 @@ test("truncated assistant stays blocked when recovered before tool outcomes", as
   finally { SessionStore.prototype.write = original; }
   const state = await runProviderSolver(directory, input, options); assert.equal(state.phase, "Undelivered"); assert.equal(state.reason, "TRUNCATED_TOOL_CALL"); assert.equal(runner.calls.length, 0); assert.equal(count, 1);
 }));
+
+test("insufficient allowance pauses before dispatch and resumes the same round after funding", async () => directoryTest(async directory => {
+  const { InferenceFundingRequired } = await import("../src/provider.js");
+  const input = spec(), runner = new ControlledRunner(); let funded = false, calls = 0;
+  const options: ProviderSolveOptions = { routes, runner, beforeDispatch: async (_body, round) => {
+    assert.equal(round, 0); if (!funded) throw new InferenceFundingRequired();
+  }, invoke: async tier => { calls++; return response(good, routes[tier].model); } };
+  const paused = await runProviderSolver(directory, input, options);
+  assert.equal(paused.phase, "AwaitingFunds"); assert.equal(paused.rounds.length, 0); assert.equal(calls, 0);
+  assert.equal((await runProviderSolver(directory, input, options)).phase, "AwaitingFunds");
+  funded = true;
+  const complete = await runProviderSolver(directory, input, options);
+  assert.equal(complete.phase, "Delivered"); assert.equal(calls, 1); assert.equal(runner.calls.length, 1);
+}));
+
+test("refueling between rounds preserves prior response and tool feedback", async () => directoryTest(async directory => {
+  const { InferenceFundingRequired } = await import("../src/provider.js");
+  const input = spec(), runner = new ControlledRunner(); let funded = false, calls = 0;
+  const options: ProviderSolveOptions = { routes, runner, beforeDispatch: async (_body, round) => { if (round === 1 && !funded) throw new InferenceFundingRequired(); },
+    invoke: async tier => { calls++; return response(calls === 1 ? wrong : good, routes[tier].model); } };
+  const paused = await runProviderSolver(directory, input, options);
+  assert.equal(paused.phase, "AwaitingFunds"); assert.equal(paused.rounds.length, 1); assert.equal(calls, 1);
+  funded = true; const complete = await runProviderSolver(directory, input, options);
+  assert.equal(complete.phase, "Delivered"); assert.equal(calls, 2); assert.deepEqual(runner.calls, [wrong, good]);
+}));
+
+
+test("durable gateway response resumes an unknown solver round without a second provider request", async () => directoryTest(async directory => {
+  const { InferenceGateway } = await import("../../../services/hosted-agents/src/inference-gateway.js");
+  let dispatches = 0, invocations = 0, admissions = 0;
+  const catalog = [routes.cheap, routes.strong].map(route => ({ id: route.model, model: route.model,
+    route: "https://gateway.invalid/v1/chat/completions", inputMicroCreditsPerToken: "1", outputMicroCreditsPerToken: "2", maxCompletionTokens: 2048 }));
+  let gateway = await InferenceGateway.open(join(directory, "gateway"), { agentId: "1", taskId: "1", wallet: `0x${"11".repeat(20)}` }, catalog,
+    async model => { dispatches++; return { status: 200, body: response(good, model.model) }; });
+  await gateway.grant("grant", "100000", { kind: "game", rewardId: "grant" });
+  const runner = new ControlledRunner(), input = spec();
+  const options: ProviderSolveOptions = { routes, runner, beforeDispatch: async () => { admissions++; },
+    invoke: async (_tier, body) => { invocations++; await gateway.invoke("round:0", body); throw new Error("crash after durable gateway response"); },
+    recoverResponse: async (body, round) => gateway.readResult(`round:${round}`, body)?.response as Record<string, Json> | undefined };
+  try {
+    const first = await runProviderSolver(join(directory, "solver"), input, options); assert.equal(first.phase, "Unknown");
+    await gateway.close(); gateway = await InferenceGateway.open(join(directory, "gateway"), { agentId: "1", taskId: "1", wallet: `0x${"11".repeat(20)}` }, catalog,
+      async () => { throw new Error("must never dispatch on recovery"); });
+    const recovered = await runProviderSolver(join(directory, "solver"), input, options);
+    assert.equal(recovered.phase, "Delivered"); assert.equal(recovered.candidate, good); assert.equal(recovered.rounds.length, 1);
+    assert.equal(dispatches, 1); assert.equal(invocations, 1); assert.equal(admissions, 1); assert.deepEqual(runner.calls, [good]);
+    assert.equal(gateway.balance().spentCredits, "50");
+  } finally { await gateway.close(); }
+}));
+
+test("read-only recovery without a durable result preserves unknown and cannot dispatch", async () => directoryTest(async directory => {
+  let calls = 0, lookups = 0; const input = spec(), runner = new ControlledRunner();
+  const options: ProviderSolveOptions = { routes, runner, invoke: async () => { calls++; throw new Error("timeout"); },
+    recoverResponse: async () => { lookups++; return undefined; } };
+  assert.equal((await runProviderSolver(directory, input, options)).phase, "Unknown");
+  assert.equal((await runProviderSolver(directory, input, options)).phase, "Unknown");
+  assert.equal(calls, 1); assert.equal(lookups, 1); assert.equal(runner.calls.length, 0);
+}));
+
+
+test("ordinary pre-dispatch admission errors pause with their exact safe reason and resume without a phantom model request", async () => directoryTest(async directory => {
+  let unavailable = true, calls = 0; const input = spec(), runner = new ControlledRunner();
+  const options: ProviderSolveOptions = { routes, runner, beforeDispatch: async () => { if (unavailable) throw new Error("REWARD_INVALID_TASK_REQUEST"); },
+    invoke: async tier => { calls++; return response(good, routes[tier].model); } };
+  const paused = await runProviderSolver(directory, input, options);
+  assert.equal(paused.phase, "AwaitingFunds"); assert.equal(paused.reason, "REWARD_INVALID_TASK_REQUEST"); assert.equal(paused.rounds.length, 0); assert.equal(calls, 0);
+  unavailable = false; const resumed = await runProviderSolver(directory, input, options);
+  assert.equal(resumed.phase, "Delivered"); assert.equal(resumed.rounds.length, 1); assert.equal(calls, 1);
+}));

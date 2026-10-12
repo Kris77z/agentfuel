@@ -1,0 +1,372 @@
+{
+  "version": 1,
+  "overallAcceptancePassed": false,
+  "checksPass": true,
+  "observedAt": "2026-10-12T03:38:08.961Z",
+  "chainId": "10143",
+  "block": {
+    "number": 70292092,
+    "hash": "0xf1a87c6706830f855d3dfdcb86a0bc95392c0eb8b9948e3c4a8a26e12eb32f34",
+    "timestamp": 1791776273
+  },
+  "meaning": "checksPass means the observed evidence and balances are consistent; the four-task acceptance did not pass. Task 14 vendor cost/delivery remains unknown. No refund of its delivered allowance is inferred.",
+  "outcome": {
+    "succeededTasks": [
+      "12",
+      "13"
+    ],
+    "assignedWithUnknownInference": [
+      "14"
+    ],
+    "unstartedTasks": [
+      "15"
+    ],
+    "autonomousCompletedTasks": 0
+  },
+  "contracts": {
+    "manager": "0x83e82a5c330E8c029C5F72C4f73dABCabac7fB02",
+    "adapter": "0xEBF8eB6eBf724e25eC69c5b3d4C0796E18913548",
+    "account": "0x275414a20bF00746A9B8A691e04224092a690c32",
+    "escrow": "0x3d2161d2d0f30254ecA5f9Cca323f69b5E76BA41",
+    "verifier": "0x2481251a15b8Ed31e158aA0C561295f9A05D0CF6",
+    "refunder": "0x752EAb56684458CF5e0F55532B4Bd9BeD090885f"
+  },
+  "agents": [
+    {
+      "label": "cheap",
+      "agentId": "2200",
+      "wallet": "0xe2b56B1aaf8dc6B287f682709F5C7144468400c1",
+      "cashRaw": "58000",
+      "debtRaw": "0",
+      "repayments": "1",
+      "defaults": "0"
+    },
+    {
+      "label": "strong",
+      "agentId": "2201",
+      "wallet": "0xaCdE52184B7db806DeC982afBa7D4b4B114286E6",
+      "cashRaw": "58000",
+      "debtRaw": "0",
+      "repayments": "1",
+      "defaults": "0"
+    },
+    {
+      "label": "autonomy",
+      "agentId": "2202",
+      "wallet": "0x3616A1998046c15AEbf7A7eeE61D902175B4DaE3",
+      "cashRaw": "0",
+      "debtRaw": "92000",
+      "repayments": "0",
+      "defaults": "0"
+    }
+  ],
+  "tasks": [
+    {
+      "taskId": "12",
+      "agentId": "2200",
+      "status": "Settled",
+      "accepted": {
+        "txHash": "0x556f2ecab6e499e8971c4ea23861743aa8bb4dc38f90f7a80944c75b5bef5672",
+        "blockNumber": 70286896,
+        "blockHash": "0x68475b22508c98089464daf1c6290df527daf01f24e5294680ee09facf6cd2d0",
+        "from": "0xe2b56B1aaf8dc6B287f682709F5C7144468400c1",
+        "to": "0x3d2161d2d0f30254ecA5f9Cca323f69b5E76BA41"
+      },
+      "payment": {
+        "txHash": "0xcb5a9c316792f4bddd8f9fd78c011bc5dc33767facc48ba6b2c38f2cc7bf5f10",
+        "blockNumber": 70286933,
+        "blockHash": "0x7b4ff14b919066300a886b6b079aa9596ab0adec9654a851cc09f57ce9907edb",
+        "from": "0xe2b56B1aaf8dc6B287f682709F5C7144468400c1",
+        "to": "0x275414a20bF00746A9B8A691e04224092a690c32",
+        "paymentId": "0xf711f41d2241dafd3709185be441c9684a57c7bddc9b62d1c35a53c2411f486e",
+        "agentId": "2200",
+        "taskId": "12",
+        "fromCashRaw": "40000",
+        "fromCreditRaw": "80000",
+        "priceRaw": "120000",
+        "refundedRaw": "0",
+        "requestDigest": "0x66e1814cb01277afbeb2caf7c6ba1ef84338d7983643bb23253260dfdbc73d01"
+      },
+      "settlement": {
+        "txHash": "0x477a0d920648e0cae3b83ca392a9b3e7363e65d8e5d269c9ed759bf37dd809e2",
+        "blockNumber": 70287007,
+        "blockHash": "0xb272c81b13c72ea149d89b1a2a31ace575a39d2cf4cb6b803ba51ce3db6d3f55",
+        "from": "0x2481251a15b8Ed31e158aA0C561295f9A05D0CF6",
+        "to": "0x3d2161d2d0f30254ecA5f9Cca323f69b5E76BA41",
+        "principalRepaidRaw": "80000",
+        "feeRepaidRaw": "12000",
+        "repaidRaw": "92000",
+        "residualRaw": "58000",
+        "passed": true
+      },
+      "loan": {
+        "status": "Repaid",
+        "principalRaw": "0",
+        "feeRaw": "0",
+        "dueAt": "1791787606"
+      },
+      "allowanceDelivered": true,
+      "modelCalls": [
+        {
+          "invocationId": "round:0",
+          "state": "Completed",
+          "requestModel": "cheap/kimi-k2.6",
+          "httpStatus": 200,
+          "responseModel": "kimi-k2.6",
+          "usage": {
+            "promptTokens": 190,
+            "completionTokens": 45
+          },
+          "requestDigest": "bfae28ad10c40b7c469095f55b227d5e862e92f21a5090e813e9b3263912d5b9",
+          "responseDigest": "b99d471584a42886b1dfef178c69189f459bfc1b8f0872d908d7a829e92e2b30"
+        }
+      ],
+      "journalDigest": "1682fa6026d3d25ed6300ab1fe1dd19a88f038caaf303742df533f0c2424e5b6",
+      "ledgerDigest": "9c6173cf28ee220539c8fafe43e71c13ba594e4fe0dd3db1fec8d0ec2a98e9f6"
+    },
+    {
+      "taskId": "13",
+      "agentId": "2201",
+      "status": "Settled",
+      "accepted": {
+        "txHash": "0x8276640aaf24f7f012bc0ad7c7ec67c246ec3c07e9ac744542ee3c958210fa3e",
+        "blockNumber": 70287319,
+        "blockHash": "0x0de6c50003c6ed169f01e320648ccfa2f1cf5af66a2f59010fa38949a4e6ebb8",
+        "from": "0xaCdE52184B7db806DeC982afBa7D4b4B114286E6",
+        "to": "0x3d2161d2d0f30254ecA5f9Cca323f69b5E76BA41"
+      },
+      "payment": {
+        "txHash": "0x68c66c95bc92cf298172a1222dd74f06ca844d556488e2b5133142255afd1f37",
+        "blockNumber": 70287364,
+        "blockHash": "0x7302f0e7a15818406cb014f4ad35518ec32cc1ac03b4bf61824f917464c2e0e7",
+        "from": "0xaCdE52184B7db806DeC982afBa7D4b4B114286E6",
+        "to": "0x275414a20bF00746A9B8A691e04224092a690c32",
+        "paymentId": "0x337bf19969e002395203b8a226a8cf8c142f579797286f4d20b92229284748dd",
+        "agentId": "2201",
+        "taskId": "13",
+        "fromCashRaw": "40000",
+        "fromCreditRaw": "80000",
+        "priceRaw": "120000",
+        "refundedRaw": "0",
+        "requestDigest": "0x3637ba310c2ee4a2f7b48479b9cc1dcd754d2962c24609f98f332df3379e3015"
+      },
+      "settlement": {
+        "txHash": "0x38567f28918d3ef072b8092709b515d6ca08838122923715bf465fff8f3e3802",
+        "blockNumber": 70287420,
+        "blockHash": "0x62d07f87a04b74878b9e3c33fbcfb52aae7faea07577f973fd253942ba81fd2b",
+        "from": "0x2481251a15b8Ed31e158aA0C561295f9A05D0CF6",
+        "to": "0x3d2161d2d0f30254ecA5f9Cca323f69b5E76BA41",
+        "principalRepaidRaw": "80000",
+        "feeRepaidRaw": "12000",
+        "repaidRaw": "92000",
+        "residualRaw": "58000",
+        "passed": true
+      },
+      "loan": {
+        "status": "Repaid",
+        "principalRaw": "0",
+        "feeRaw": "0",
+        "dueAt": "1791787606"
+      },
+      "allowanceDelivered": true,
+      "modelCalls": [
+        {
+          "invocationId": "round:0",
+          "state": "Completed",
+          "requestModel": "strong/kimi-k3",
+          "httpStatus": 200,
+          "responseModel": "kimi-k3",
+          "usage": {
+            "promptTokens": 334,
+            "completionTokens": 106
+          },
+          "requestDigest": "d2abfea3c93f77902383fd5b86b41d1ef83d1d631685021236f86b9dced9c2c0",
+          "responseDigest": "975fb19c0e4921c158c51aa052b44afbbe8f1feff5de8c0a5952e86572a63922"
+        }
+      ],
+      "journalDigest": "18896a156258f019d37fc703fc8c0020174cd74222f1c3c45c86b7761069a725",
+      "ledgerDigest": "1794b8e461d34c6aabfd183746542fe6e5979094c58d1e3226b6fb602e274396"
+    },
+    {
+      "taskId": "14",
+      "agentId": "2202",
+      "status": "Assigned",
+      "accepted": {
+        "txHash": "0x1b2322db0921478189a363f8f3c003c65b7beee5915c2d1980dc19165ae5e540",
+        "blockNumber": 70290891,
+        "blockHash": "0xb9012d37f66cbaa0412385b8989bd25695740aabf8e805482f204d44ddbd122f",
+        "from": "0x3616A1998046c15AEbf7A7eeE61D902175B4DaE3",
+        "to": "0x3d2161d2d0f30254ecA5f9Cca323f69b5E76BA41"
+      },
+      "payment": {
+        "txHash": "0x9cebed249407abb569e2a0183138f0a4566801d41e9eeb6f9ee438bfb58583a6",
+        "blockNumber": 70290939,
+        "blockHash": "0xf8589ba7b63afd98d88efb204f7eed306913abdd1e289cc52f2737e31da25e6e",
+        "from": "0x3616A1998046c15AEbf7A7eeE61D902175B4DaE3",
+        "to": "0x275414a20bF00746A9B8A691e04224092a690c32",
+        "paymentId": "0x59cf92e5d5e9b6a6a055caebdde6454540e0a96d846d02c7f75f28b19331fb84",
+        "agentId": "2202",
+        "taskId": "14",
+        "fromCashRaw": "40000",
+        "fromCreditRaw": "80000",
+        "priceRaw": "120000",
+        "refundedRaw": "0",
+        "requestDigest": "0x7d4514d52acd3b1c80437e39ba40cf642adc7ff7c9e6f531155b52c83b2f0b8c"
+      },
+      "settlement": null,
+      "loan": {
+        "status": "Active",
+        "principalRaw": "80000",
+        "feeRaw": "12000",
+        "dueAt": "1791787606"
+      },
+      "allowanceDelivered": true,
+      "modelCalls": [
+        {
+          "invocationId": "round:0",
+          "state": "Unknown",
+          "requestModel": "cheap/kimi-k2.6",
+          "httpStatus": 503,
+          "responseModel": null,
+          "usage": null,
+          "requestDigest": "f3819be6bd641f9113d65c691234af24ee652aa19d5d1a0274af6fd0c3bcbfd4",
+          "responseDigest": "66906bcfb2fc8fe58a0fe156782d774a457e6ef8672855dafa670f420afa2a77"
+        }
+      ],
+      "journalDigest": "7aec7a085801776a9131587e3f1329508f56b92571ca4c9443e96f2c08f32774",
+      "ledgerDigest": "6c0ef148fe9bf9b2abe40d4e6d248e2bd52a6214f472db47acc4f18107eb5c1c"
+    },
+    {
+      "taskId": "15",
+      "status": "Open",
+      "agentId": "0",
+      "started": false,
+      "loan": {
+        "status": "None",
+        "principalRaw": "0",
+        "feeRaw": "0"
+      }
+    }
+  ],
+  "planners": [
+    {
+      "decisionId": "21a06bce-6af3-46cd-b662-6232673027e5",
+      "status": "Delivered",
+      "payment": {
+        "txHash": "0xe5e3082b2242a38eb920fcf1691783577e97e9d091ea5141f132e1ccf5870305",
+        "blockNumber": 70290790,
+        "blockHash": "0xcef425e05bf242739152d93db24469e880ac6a08574b935a53223321779b1708",
+        "from": "0x3616A1998046c15AEbf7A7eeE61D902175B4DaE3",
+        "to": "0x275414a20bF00746A9B8A691e04224092a690c32",
+        "paymentId": "0xe1d5e495f29b51779ef0996b21b602b5a8c722bfe75e2d361fcd63947a1ca5df",
+        "agentId": "2202",
+        "taskId": "0",
+        "fromCashRaw": "10000",
+        "fromCreditRaw": "0",
+        "priceRaw": "10000",
+        "refundedRaw": "0",
+        "requestDigest": "0xd483e952395b32c03b618f45af25276b70190224db699351b6e0fc024831054c"
+      },
+      "refund": null,
+      "operatorResolution": null,
+      "attempts": [
+        {
+          "upstream": "magpie-cheap",
+          "model": "cheap/kimi-k2.6",
+          "state": "Delivered",
+          "httpStatus": 200,
+          "reason": null,
+          "startedAt": 1791775882082
+        }
+      ],
+      "responseModel": "kimi-k2.6",
+      "usage": {
+        "prompt_tokens": 669,
+        "completion_tokens": 24,
+        "total_tokens": 693,
+        "completion_tokens_details": {
+          "reasoning_tokens": 1
+        }
+      },
+      "journalDigest": "2f8a60811159012a2c693f5f1985eb0c3897848afbec5a1dea0c95ebf112c967"
+    },
+    {
+      "decisionId": "d298b473-f25b-4d4b-8455-bb413bc8a9f7",
+      "status": "UnknownRefunded",
+      "payment": {
+        "txHash": "0x813d01cf81a139361e14a17335d438cfeee4319eac63237e64ea4728b982996f",
+        "blockNumber": 70287785,
+        "blockHash": "0x0342a782c214d66ab066b7b8e1e0f4949652eb69a59432cc07748d3cdefb7ed8",
+        "from": "0x3616A1998046c15AEbf7A7eeE61D902175B4DaE3",
+        "to": "0x275414a20bF00746A9B8A691e04224092a690c32",
+        "paymentId": "0x64f4796ba4a999af1c74f20f40ff78ccd8c8a5d43be5fd0688a7c9804e386137",
+        "agentId": "2202",
+        "taskId": "0",
+        "fromCashRaw": "10000",
+        "fromCreditRaw": "0",
+        "priceRaw": "10000",
+        "refundedRaw": "10000",
+        "requestDigest": "0x23a5227da47d366b7a55ed8bafe24ca52db5f51507ad15a762326657eb5179de"
+      },
+      "refund": {
+        "txHash": "0xf4913644765aa61c4aabb3f27f1ab421576ff74b404f9147bb851b2f78b3774f",
+        "blockNumber": 70290623,
+        "blockHash": "0x00f4c8c4b5667a9b4801ef9a42188a7a13d255379c00a1b2c0709b71cd9ea509",
+        "from": "0x752EAb56684458CF5e0F55532B4Bd9BeD090885f",
+        "to": "0x83e82a5c330E8c029C5F72C4f73dABCabac7fB02",
+        "refundId": "0x03c12f3536bd469078ca7a17b82c6a485fd1bc029403780a495db0cba48e85ed",
+        "amountRaw": "10000",
+        "debtReducedRaw": "0",
+        "toCashRaw": "10000"
+      },
+      "operatorResolution": {
+        "version": 1,
+        "paymentId": "0x64f4796ba4a999af1c74f20f40ff78ccd8c8a5d43be5fd0688a7c9804e386137",
+        "resolutionId": "6abc591d-4add-4896-9a70-614bc9b4d46e",
+        "reason": "operator-accepted-nondelivery-cost",
+        "expectedAttemptsDigest": "0xb1b90430514942de7f5fedadaaa8369befefd955bf7981b076cc46fc8904ca59",
+        "evidenceDigest": "0xf13eb7f21bc6353e5219c32f8d62486ed0575b2ba067ec47aac808b70569acb8",
+        "resolvedAt": 1791775806426
+      },
+      "attempts": [
+        {
+          "upstream": "magpie-cheap",
+          "model": "cheap/kimi-k2.6",
+          "state": "Unknown",
+          "httpStatus": 503,
+          "reason": "HTTP_STATUS",
+          "startedAt": 1791774975405
+        }
+      ],
+      "responseModel": null,
+      "usage": null,
+      "journalDigest": "e24879063dee6f8bea0a6617303f819b021e7f7eb02d1d3c273334f342dbc40d"
+    }
+  ],
+  "counts": {
+    "plannerPaidCalls": 2,
+    "plannerDeliveredCalls": 1,
+    "plannerUnknownRefundedCalls": 1,
+    "taskModelCalls": 3,
+    "taskModelUnknownCalls": 1
+  },
+  "totalOutstandingRaw": "92000",
+  "activeLoans": [
+    {
+      "taskId": "14",
+      "agentId": "2202",
+      "debtRaw": "92000"
+    }
+  ],
+  "replay": {
+    "performedByThisAudit": false
+  },
+  "checks": {
+    "canonicalReceipts": true,
+    "exactAcceptPaymentSettlementAndRefundEvents": true,
+    "fixedBlockBalances": true,
+    "originalUnknownEvidencePreserved": true,
+    "readOnly": true,
+    "roleKeysRead": false
+  }
+}

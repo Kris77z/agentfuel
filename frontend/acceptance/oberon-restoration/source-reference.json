@@ -1,0 +1,13 @@
+{
+  "repository": "Kris77z/web-experience-four-sites",
+  "commit": "ba589426a46e67688fc69cdc65e1addd13e574ed",
+  "reference": "oberon-clone/public/index.html",
+  "assets": {
+    "oberon-wave.png": {
+      "sha256": "55baf67fe40e9b69632f78391c4eca388f85b712352113100dd2fcca8fc2a6fa"
+    },
+    "oberon-execution.png": {
+      "sha256": "e2a3bd6de795bb6eca29515d4df8d4cb97fc459c5ece56bd17c3bd8f24a97708"
+    }
+  }
+}

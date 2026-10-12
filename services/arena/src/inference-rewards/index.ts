@@ -1,3 +1,4 @@
+import type { Json } from "@agentfuel/sdk";
 import { createHash } from "node:crypto";
 import { SessionStore } from "../../../../packages/pi-loop/src/session.js";
 
@@ -13,9 +14,10 @@ export interface RewardGrant extends TerminalRewardInput {
   model: "kimi-k2.6"; allocations: [number, number]; createdAt: string;
 }
 export interface RedemptionInput { redemptionId: string; prompt: string; maxCompletionTokens: number }
+export interface RewardChatInput { redemptionId: string; request: Record<string, Json> }
 export interface RewardInferenceRequest {
   model: "kimi-k2.6"; stream: false; max_completion_tokens: number; thinking: { type: "disabled" };
-  messages: [{ role: "user"; content: string }];
+  messages: Json[]; tools?: Json[];
 }
 export interface RewardUsage { prompt_tokens: number; completion_tokens: number; total_tokens: number }
 export type RedemptionStatus = "DispatchIntent" | "ResponseRecorded" | "Completed" | "Failed" | "OutcomeUnknown" | "UsageOverrun";
@@ -25,7 +27,7 @@ export interface RewardRedemption {
   content?: string; finishReason?: "stop" | "length"; error?: string;
 }
 interface PrivateRedemption extends RewardRedemption {
-  request: RewardInferenceRequest; response?: { httpStatus: number; rawText: string };
+  kind?: "task"; request: RewardInferenceRequest; response?: { httpStatus: number; rawText: string };
 }
 interface LedgerState {
   version: 1; policy: typeof INFERENCE_REWARD_POLICY; accounts: RewardIdentity[];
@@ -78,6 +80,24 @@ function request(input: RedemptionInput): { request: RewardInferenceRequest; res
     max_completion_tokens: input.maxCompletionTokens, thinking: { type: "disabled" }, messages: [{ role: "user", content: input.prompt }] };
   return { request: body, reservedTokens: Buffer.byteLength(input.prompt, "utf8") + INFERENCE_REWARD_POLICY.promptFramingReserveTokens + input.maxCompletionTokens };
 }
+/** Host-only task requests: model and endpoint remain fixed by the reward policy. */
+export function prepareRewardChat(input: RewardChatInput): { request: RewardInferenceRequest; reservedTokens: number } {
+  validId(input.redemptionId, "REDEMPTION_ID");
+  const body = input.request;
+  if (!body || Object.keys(body).some(k => !["model", "messages", "tools", "max_completion_tokens", "thinking", "stream"].includes(k))
+    || body.model !== INFERENCE_REWARD_POLICY.model || !Array.isArray(body.messages) || !body.messages.length
+    || body.tools !== undefined && !Array.isArray(body.tools)
+    || body.stream !== undefined && body.stream !== false
+    || !Number.isSafeInteger(body.max_completion_tokens) || Number(body.max_completion_tokens) < 1
+    || Number(body.max_completion_tokens) > INFERENCE_REWARD_POLICY.maxCompletionTokens
+    || body.thinking !== undefined && JSON.stringify(body.thinking) !== JSON.stringify({ type: "disabled" })) throw new Error("REWARD_INVALID_TASK_REQUEST");
+  const normalized = { model: INFERENCE_REWARD_POLICY.model, stream: false as const,
+    max_completion_tokens: Number(body.max_completion_tokens), thinking: { type: "disabled" as const },
+    messages: clone(body.messages), ...(body.tools ? { tools: clone(body.tools as Json[]) } : {}) };
+  const bytes = Buffer.byteLength(JSON.stringify({ messages: normalized.messages, tools: normalized.tools }));
+  if (bytes > INFERENCE_REWARD_POLICY.maxPromptBytes) throw new Error("REWARD_INVALID_TASK_REQUEST");
+  return { request: normalized, reservedTokens: bytes + INFERENCE_REWARD_POLICY.promptFramingReserveTokens + normalized.max_completion_tokens };
+}
 function parseUsage(body: any): RewardUsage | undefined {
   const value = body?.usage;
   if (!value || !count(value.prompt_tokens) || !count(value.completion_tokens) || !count(value.total_tokens)
@@ -102,6 +122,19 @@ function settle(record: PrivateRedemption) {
     record.status = "UsageOverrun"; record.error = "REWARD_UPSTREAM_EXCEEDED_RESERVATION"; return;
   }
   const choice = body?.choices?.[0];
+  if (record.kind === "task") {
+    const calls = choice?.message?.tool_calls;
+    const validCalls = Array.isArray(calls) && calls.length > 0 && calls.length <= 4
+      && calls.every((call: any) => typeof call.id === "string" && call.id.length > 0 && call.type === "function"
+        && call.function?.name === "test_public_sample" && typeof call.function.arguments === "string");
+    const valid = record.response.httpStatus >= 200 && record.response.httpStatus < 300
+      && body.choices?.length === 1 && choice.message?.role === "assistant" && choice.message.function_call === undefined
+      && (calls === undefined ? typeof choice.message.content === "string" && ["stop", "length"].includes(choice.finish_reason)
+        : validCalls && ["tool_calls", "stop", "length"].includes(choice.finish_reason));
+    record.status = valid ? "Completed" : "Failed";
+    if (!valid) record.error = "REWARD_INFERENCE_RESPONSE_NOT_DELIVERABLE";
+    return;
+  }
   if (record.response.httpStatus < 200 || record.response.httpStatus >= 300 || !Array.isArray(body?.choices) || body.choices.length !== 1
     || choice?.message?.role !== "assistant" || typeof choice.message.content !== "string" || !choice.message.content.trim()
     || choice.message.tool_calls !== undefined || choice.message.function_call !== undefined
@@ -180,8 +213,9 @@ export class InferenceRewardLedger {
     }
     for (const r of this.state.redemptions) {
       this.account(r.identity); validId(r.redemptionId, "REDEMPTION_ID");
-      const bounded = request({ redemptionId: r.redemptionId, prompt: r.request?.messages?.[0]?.content,
-        maxCompletionTokens: r.request?.max_completion_tokens });
+      const bounded = r.kind === "task" ? prepareRewardChat({ redemptionId: r.redemptionId, request: r.request as unknown as Record<string, Json> })
+        : request({ redemptionId: r.redemptionId, prompt: (r.request?.messages?.[0] as any)?.content, maxCompletionTokens: r.request?.max_completion_tokens });
+      if (r.kind !== undefined && r.kind !== "task") throw new Error("REWARD_LEDGER_INVALID_REDEMPTION");
       if (r.model !== INFERENCE_REWARD_POLICY.model || digest(bounded.request) !== r.requestDigest || JSON.stringify(r.request) !== JSON.stringify(bounded.request)
         || r.reservedTokens !== bounded.reservedTokens || redemptions.has(r.redemptionId)
         || !["DispatchIntent", "ResponseRecorded", "Completed", "Failed", "OutcomeUnknown", "UsageOverrun"].includes(r.status)
@@ -269,12 +303,32 @@ export class InferenceRewardLedger {
     const pending = this.redeemOnce(value, input); this.inFlight.add(pending);
     return pending.finally(() => this.inFlight.delete(pending));
   }
-  private async redeemOnce(value: RewardIdentity, input: RedemptionInput): Promise<RewardRedemption> {
+  /** Task calls are server-only and use the same balance, reservation and unknown-dispatch rules. */
+  async taskResponse(value: RewardIdentity, redemptionId: string): Promise<Record<string, Json> | undefined> {
+    return this.serialized(() => {
+      const owner = this.account(value), record = this.state.redemptions.find(r => r.redemptionId === redemptionId);
+      if (!record || accountKey(record.identity) !== accountKey(owner) || record.kind !== "task" || record.status !== "Completed") return undefined;
+      return JSON.parse(record.response!.rawText);
+    });
+  }
+  taskUsage(value: RewardIdentity, prefix: string): Promise<number> {
+    return this.serialized(() => {
+      const owner = this.account(value);
+      return safeSum(this.state.redemptions.filter(r => r.kind === "task" && accountKey(r.identity) === accountKey(owner)
+        && r.redemptionId.startsWith(prefix)).map(r => r.chargedTokens ?? 0));
+    });
+  }
+  redeemChat(value: RewardIdentity, input: RewardChatInput): Promise<RewardRedemption> {
+    if (this.closing || this.closed) return Promise.reject(new Error("REWARD_LEDGER_CLOSED"));
+    const pending = this.redeemOnce(value, input, "task"); this.inFlight.add(pending);
+    return pending.finally(() => this.inFlight.delete(pending));
+  }
+  private async redeemOnce(value: RewardIdentity, input: RedemptionInput | RewardChatInput, kind?: "task"): Promise<RewardRedemption> {
     const prepared = await this.serialized(async () => {
-      const owner = this.account(value); const bounded = request(input); const requestDigest = digest(bounded.request);
+      const owner = this.account(value); const bounded = kind === "task" ? prepareRewardChat(input as RewardChatInput) : request(input as RedemptionInput); const requestDigest = digest(bounded.request);
       const existing = this.state.redemptions.find(r => r.redemptionId === input.redemptionId);
       if (existing) {
-        if (accountKey(existing.identity) !== accountKey(owner) || existing.requestDigest !== requestDigest) throw new Error("REWARD_REDEMPTION_ID_BINDING_MISMATCH");
+        if (accountKey(existing.identity) !== accountKey(owner) || existing.requestDigest !== requestDigest || existing.kind !== kind) throw new Error("REWARD_REDEMPTION_ID_BINDING_MISMATCH");
         return { execute: false as const, record: publicRedemption(existing) };
       }
       if (!this.dispatch) throw new Error("REWARD_INFERENCE_PROVIDER_NOT_CONFIGURED");
@@ -283,7 +337,7 @@ export class InferenceRewardLedger {
       if (balance.availableTokens < bounded.reservedTokens) throw new Error("REWARD_INSUFFICIENT_AVAILABLE_TOKENS");
       const createdAt = new Date().toISOString();
       const record: PrivateRedemption = { redemptionId: input.redemptionId, identity: owner, model: INFERENCE_REWARD_POLICY.model,
-        requestDigest, reservedTokens: bounded.reservedTokens, status: "DispatchIntent", createdAt, updatedAt: createdAt, request: bounded.request };
+        ...(kind ? { kind } : {}), requestDigest, reservedTokens: bounded.reservedTokens, status: "DispatchIntent", createdAt, updatedAt: createdAt, request: bounded.request };
       const next = clone(this.state); next.redemptions.push(record); await this.commit(next);
       return { execute: true as const, record };
     });

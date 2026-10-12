@@ -1,0 +1,218 @@
+{
+  "repository": "https://github.com/Kris77z/web-experience-four-sites",
+  "commit": "ba589426a46e67688fc69cdc65e1addd13e574ed",
+  "entryHtml": "oberon-clone/public/index.html",
+  "title": {
+    "source": "oberon-clone/public/framerusercontent.com/sites/4EOkNSePXGf6qUgtcUzh4f/6ikjj4rjeAtlgLBfArUd5OYABc_TfSOps93ziFpiCwI.DhriRjnB.mjs",
+    "line": 14,
+    "offset": 742746,
+    "selector": ".framer-7iowuh",
+    "tokenization": "character",
+    "initialOpacity": 0.001,
+    "finalOpacity": 1,
+    "translation": 0,
+    "startDelaySeconds": 0,
+    "staggerSeconds": 0.02,
+    "springDurationSeconds": 0.03,
+    "bounce": 0.1,
+    "threshold": 0.5,
+    "repeat": false
+  },
+  "description": {
+    "source": "oberon-clone/public/framerusercontent.com/sites/4EOkNSePXGf6qUgtcUzh4f/6ikjj4rjeAtlgLBfArUd5OYABc_TfSOps93ziFpiCwI.DhriRjnB.mjs",
+    "line": 14,
+    "offset": 742975,
+    "selector": ".framer-16dg38w",
+    "tokenization": "word",
+    "initialOpacity": 0.001,
+    "finalOpacity": 1,
+    "staggerSeconds": 0.08,
+    "springDurationSeconds": 0.15,
+    "bounce": 0.1
+  },
+  "logo": {
+    "source": "oberon-clone/public/index.html#__framer__appearAnimationsContent",
+    "x": [
+      -392,
+      0
+    ],
+    "opacity": 1,
+    "springDurationSeconds": 0.6,
+    "bounce": 0
+  },
+  "introIndex": {
+    "source": "oberon-clone/public/framerusercontent.com/sites/4EOkNSePXGf6qUgtcUzh4f/fLobHPBFI.BwctTXye.mjs",
+    "numberLeft": [
+      -40,
+      0
+    ],
+    "titleLeft": [
+      -124,
+      31
+    ],
+    "springDurationSeconds": 0.6,
+    "bounce": 0.1
+  },
+  "buttons": {
+    "source": "oberon-clone/public/framerusercontent.com/sites/4EOkNSePXGf6qUgtcUzh4f/shared-lib.DGQ7Av67.mjs",
+    "contentLeft": [
+      -464,
+      0
+    ],
+    "lightDurationSeconds": 0.7,
+    "darkDurationSeconds": 0.6,
+    "bounce": 0.1,
+    "appearDisabledBelow810": true
+  },
+  "chip": {
+    "source": "oberon-clone/public/framerusercontent.com/sites/4EOkNSePXGf6qUgtcUzh4f/6ikjj4rjeAtlgLBfArUd5OYABc_TfSOps93ziFpiCwI.DhriRjnB.mjs",
+    "line": 14,
+    "offset": 307184,
+    "rootSize": [
+      426,
+      333
+    ],
+    "timeOrigin": "Step1 activation; Framer hydration does not promise a navigation-relative activation time",
+    "steps": [
+      {
+        "step": 1,
+        "afterActivationMs": 0,
+        "outerSize": 29,
+        "innerSize": 20,
+        "logoSize": 8,
+        "cornersSize": 15,
+        "lines": false,
+        "sheets": []
+      },
+      {
+        "step": 2,
+        "afterActivationMs": 700,
+        "outerSize": 120,
+        "innerSize": 20,
+        "lines": true,
+        "durationSeconds": 0.5,
+        "bounce": 0.4
+      },
+      {
+        "step": 3,
+        "afterActivationMs": 900,
+        "cornersSize": 105,
+        "innerSize": 84,
+        "logoSize": 38,
+        "durationSeconds": 0.5,
+        "bounce": 0.3
+      },
+      {
+        "step": 4,
+        "afterActivationMs": 1100,
+        "topSheet": [
+          202,
+          140
+        ],
+        "durationSeconds": 0.5,
+        "bounce": 0.1
+      },
+      {
+        "step": 5,
+        "afterActivationMs": 1300,
+        "outerSize": 128,
+        "innerSize": 90,
+        "logoSize": 42,
+        "cornersSize": 109,
+        "topSheet": [
+          202,
+          0
+        ],
+        "rightSheet": [
+          202,
+          141
+        ],
+        "durationSeconds": 0.5,
+        "bounce": 0.1
+      },
+      {
+        "step": 6,
+        "afterActivationMs": 1500,
+        "rightSheet": [
+          340,
+          141
+        ],
+        "bottomSheet": [
+          202,
+          141
+        ],
+        "durationSeconds": 0.5,
+        "bounce": 0.1
+      },
+      {
+        "step": 7,
+        "afterActivationMs": 1700,
+        "bottomSheet": [
+          202,
+          283
+        ],
+        "durationSeconds": 0.5,
+        "bounce": 0.1,
+        "repeat": false
+      }
+    ]
+  },
+  "files": {
+    "source": "oberon-clone/public/framerusercontent.com/sites/4EOkNSePXGf6qUgtcUzh4f/6ikjj4rjeAtlgLBfArUd5OYABc_TfSOps93ziFpiCwI.DhriRjnB.mjs",
+    "line": 14,
+    "offset": 644921,
+    "gridLeft": [
+      -127,
+      -81,
+      -34,
+      13
+    ],
+    "foregroundLeft": [
+      -124,
+      -78,
+      -31,
+      16
+    ],
+    "step2To3Ms": 150,
+    "step3To4Ms": 150,
+    "springDurationSeconds": 0.3,
+    "bounce": 0.1,
+    "clippedWidth": 146,
+    "repeat": false
+  },
+  "wave": {
+    "source": "oberon-clone/public/framerusercontent.com/sites/4EOkNSePXGf6qUgtcUzh4f/shared-lib.DGQ7Av67.mjs",
+    "appear": false,
+    "direction": "left",
+    "speedPixelsPerSecond": 30,
+    "ease": "linear",
+    "repeat": "infinity",
+    "scrollScale": [
+      1.18,
+      1
+    ],
+    "scrollOffsets": [
+      "start end",
+      "end start"
+    ]
+  },
+  "localImplementation": {
+    "runtime": "native CSS; no copied Framer runtime",
+    "geometryActivationDelayMs": 650,
+    "textActivationDelayMs": 180,
+    "springEasing": "native CSS linear() spring approximation; source timing and staged layout retained",
+    "scrollReveal": "existing IntersectionObserver, independent of first-paint CSS entry",
+    "staticFallback": "scripting:none and reduced-motion render final composition"
+  },
+  "evidence": {
+    "firstVisit": "source-timeline.json (timestamps relative to first hero DOM sample; first captured paint may be later)",
+    "refresh": "source-refresh-timeline.json and current-refresh-timeline.json (requested frames relative to first captured paint; actual captured offsets are recorded)",
+    "framesMs": [
+      0,
+      300,
+      800,
+      1500,
+      3000
+    ]
+  }
+}

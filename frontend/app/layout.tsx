@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-export const metadata: Metadata = { title: "AgentFuel · 托管 Agent 工作台", description: "创建平台托管 Agent，配置模型、策略与预算，运行任务赚取收入，参加免费德州赢赞助 USDC 或 LLM credits。" };
+import { HostedAgentsProvider } from "../lib/hosted-agents-provider";
+export const metadata: Metadata = { title: "AgentFuel · 让信誉与任务报酬支持推理", description: "创建托管 Agent，连接信誉、任务借贷、游戏奖励与统一模型网关。由 Pi 在预算内执行任务，独立验收后结算收入、偿还借款并积累声誉。" };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="zh-CN"><body>{children}</body></html>;
+  return <html lang="zh-CN"><body><HostedAgentsProvider>{children}</HostedAgentsProvider></body></html>;
 }

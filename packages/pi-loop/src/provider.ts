@@ -16,7 +16,7 @@ export interface SolveSpec {
   maxRounds: number; maxToolCalls: number; maxCompletionTokens: number; deadlineMs: number;
 }
 export interface ProviderSolveState {
-  version: 1; binding: string; spec: SolveSpec; phase: "Running" | "Delivered" | "Undelivered" | "Unknown";
+  version: 1; binding: string; spec: SolveSpec; phase: "Running" | "Delivered" | "Undelivered" | "Unknown" | "AwaitingFunds";
   reason?: string; messages: AgentMessage[];
   rounds: { tier: RoutingTier; model: string; body: JsonObject; state: "Dispatching" | "Responded"; response?: Record<string, Json>; appended: boolean }[];
   tools: { id: string; code: string; result?: SampleResult }[];
@@ -25,6 +25,9 @@ export interface ProviderSolveState {
 export interface ProviderSolveOptions {
   routes: Record<RoutingTier, { name: string; model: string; baseUrl: string }>;
   invoke: (tier: RoutingTier, body: JsonObject, signal: AbortSignal) => Promise<Record<string, Json>>;
+  beforeDispatch?: (body: JsonObject, round: number) => Promise<void>;
+  /** Read a durably recorded response only; this callback must never dispatch a model call. */
+  recoverResponse?: (body: JsonObject, round: number) => Promise<Record<string, Json> | undefined>;
   runner?: DockerExecutor; recoverLock?: boolean;
 }
 function object(value: unknown): value is Record<string, unknown> { return value !== null && typeof value === "object" && !Array.isArray(value); }
@@ -55,6 +58,7 @@ function jsonValue(value: unknown): value is Json {
   if (Array.isArray(value)) return value.every(jsonValue);
   return object(value) && Object.values(value).every(jsonValue);
 }
+export class InferenceFundingRequired extends Error { constructor(reason = "INFERENCE_FUNDING_REQUIRED") { super(reason); } }
 class SolveStop extends Error { constructor(readonly code: string) { super(code); } }
 const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const codeHash = (code: string) => createHash("sha256").update(code).digest("hex");
@@ -77,7 +81,7 @@ export async function runProviderSolver(directory: string, input: SolveSpec, opt
     if (previous && (previous.version !== 1 || previous.binding !== binding || !isDeepStrictEqual(previous.spec, spec))) throw new Error("SOLVE_CONFIG_MISMATCH");
     state = previous ?? { version: 1, binding, spec, phase: "Running", messages: [], rounds: [], tools: [] };
     if (!Array.isArray(state.rounds) || state.rounds.length > spec.maxRounds || !Array.isArray(state.tools) || state.tools.length > spec.maxToolCalls ||
-      !Array.isArray(state.messages) || !["Running", "Delivered", "Undelivered", "Unknown"].includes(state.phase)) throw new Error("INVALID_SOLVE_STATE");
+      !Array.isArray(state.messages) || !["Running", "Delivered", "Undelivered", "Unknown", "AwaitingFunds"].includes(state.phase)) throw new Error("INVALID_SOLVE_STATE");
     if (new Set(state.tools.map(tool => tool.id)).size !== state.tools.length || state.tools.some(tool => typeof tool.id !== "string" ||
       !/^[1-3]:.+$/.test(tool.id) || typeof tool.code !== "string" || !tool.code.length || Buffer.byteLength(tool.code) > 65536 ||
       (tool.result && (typeof tool.result.passed !== "boolean" || typeof tool.result.stdout !== "string")))) throw new Error("INVALID_SOLVE_STATE");
@@ -91,13 +95,24 @@ export async function runProviderSolver(directory: string, input: SolveSpec, opt
       const passed = state.tools.find(tool => tool.code === state.candidate && tool.result?.passed === true);
       if (!state.candidate || !passed || state.codeHash !== codeHash(state.candidate)) throw new Error("INVALID_SOLVE_STATE");
     }
+    if (state.phase === "AwaitingFunds") { state.phase = "Running"; delete state.reason; await save(); }
     if (state.phase === "Delivered") return structuredClone(state);
-    if (state.phase === "Undelivered" || state.phase === "Unknown") return structuredClone(state);
-    // The process might have died before sending, during sending, or after receiving but before saving.
-    // None of these cases can authorize another upstream dispatch.
-    if (state.rounds.some(round => round.state === "Dispatching" && !round.response)) {
-      state.phase = "Unknown"; state.reason = "UPSTREAM_DISPATCH_UNKNOWN"; await save(); return structuredClone(state);
+    if (state.phase === "Undelivered") return structuredClone(state);
+    // A separate gateway may have persisted delivery before the solver saved its own response.
+    // Only a read-only lookup bound to this exact round/body can bridge that gap; never resend.
+    const unresolvedIndex = state.rounds.findIndex(round => round.state === "Dispatching" && !round.response);
+    if (unresolvedIndex !== -1) {
+      const unresolved = state.rounds[unresolvedIndex];
+      const recovered = await options.recoverResponse?.(structuredClone(unresolved.body), unresolvedIndex);
+      if (recovered !== undefined) {
+        if (!object(recovered) || !jsonValue(recovered) || recovered.model !== unresolved.model) throw new Error("INVALID_RECOVERED_RESPONSE");
+        unresolved.response = structuredClone(recovered); unresolved.state = "Responded";
+        state.phase = "Running"; delete state.reason; await save();
+      } else {
+        state.phase = "Unknown"; state.reason = "UPSTREAM_DISPATCH_UNKNOWN"; await save(); return structuredClone(state);
+      }
     }
+    if (state.phase === "Unknown") return structuredClone(state);
     await save();
     const schema = Type.Object({ code: Type.String({ minLength: 1, maxLength: 65536 }) }, { additionalProperties: false });
     const tool: AgentTool<typeof schema, SampleResult> = { name: "test_public_sample", label: "Test the fixed public sample",
@@ -126,6 +141,15 @@ export async function runProviderSolver(directory: string, input: SolveSpec, opt
       const tier = spec.tiers[state.rounds.length];
       round = { tier, model: routes[tier].model, body: { ...body, model: routes[tier].model, max_completion_tokens: spec.maxCompletionTokens,
         ...(tier === "cheap" ? { thinking: { type: "disabled" } } : { reasoning_effort: "low" }) }, state: "Dispatching", appended: false };
+      try { await options.beforeDispatch?.(structuredClone(round.body), state.rounds.length); }
+      catch (error) {
+        // Admission happens before the dispatch marker. Preserve it as a resumable pause,
+        // including host/configuration failures, instead of Pi reporting a model response error.
+        state.phase = "AwaitingFunds";
+        const reason = error instanceof Error ? error.message : undefined;
+        state.reason = typeof reason === "string" && /^[A-Z_0-9]{1,80}$/.test(reason) ? reason : "INFERENCE_ADMISSION_FAILED";
+        await save(); throw error;
+      }
       state.rounds.push(round); await save(); time();
       const current = round, controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), Math.max(1, spec.deadlineMs - Date.now()));
@@ -145,7 +169,7 @@ export async function runProviderSolver(directory: string, input: SolveSpec, opt
     } };
     const finish = async (message: AssistantMessage) => {
       if (durabilityError) throw durabilityError;
-      if (state.phase === "Unknown") return { action: "end" as const };
+      if (state.phase === "Unknown" || state.phase === "AwaitingFunds") return { action: "end" as const };
       if (state.candidate) { state.phase = "Delivered"; delete state.reason; await save(); return { action: "end" as const }; }
       const reason = invocationError ?? (Date.now() >= spec.deadlineMs ? "SESSION_DEADLINE" : toolError ?? (message.stopReason === "length" ? "TRUNCATED_TOOL_CALL" :
         message.stopReason === "error" || message.stopReason === "aborted" ? "MODEL_RESPONSE_ERROR" : !message.content.some(part => part.type === "toolCall") ? "NO_PUBLIC_TEST" :

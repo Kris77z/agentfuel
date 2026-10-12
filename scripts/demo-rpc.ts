@@ -3,9 +3,10 @@ import { promisify } from "node:util";
 import { setTimeout as delay } from "node:timers/promises";
 import { readFile, stat } from "node:fs/promises";
 import { isAbsolute } from "node:path";
-import { FetchRequest, JsonRpcProvider, Network } from "ethers";
-import { Agent as HttpAgent } from "node:http";
-import { Agent as HttpsAgent } from "node:https";
+import { FetchRequest, JsonRpcProvider, Network, type GetUrlResponse } from "ethers";
+import { Agent as HttpAgent, request as httpRequest } from "node:http";
+import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
+import { gunzipSync } from "node:zlib";
 import { HttpsProxyAgent } from "https-proxy-agent";
 
 export type RpcTransport = "direct" | "system-https-proxy";
@@ -46,9 +47,39 @@ export async function systemHttpsProxy() {
   return `http://${host}:${port}`;
 }
 
-// Request-local agent only: no global FetchRequest registration or environment
-// changes. Only explicitly opted-in, single read RPCs get up to three HTTP 503
-// or native ECONNRESET retries, sharing the original deadline and cancellation.
+// Unlike ethers' Node adapter, native request.signal destroys just the cancelled
+// request/socket. A connection-owned keep-alive pool can therefore remain usable
+// by concurrent RPCs without lending one request another request's abort signal.
+function pooledRpcGetUrl(req: FetchRequest, agent: HttpAgent | HttpsAgent, signal: AbortSignal): Promise<GetUrlResponse> {
+  return new Promise((resolve, reject) => {
+    const protocol = new URL(req.url).protocol;
+    if (!["http:", "https:"].includes(protocol) || protocol === "http:" && req.credentials && !req.allowInsecureAuthentication) {
+      reject(Object.assign(new Error("RPC_REQUEST_UNSUPPORTED_PROTOCOL"), { code: "UNSUPPORTED_OPERATION" })); return;
+    }
+    const request = (protocol === "https:" ? httpsRequest : httpRequest)(req.url, { method: req.method, headers: req.headers, agent, signal });
+    request.on("error", reject);
+    request.on("response", response => {
+      const headers: Record<string, string> = {};
+      for (const [name, value] of Object.entries(response.headers)) headers[name] = Array.isArray(value) ? value.join(", ") : value ?? "";
+      const chunks: Buffer[] = [];
+      response.on("data", chunk => chunks.push(Buffer.from(chunk)));
+      response.on("error", reject);
+      response.on("aborted", () => reject(Object.assign(new Error("RPC_REQUEST_ECONNRESET"), { code: "ECONNRESET" })));
+      response.on("end", () => {
+        try {
+          let body: Uint8Array | null = chunks.length ? Buffer.concat(chunks) : null;
+          if (body && headers["content-encoding"] === "gzip") body = gunzipSync(body);
+          resolve({ statusCode: response.statusCode ?? 0, statusMessage: response.statusMessage ?? "", headers, body });
+        } catch { reject(Object.assign(new Error("RPC_REQUEST_BAD_RESPONSE"), { code: "SERVER_ERROR" })); }
+      });
+    });
+    request.end(req.body === null ? undefined : Buffer.from(req.body));
+  });
+}
+
+// Opted-in direct RPCs own a shared pool; proxy requests keep isolated agents.
+// Only explicitly opted-in single reads get up to three HTTP 503 or native
+// ECONNRESET retries, sharing the original deadline and cancellation.
 // Upstream inference and every write remain single-attempt.
 export function rpcRequest(url: string, proxyUrl?: string, timeout = 30000, retryRead503 = false) {
   const request = new FetchRequest(url);
@@ -56,15 +87,22 @@ export function rpcRequest(url: string, proxyUrl?: string, timeout = 30000, retr
   request.setThrottleParams({ maxAttempts: 1 });
   request.retryFunc = async () => false;
   const active = new Set<AbortController>();
+  const pool = !proxyUrl && retryRead503 ? {
+    http: new HttpAgent({ keepAlive: true, maxFreeSockets: 8 }),
+    https: new HttpsAgent({ keepAlive: true, maxFreeSockets: 8 }),
+  } : undefined;
+  let closed = false;
   if (proxyUrl || retryRead503) request.getUrlFunc = (req, signal) => new Promise((resolve, reject) => {
+    if (pool && closed) { reject(Object.assign(new Error("RPC_CONNECTION_CLOSED"), { code: "CANCELLED" })); return; }
+    if (signal?.cancelled) { reject(Object.assign(new Error("RPC_REQUEST_CANCELLED"), { code: "CANCELLED" })); return; }
     const controller = new AbortController(); active.add(controller);
     // ethers' Node getUrl does not destroy sockets on its own timeout/cancel.
     // The standard agent forwards this signal to the underlying proxy socket,
     // including while CONNECT is still pending.
-    const agent = proxyUrl ? new HttpsProxyAgent(proxyUrl, { keepAlive: false, signal: controller.signal })
+    const agent = pool ? (req.url.startsWith("https:") ? pool.https : pool.http) : proxyUrl ? new HttpsProxyAgent(proxyUrl, { keepAlive: false, signal: controller.signal })
       : new (req.url.startsWith("https:") ? HttpsAgent : HttpAgent)({ keepAlive: false });
     let finished = false;
-    const cleanup = () => { clearTimeout(timer); controller.abort(); agent.destroy(); active.delete(controller); };
+    const cleanup = (abort = true) => { clearTimeout(timer); if (abort || !pool) controller.abort(); if (!pool) agent.destroy(); active.delete(controller); };
     const fail = (code: string) => {
       if (finished) return; finished = true; cleanup(); reject(Object.assign(new Error(`RPC_REQUEST_${code}`), { code }));
     };
@@ -72,7 +110,7 @@ export function rpcRequest(url: string, proxyUrl?: string, timeout = 30000, retr
     const timer = setTimeout(() => fail("TIMEOUT"), req.timeout);
     signal?.addListener(() => fail("CANCELLED"));
     controller.signal.addEventListener("abort", () => { if (!finished) fail("CANCELLED"); }, { once: true });
-    const getUrl = FetchRequest.createGetUrlFunc({ agent });
+    const getUrl = pool ? (current: FetchRequest) => pooledRpcGetUrl(current, agent, controller.signal) : FetchRequest.createGetUrlFunc({ agent });
     const send = async () => {
       const backoffs = [250, 500, 1000], canRetry = retryRead503 && retryableRead(req);
       for (let attempt = 0; ; attempt++) {
@@ -91,10 +129,10 @@ export function rpcRequest(url: string, proxyUrl?: string, timeout = 30000, retr
       }
     };
     send().then(response => {
-      if (finished) return; finished = true; cleanup(); resolve(response);
+      if (finished) return; finished = true; cleanup(false); resolve(response);
     }, error => { if (finished) return; finished = true; cleanup(); reject(error); });
   });
-  return { request, close: () => { for (const controller of active) controller.abort(); } };
+  return { request, close: () => { closed = true; for (const controller of active) controller.abort(); pool?.http.destroy(); pool?.https.destroy(); } };
 }
 
 export async function monadProvider(url: string, transport: RpcTransport) {

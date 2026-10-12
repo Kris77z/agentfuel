@@ -1,6 +1,7 @@
 "use client";
 import { useState, type FormEvent } from "react";
-import { inputUsdc, strategyLabel, usdcRaw, type AgentSettings, type HostedCatalogModel } from "../../lib/hosted-client";
+import { inputUsdc, strategyLabel, type AgentSettings, type HostedCatalogModel } from "../../lib/hosted-client";
+import { validateAgentSettings } from "../../lib/agent-settings";
 import styles from "./hosted.module.css";
 
 // Adapted from Agora src/components/onboarding/create-agent-form.tsx:
@@ -19,10 +20,7 @@ export function AgentSettingsForm({ initial, models, busy, serverError, onSubmit
   async function submit(event: FormEvent) {
     event.preventDefault(); setError("");
     try {
-      const settings = { name: name.trim(), modelId, strategy, perRunBudgetRaw: usdcRaw(perRun), totalBudgetRaw: usdcRaw(total), allowCredit };
-      if (!settings.name || settings.name.length > 80 || /[\x00-\x1f\x7f]/.test(settings.name)) throw new Error("名称须为 1–80 个字符。");
-      if (!models.some(model => model.id === modelId)) throw new Error("请选择平台提供的模型。");
-      if (BigInt(settings.totalBudgetRaw) < BigInt(settings.perRunBudgetRaw)) throw new Error("累计预算不能小于单次预算。");
+      const settings = validateAgentSettings({ name, modelId, strategy, perRun, total, allowCredit }, models);
       if (!initial && !review) { setReview(settings); return; }
       if (await onSubmit(settings)) onClose();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "设置无效。"); }

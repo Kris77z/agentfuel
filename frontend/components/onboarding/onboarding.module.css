@@ -1,0 +1,19 @@
+/* Warm cream/brown tokens from Agora src/app/globals.css (:root onboarding). */
+.shell { height:100dvh; min-height:0; display:flex; flex-direction:column; --background:30 50% 96%; --foreground:24 63% 10%; --primary:24 63% 10%; --muted-foreground:24 10% 50%; --border:30 18% 85%; --ring:24 63% 10%; --color-bg:hsl(var(--background)); --color-ink:hsl(var(--foreground)); --color-card:hsl(30 33% 98%); --color-line:hsl(var(--border)); --color-muted:hsl(var(--muted-foreground)); background:var(--color-bg); color:var(--color-ink); font-family:var(--font-geist-mono),monospace; font-size:13px; }
+.headerLink { color:#8c7f73; font-size:11px; white-space:nowrap; text-decoration:none; }
+.terminal { flex:1; width:100%; max-width:none; margin:0; min-height:0; overflow:auto; padding:16px 16px 40px; scrollbar-color:#bcb0a2 #fcf6ef; }
+.transcript { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.65; }
+.cmd { color:#2b180a; font-weight:600; }.out { color:#766a60; }.ok { color:#168044; }.dim { color:#8c7f73; }.accent { color:#2b180a; }
+.prompt,.commandForm,.review { margin-top:20px; max-width:640px; line-height:1.8; }
+.prompt p { margin:8px 0; }.prompt span { display:block; }.commandForm label { display:block; margin-bottom:8px; }
+.commandForm input,.commandForm select { font:inherit; width:100%; min-height:42px; color:#2b180a; padding:7px 10px; background:#fbf8f4; border:1px solid #dfd5c8; border-radius:2px; }
+.shell button { font:inherit; font-size:12px; border:1px solid #a99b8c; background:transparent; color:#2b180a; padding:8px 12px; cursor:pointer; margin-top:14px; }
+.shell button:hover:not(:disabled) { color:#593b27; border-color:#593b27; }.shell button:disabled { opacity:.45; cursor:default; }
+.shell button:focus-visible,.shell input:focus-visible,.shell select:focus-visible,.shell a:focus-visible { outline:2px solid #593b27; outline-offset:3px; }
+.review dl { margin:12px 0; }.review dl div { display:grid; grid-template-columns:140px minmax(0,1fr); gap:16px; }.review dt { color:#8c7f73; }.review dd { margin:0; overflow-wrap:anywhere; }
+.reviewActions { display:flex; gap:12px; }.requestId { display:block; color:#8c7f73; font-size:11px; overflow-wrap:anywhere; }
+.error { color:#c83737; max-width:700px; line-height:1.7; }.terminal a { color:#593b27; }.cursor { color:#2b180a; animation:blink 1s steps(2,start) infinite; }
+.footer { flex-shrink:0; display:flex; gap:20px; padding:9px 18px; color:#8c7f73; border-top:1px solid #dfd5c8; font-size:10px; flex-wrap:wrap; }
+@keyframes blink { to { visibility:hidden; } }
+@media (max-width:600px) { .terminal { padding:22px 16px 48px; }.shell { font-size:12px; }.review dl div { grid-template-columns:112px minmax(0,1fr); gap:10px; }.footer { gap:10px; padding:8px 12px; }.headerLink { font-size:10px; } }
+@media (prefers-reduced-motion:reduce) { .cursor { animation:none; } }

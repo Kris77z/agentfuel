@@ -1,6 +1,6 @@
-import type { AgentSettings, HostedAction, HostedAgent, HostedRun, HostedCatalogModel } from "../../services/hosted-agents/src/types";
-export type { AgentSettings, HostedAction, HostedAgent, HostedRun, HostedCatalogModel };
-export interface HostedSnapshot { agents: HostedAgent[]; runs: HostedRun[]; models: HostedCatalogModel[] }
+import type { AgentSettings, HostedAction, HostedAgent, HostedRun, HostedCatalogModel, HostedFinance, HostedCapabilities } from "../../services/hosted-agents/src/types";
+export type { AgentSettings, HostedAction, HostedAgent, HostedRun, HostedCatalogModel, HostedFinance, HostedCapabilities };
+export interface HostedSnapshot { capabilities?: HostedCapabilities; agents: HostedAgent[]; runs: HostedRun[]; models: HostedCatalogModel[] }
 export interface RunInput { requestId: string; action: HostedAction; rewardKind?: "usdc" | "llm-credits"; amountRaw?: string }
 export type PendingCommand = { owner: string; kind: "create"; input: AgentSettings & { requestId: string } } | { owner: string; kind: "run"; agentId: string; input: RunInput };
 export class HostedClientError extends Error {
@@ -13,7 +13,7 @@ export async function hostedRequest<T>(path: string, method = "GET", body?: unkn
   try {
     response = await fetch(`/api/hosted${path}`, { method, credentials: "same-origin", cache: "no-store",
       ...(body === undefined ? {} : { headers: { "content-type": "application/json" }, body: JSON.stringify(body) }),
-      signal: AbortSignal.timeout(15_000) });
+      signal: AbortSignal.timeout(path.endsWith("/finance") ? 55_000 : 15_000) });
   } catch { throw new HostedClientError("HOSTED_RESPONSE_UNCERTAIN", 0); }
   let payload: unknown;
   try { payload = await response.json(); } catch { throw new HostedClientError("HOSTED_RESPONSE_UNCERTAIN", 0); }
@@ -25,6 +25,24 @@ export async function hostedRequest<T>(path: string, method = "GET", body?: unkn
 }
 
 const messages: Record<string, string> = {
+  WORKFLOW_REFUNDED_TASK_TERMINATED: "推理服务异常，已补偿退款并终止任务。",
+  GATEWAY_PERMANENTLY_SEALED: "原推理调用已封存，不能再次派发。",
+  ALLOWANCE_COMPENSATED: "原推理额度包已补偿退款，不能继续使用。",
+  INFERENCE_FUNDING_REQUIRED: "推理额度不足，原任务已保留。奖励模式可赢取额度后恢复；按量模式请核对额度包及授信状态。",
+  AUTONOMY_TASK_LIMIT: "已达到本次连续运行的任务数上限。",
+  AUTONOMY_MODEL_STOPPED: "模型决定停止，已保留本次决策记录。",
+  AUTONOMY_BUDGET_LIMIT: "已达到本次预算边界，未再派发任务。",
+  AUTONOMY_TASK_BUDGET_REQUIRED: "剩余预算不足以覆盖下一单及规划费。",
+  AUTONOMY_PLANNER_CASH_REQUIRED: "规划费需要 Agent cash，当前现金不足。",
+  AUTONOMY_DEADLINE: "已达到本次连续运行的时间上限。",
+  AUTONOMY_DECISION_UNKNOWN: "规划调用结果未确认，已保留记录，需核对原调用。",
+  ALLOWANCE_TOO_SMALL: "当前额度包不足以覆盖这一轮的用量上限，未购买新包。",
+  ALLOWANCE_EXHAUSTED: "原任务额度包的剩余额度不足以继续，任务已保留。本演示每任务只购买一个包，充值不会重置已用额度。",
+  ALLOWANCE_TASK_UNAVAILABLE: "任务已到期、身份变化或不再可执行，已停止新推理。",
+  HOSTED_METERED_NOT_CONFIGURED: "按量推理服务尚未配置。",
+  HOSTED_AUTONOMY_NOT_CONFIGURED: "连续运行尚未配置。",
+  GATEWAY_OUTCOME_UNKNOWN: "模型调用结果未确认，已暂停扣费并保留原请求，需核对原调用。",
+  HOSTED_REWARD_MODEL_UNSUPPORTED: "奖励额度目前仅支持 Kimi K2.6 的任务推理。",
   HOSTED_NOT_CONFIGURED: "托管服务尚未配置。当前无法登录、创建 Agent 或执行操作。",
   HOSTED_CONFIG_INVALID: "托管服务配置不可用，请稍后重试。",
   HOSTED_UNAVAILABLE: "托管服务暂时不可用，请稍后重试。",
@@ -50,7 +68,7 @@ export function hostedError(error: unknown): string {
   return "操作未完成，请检查钱包或稍后重试。";
 }
 export function reasonLabel(code: string) { return messages[code] ?? code; }
-export const actionLabel: Record<HostedAction, string> = { provision: "初始化 Agent", deposit: "USDC 入账", task: "运行任务", game: "免费德州", credits: "奖励额度消费" };
+export const actionLabel: Record<HostedAction, string> = { provision: "初始化 Agent", deposit: "USDC 入账", task: "运行任务", game: "免费德州", credits: "奖励额度消费", "reward-task": "奖励额度运行任务", "metered-task": "按量额度运行任务", autonomous: "Pi 连续运行" };
 export const statusLabel: Record<string, string> = { Pending: "初始化中", Ready: "就绪", Paused: "已暂停", Queued: "排队中", Running: "运行中", Succeeded: "已完成", Failed: "失败" };
 export const strategyLabel = { conservative: "保守", balanced: "均衡", aggressive: "积极" };
 export function usdcRaw(value: string): string {
@@ -80,7 +98,7 @@ export function readPending(owner: string): PendingCommand | null {
   try {
     const value = JSON.parse(localStorage.getItem(pendingKey(owner)) ?? "null") as PendingCommand | null;
     if (!value || value.owner.toLowerCase() !== owner.toLowerCase() || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.input?.requestId)) return null;
-    if (value.kind === "run" && /^[a-zA-Z0-9_-]{1,80}$/.test(value.agentId) && ["provision", "deposit", "task", "game", "credits"].includes(value.input.action)) {
+    if (value.kind === "run" && /^[a-zA-Z0-9_-]{1,80}$/.test(value.agentId) && ["provision", "deposit", "task", "game", "credits", "reward-task", "metered-task", "autonomous"].includes(value.input.action)) {
       const input = value.input;
       if (input.action === "game" && !["usdc", "llm-credits"].includes(input.rewardKind ?? "") || input.action === "deposit" && !/^[1-9]\d*$/.test(input.amountRaw ?? "")) return null;
       return { owner, kind: "run", agentId: value.agentId, input: { requestId: input.requestId, action: input.action,

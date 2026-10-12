@@ -140,6 +140,24 @@ test("strict config/verdict reject ambiguous numbers and uncontrolled tasks", ()
   }
 });
 
+test("container startup timeout never settles failure or slashes an active task loan", { timeout: 45000 }, async () => {
+  const directory = await mkdtemp(join(tmpdir(), "af-startup-verdict-")), local = await startAnvil();
+  let f: Awaited<ReturnType<typeof fixture>> | undefined, settler: ArenaSettler | undefined, controller: ArenaController | undefined;
+  try {
+    f = await fixture(local.rpc, directory, true);
+    settler = new ArenaSettler(f.config, key(4), f.provider); await settler.start();
+    await f.draw(f.taskIds[0], 1);
+    const wrapper = join(directory, "docker-delayed");
+    await writeFile(wrapper, '#!/bin/sh\nif [ "$1" = start ]; then sleep 1; fi\nexec docker "$@"\n', { mode: 0o700 });
+    controller = new ArenaController(f.config, { dockerBin: wrapper, timeoutMs: 600, startupTimeoutMs: 100 }, f.provider);
+    const loan = await read(f.manager, "getLoan", [f.taskIds[0]]);
+    await assert.rejects(controller.submit({ taskId: f.taskIds[0], code: "import json,sys\nprint(sum(json.load(sys.stdin)))\n" }), /DOCKER_START_TIMEOUT/);
+    assert.equal((await read(f.escrow, "getTask", [f.taskIds[0]])).status, 2n);
+    assert.deepEqual(Array.from(await read(f.manager, "getLoan", [f.taskIds[0]])), Array.from(loan));
+    await assert.rejects(stat(join(f.config.ipcDirectory, "settlements.json")), { code: "ENOENT" });
+  } finally { controller?.close(); await settler?.close(); f?.provider.destroy(); await stop(local.child); await rm(directory, { recursive: true, force: true }); }
+});
+
 test("Arena borrowed RPC survives controller/HTTP/settler close and rejected startup", { timeout: 40_000 }, async () => {
   const directory = await mkdtemp(join(tmpdir(), "af-provider-"));
   let anvil: ChildProcess | undefined;

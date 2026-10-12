@@ -20,7 +20,7 @@ async function fixture(t: any, execute?: (input: HostedExecution) => Promise<Hos
   const config: HostedConfig = { directory, origin: "http://localhost:3020", chainId: "31337", models: [{ id: "kimi-k2.6", label: "Kimi K2.6" }], maxAgentsPerOwner: 5, maxTotalBudgetRaw: "1000000", maxPerRunBudgetRaw: "200000" };
   let service = await HostedService.open(config, executor);
   t.after(async () => { await service.close(); await rm(directory, { recursive: true, force: true }); });
-  return { get service() { return service; }, config, seen, async restart() { await service.close(); service = await HostedService.open(config, executor); return service; } };
+  return { executor, get service() { return service; }, config, seen, async restart() { await service.close(); service = await HostedService.open(config, executor); return service; } };
 }
 test("signed owner login is domain-bound, single-use, expiring and revocable; only token hashes persist", async t => {
   const f = await fixture(t), wallet = Wallet.createRandom(), other = Wallet.createRandom();
@@ -122,4 +122,68 @@ test("close drains a creation still awaiting durable admission and its subsequen
   const a = await creation; await closing;
   await f.restart(); const snapshot = await f.service.snapshot(who);
   assert.equal(snapshot.agents[0].id, a.id); assert.equal(snapshot.agents[0].status, "Ready"); assert.equal(snapshot.runs[0].status, "Succeeded");
+});
+
+test("only a known reward funding pause admits a bounded refuel game and restores the original request after restart", async t => {
+  let funded = false;
+  const f = await fixture(t, async input => {
+    if (input.run.action === "provision") return { phase: "Ready", terminal: true, success: true, chargedRaw: "0", binding: { chainId: "31337", agentId: "1", wallet: input.agent.wallet } };
+    if (input.run.action === "game") { funded = true; return { phase: "Succeeded", terminal: true, success: true, chargedRaw: "0", creditsGranted: 4096 }; }
+    return funded ? { phase: "Succeeded", terminal: true, success: true, chargedRaw: "0", creditsUsed: 30 }
+      : { phase: "Paused", terminal: false, success: false, chargedRaw: "0", reason: "INFERENCE_FUNDING_REQUIRED" };
+  });
+  const who = Wallet.createRandom().address, a = await f.service.create(who, { ...settings, requestId: randomUUID() }); await f.service.waitUntilIdle();
+  const requestId = randomUUID(); await f.service.command(who, a.id, { action: "reward-task", requestId }); await f.service.waitUntilIdle();
+  await assert.rejects(f.service.command(who, a.id, { action: "task", requestId: randomUUID() }), /RECOVER_ORIGINAL/);
+  await assert.rejects(f.service.command(who, a.id, { action: "game", rewardKind: "usdc", requestId: randomUUID() }), /RECOVER_ORIGINAL/);
+  await assert.rejects(f.service.command(who, a.id, { action: "game", rewardKind: "llm-credits", requestId: randomUUID(), fundingFor: requestId } as any), /INPUT_INVALID/);
+  const gameId = randomUUID(), game = await f.service.command(who, a.id, { action: "game", rewardKind: "llm-credits", requestId: gameId });
+  assert.equal(game.fundingFor, requestId); await f.service.waitUntilIdle();
+  await f.restart(); assert.equal((await f.service.snapshot(who)).agents[0].activeRequestId, requestId);
+  await f.service.command(who, a.id, { action: "game", rewardKind: "llm-credits", requestId: gameId });
+  assert.equal(f.seen.filter(i => i.run.action === "game").length, 1);
+  await f.service.command(who, a.id, { action: "reward-task", requestId }); await f.service.waitUntilIdle();
+  const final = await f.service.snapshot(who); assert.equal(final.agents[0].activeRequestId, undefined);
+  assert.equal(final.agents[0].spentRaw, "0"); assert.equal(final.runs.find(r => r.requestId === requestId)?.status, "Succeeded");
+});
+
+
+test("metered/autonomous admission exposes configured capabilities and reserves the entire remaining autonomous budget", async t => {
+  const f = await fixture(t, async input => input.run.action === "provision"
+    ? { phase: "Ready", terminal: true, success: true, chargedRaw: "0", binding: { chainId: "31337", agentId: "1", wallet: input.agent.wallet } }
+    : { phase: "Completed", terminal: true, success: true, chargedRaw: "230000", autonomousTasks: 2 });
+  const who = Wallet.createRandom().address, a = await f.service.create(who, { ...settings, requestId: randomUUID() }); await f.service.waitUntilIdle();
+  await assert.rejects(f.service.command(who, a.id, { action: "metered-task", requestId: randomUUID() }), /HOSTED_METERED_NOT_CONFIGURED/);
+  await assert.rejects(f.service.command(who, a.id, { action: "autonomous", requestId: randomUUID() }), /HOSTED_AUTONOMY_NOT_CONFIGURED/);
+  f.executor.capabilities = { inference: { priceRaw: "120000", creditsRaw: "100000", models: [] }, autonomy: { maxTasks: 2, durationMs: 180000, plannerPriceRaw: "10000" } };
+  const requestId = randomUUID(), run = await f.service.command(who, a.id, { action: "autonomous", requestId });
+  assert.equal(run.reservedRaw, "240000"); await f.service.waitUntilIdle();
+  const snapshot = await f.service.snapshot(who); assert.deepEqual(snapshot.capabilities, f.executor.capabilities);
+  assert.equal(snapshot.agents[0].spentRaw, "230000"); assert.equal(snapshot.agents[0].reservedRaw, "0"); assert.equal(snapshot.runs[0].result?.autonomousTasks, 2);
+  await f.service.command(who, a.id, { action: "autonomous", requestId }); assert.equal(f.seen.length, 2);
+});
+
+test("failed parser recovery requires trusted cached proof and rebooks spending once under the original UUID", async t => {
+  let calls = 0, allow = false, release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const f = await fixture(t, async input => {
+    if (input.run.action === "provision") return { phase: "Ready", terminal: true, success: true, chargedRaw: "0", binding: { chainId: "31337", agentId: "1", wallet: input.agent.wallet } };
+    calls++;
+    if (calls === 1) return { phase: "Stopped", terminal: true, success: false, chargedRaw: "10000", reason: "AUTONOMY_INVALID_DECISION", autonomousTasks: 0 };
+    assert.equal(input.recover, true); assert.equal(input.agent.spentRaw, "0"); assert.equal(input.run.reservedRaw, "240000");
+    assert.equal(input.run.terminalRecovery?.rebasedChargedRaw, "10000"); await gate;
+    return { phase: "Completed", terminal: true, success: true, chargedRaw: "130000", autonomousTasks: 1 };
+  });
+  f.executor.capabilities = { autonomy: { maxTasks: 2, durationMs: 10000, plannerPriceRaw: "10000" } };
+  f.executor.canRecoverTerminal = async input => { assert.equal(input.run.status, "Failed"); assert.equal(input.agent.spentRaw, "10000"); return allow; };
+  const who = Wallet.createRandom().address, agent = await f.service.create(who, { ...settings, requestId: randomUUID() }); await f.service.waitUntilIdle();
+  const command = { action: "autonomous", requestId: randomUUID() } as const;
+  await f.service.command(who, agent.id, command); await f.service.waitUntilIdle();
+  await assert.rejects(f.service.command(who, agent.id, command), /CACHED_DECISION_RECOVERY_UNAVAILABLE/);
+  assert.equal((await f.service.snapshot(who)).agents[0].spentRaw, "10000");
+  allow = true; await f.service.command(who, agent.id, command); await f.service.command(who, agent.id, command);
+  const pending = await f.service.snapshot(who); assert.equal(pending.agents[0].spentRaw, "0"); assert.equal(pending.agents[0].reservedRaw, "240000");
+  assert.equal(pending.runs.find(run => run.requestId === command.requestId)?.terminalRecovery?.previousResult.reason, "AUTONOMY_INVALID_DECISION");
+  release(); await f.service.waitUntilIdle(); await f.restart(); await f.service.command(who, agent.id, command);
+  const result = await f.service.snapshot(who); assert.equal(result.agents[0].spentRaw, "130000"); assert.equal(result.agents[0].reservedRaw, "0"); assert.equal(calls, 2);
 });

@@ -138,7 +138,7 @@ test("provider public-sample delivery and hidden-test failure remain distinct an
     assert.equal(status.phase, "Failed", JSON.stringify(status)); assert.equal(status.reason, "ARENA_TASK_FAILED"); assert.equal(status.tools?.passed, 1);
     assert.equal(status.finance?.loanStatus, "3"); assert.equal(status.finance?.taskStatus, "4"); assert.equal(status.finance?.principal, "0"); assert.equal(status.finance?.fee, "0");
     assert.equal(fx.calls.length, 1); assert.equal(await fx.f.providerBalance(), 120000n);
-    await assert.rejects(fx.refunder.refund(status.paymentId!, id("delivered-service-is-not-refundable"), "120000"), /Only paid/);
+    await assert.rejects(fx.refunder.refund(status.paymentId!, id("delivered-service-is-not-refundable"), "120000"), (error: any) => error.code === "REFUND_NOT_ALLOWED");
   } finally { await fx.close(); await rm(directory, { recursive: true, force: true }); }
 });
 

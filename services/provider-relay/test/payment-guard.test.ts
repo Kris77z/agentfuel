@@ -141,11 +141,50 @@ test("payment guard covers sign, raw replay, browser send and durable handles; p
       } finally { intent.close(); connection.provider.destroy(); }
     });
 
-    await t.test("confirmed cash payment and cached delivery claim never invoke the spending guard", async () => {
+    await t.test("wall-clock expiry rejects unsigned and signed recovery while the latest block is still stale", async st => {
+      const input = { ...body, agentId: "1", taskId: "0" } as ChatInput;
+      const quote = await relay!.quote(input), before = await snapshot(), signer = new CountingWallet(key(2), active.provider);
+      const handle: PaymentHandle = { version: 1, relayUrl, input, quote, creditNonce: "1" };
+      let prepared!: PaymentHandle;
+      const prepare = new InferCredit({ ...options, signer, onHandle: saved => { prepared = saved; }, beforePayment: h => { if (h.submission?.rawTransaction) throw denied(); } });
+      try { await assert.rejects(prepare.resume(handle), errorCode("GUARD_DENIED")); }
+      finally { prepare.close(); }
+      assert.equal(signer.signs, 1); assert.ok(prepared.submission?.rawTransaction);
+      assert.ok(BigInt((await active.provider.getBlock("latest"))!.timestamp) < BigInt(quote.quoteExpiry));
+      st.mock.method(Date, "now", () => (Number(quote.quoteExpiry) + 1) * 1000);
+      const unsignedSigner = new CountingWallet(key(2), active.provider), unsigned = new InferCredit({ ...options, signer: unsignedSigner });
+      const signed = new InferCredit({ ...options, signer });
+      try {
+        const original: PaymentHandle = { version: 1, relayUrl, input, quote, creditNonce: "1" };
+        await assert.rejects(unsigned.resume(original), errorCode("QUOTE_EXPIRED"));
+        assert.equal(unsignedSigner.signs, 0); assert.equal(original.submission, undefined);
+        await assert.rejects(signed.resume(prepared), errorCode("QUOTE_EXPIRED"));
+        assert.equal(signer.signs, 1); assert.equal(await active.provider.getTransaction(prepared.submission!.txHash!), null);
+        assert.deepEqual(await snapshot(), before);
+      } finally { unsigned.close(); signed.close(); st.mock.restoreAll(); }
+    });
+
+    await t.test("expiry during payment preparation is checked again before signing or broadcasting", async st => {
+      let current = Date.now(); st.mock.method(Date, "now", () => current);
+      const before = await snapshot(), signer = new CountingWallet(key(2), active.provider); let checks = 0, unsigned!: PaymentHandle;
+      const preSign = new InferCredit({ ...options, signer, onHandle: h => { unsigned = h; }, beforePayment: h => { if (++checks === 2) current = (Number(h.quote.quoteExpiry) + 1) * 1000; } });
+      try { await assert.rejects(preSign.fetch(relayUrl, { body }), errorCode("QUOTE_EXPIRED")); assert.equal(signer.signs, 0); assert.equal(unsigned.submission, undefined); }
+      finally { preSign.close(); }
+      current = Number((await active.provider.getBlock("latest"))!.timestamp) * 1000; let prepared!: PaymentHandle;
+      const preBroadcast = new InferCredit({ ...options, signer, onHandle: h => { prepared = h; if (h.submission?.rawTransaction) current = (Number(h.quote.quoteExpiry) + 1) * 1000; } });
+      try {
+        await assert.rejects(preBroadcast.fetch(relayUrl, { body }), errorCode("QUOTE_EXPIRED")); assert.equal(signer.signs, 1);
+        assert.ok(prepared.submission?.rawTransaction); assert.equal(await active.provider.getTransaction(prepared.submission!.txHash!), null);
+        assert.deepEqual(await snapshot(), before);
+      } finally { preBroadcast.close(); st.mock.restoreAll(); }
+    });
+
+    await t.test("confirmed cash payment and cached delivery reconcile after wall-clock expiry without invoking the spending guard", async st => {
       const input = { ...body, agentId: "1", taskId: "0" } as ChatInput;
       const quote = await relay!.quote(input);
       const payment = await tx(active.account, active.agent, "payProvider", [1n, config.payTo, quote.price, quote.paymentId, EMPTY_AUTH, "0x"]);
       const paid = await snapshot(); let checks = 0;
+      st.mock.method(Date, "now", () => (Number(quote.quoteExpiry) + 1) * 1000);
       const handle: PaymentHandle = { version: 1, relayUrl, input, quote, creditNonce: "1" };
       const infer = new InferCredit({ ...options, signer: new CountingWallet(key(2), active.provider), beforePayment: () => { checks++; throw denied(); } });
       try {
@@ -154,6 +193,18 @@ test("payment guard covers sign, raw replay, browser send and durable handles; p
         assert.equal(checks, 0); assert.equal(upstreamCalls, 1); assert.deepEqual(await snapshot(), paid);
         assert.deepEqual((await infer.resume(structuredClone(handle))).result, delivered.result);
         assert.equal(checks, 0); assert.equal(upstreamCalls, 1); assert.deepEqual(await snapshot(), paid);
+      } finally { infer.close(); st.mock.restoreAll(); }
+    });
+    await t.test("confirmed late payment reaches relay refund-only reconciliation instead of the local expiry guard", async () => {
+      const input = { ...body, agentId: "1", taskId: "0" } as ChatInput, quote = await relay!.quote(input);
+      await active.provider.send("evm_setNextBlockTimestamp", [Number(quote.quoteExpiry) + 1]);
+      await tx(active.account, active.agent, "payProvider", [1n, config.payTo, quote.price, quote.paymentId, EMPTY_AUTH, "0x"]);
+      const paid = await snapshot(), signer = new CountingWallet(key(2), active.provider);
+      const infer = new InferCredit({ ...options, signer, beforePayment: () => { throw denied(); } });
+      try {
+        await assert.rejects(infer.resume({ version: 1, relayUrl, input, quote, creditNonce: "1" }), errorCode("PAYMENT_AFTER_EXPIRY"));
+        assert.equal(signer.signs, 0); assert.equal(upstreamCalls, 1); assert.deepEqual(await snapshot(), paid);
+        assert.equal((await relay!.store.read(quote.paymentId)).expiredPayment, true);
       } finally { infer.close(); }
     });
   } finally {

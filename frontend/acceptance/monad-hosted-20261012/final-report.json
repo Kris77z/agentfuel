@@ -1,0 +1,812 @@
+{
+  "phase": "final",
+  "observedAt": "2026-10-12T05:09:02.801Z",
+  "frontendOrigin": "http://127.0.0.1:3024",
+  "chainId": "10143",
+  "completeBusinessAcceptance": true,
+  "authentication": "real owner personal_sign in Node; real hosted HTTP; no API mocks",
+  "paidOperationsStarted": 0,
+  "surfaces": [
+    {
+      "name": "desktop",
+      "walletMethods": [
+        "eth_requestAccounts",
+        "eth_chainId",
+        "eth_accounts",
+        "eth_accounts",
+        "eth_chainId",
+        "personal_sign",
+        "eth_accounts",
+        "eth_chainId"
+      ],
+      "signatures": 1,
+      "http": [
+        {
+          "method": "GET",
+          "path": "/api/hosted/agents",
+          "status": 401
+        },
+        {
+          "method": "POST",
+          "path": "/api/hosted/auth/challenge",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/hosted/auth/login",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/hosted/agents",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/hosted/agents",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/hosted/agents",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/hosted/agents/a9d65266-634d-4ce3-b5e3-eed8235771df/finance",
+          "status": 200,
+          "financeStatus": "confirmed"
+        },
+        {
+          "method": "GET",
+          "path": "/api/hosted/agents",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/hosted/agents/fd7ae7b2-3f98-49e8-bd2b-8e3211fc5ad2/finance",
+          "status": 200,
+          "financeStatus": "confirmed"
+        },
+        {
+          "method": "GET",
+          "path": "/api/hosted/agents",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/hosted/agents/7312a9e5-a2db-412a-85e9-0a10f34c3a26/finance",
+          "status": 200,
+          "financeStatus": "confirmed"
+        }
+      ],
+      "requestFailures": [
+        {
+          "path": "/arena",
+          "error": "net::ERR_ABORTED"
+        },
+        {
+          "path": "/advanced",
+          "error": "net::ERR_ABORTED"
+        }
+      ],
+      "pageErrors": [],
+      "screenshots": [
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-desktop-cheap-resources.png",
+          "viewport": 1440,
+          "scrollWidth": 1440,
+          "panels": [
+            {
+              "id": "panel-agent",
+              "visibleHeight": 794,
+              "contentHeight": 794
+            },
+            {
+              "id": "panel-requests",
+              "visibleHeight": 536,
+              "contentHeight": 536
+            },
+            {
+              "id": "panel-resources",
+              "visibleHeight": 794,
+              "contentHeight": 794
+            }
+          ]
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-desktop-cheap-requests.png",
+          "viewport": 1440,
+          "scrollWidth": 1440,
+          "panels": [
+            {
+              "id": "panel-agent",
+              "visibleHeight": 794,
+              "contentHeight": 794
+            },
+            {
+              "id": "panel-requests",
+              "visibleHeight": 536,
+              "contentHeight": 536
+            },
+            {
+              "id": "panel-resources",
+              "visibleHeight": 794,
+              "contentHeight": 794
+            }
+          ]
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-desktop-strong-resources.png",
+          "viewport": 1440,
+          "scrollWidth": 1440,
+          "panels": [
+            {
+              "id": "panel-agent",
+              "visibleHeight": 794,
+              "contentHeight": 794
+            },
+            {
+              "id": "panel-requests",
+              "visibleHeight": 536,
+              "contentHeight": 536
+            },
+            {
+              "id": "panel-resources",
+              "visibleHeight": 794,
+              "contentHeight": 794
+            }
+          ]
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-desktop-strong-requests.png",
+          "viewport": 1440,
+          "scrollWidth": 1440,
+          "panels": [
+            {
+              "id": "panel-agent",
+              "visibleHeight": 794,
+              "contentHeight": 794
+            },
+            {
+              "id": "panel-requests",
+              "visibleHeight": 536,
+              "contentHeight": 536
+            },
+            {
+              "id": "panel-resources",
+              "visibleHeight": 794,
+              "contentHeight": 794
+            }
+          ]
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-desktop-autonomy-resources.png",
+          "viewport": 1440,
+          "scrollWidth": 1440,
+          "panels": [
+            {
+              "id": "panel-agent",
+              "visibleHeight": 794,
+              "contentHeight": 794
+            },
+            {
+              "id": "panel-requests",
+              "visibleHeight": 536,
+              "contentHeight": 536
+            },
+            {
+              "id": "panel-resources",
+              "visibleHeight": 794,
+              "contentHeight": 794
+            }
+          ]
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-desktop-autonomy-requests.png",
+          "viewport": 1440,
+          "scrollWidth": 1440,
+          "panels": [
+            {
+              "id": "panel-agent",
+              "visibleHeight": 794,
+              "contentHeight": 794
+            },
+            {
+              "id": "panel-requests",
+              "visibleHeight": 536,
+              "contentHeight": 536
+            },
+            {
+              "id": "panel-resources",
+              "visibleHeight": 794,
+              "contentHeight": 794
+            }
+          ]
+        }
+      ],
+      "agents": [
+        {
+          "kind": "cheap",
+          "id": "a9d65266-634d-4ce3-b5e3-eed8235771df",
+          "name": "Monad real cheap",
+          "finance": {
+            "status": "confirmed",
+            "observedAt": "2026-10-12T05:09:48.200Z",
+            "chainId": "10143",
+            "agentId": "2200",
+            "wallet": "0xe2b56B1aaf8dc6B287f682709F5C7144468400c1",
+            "cashRaw": "58000",
+            "debtRaw": "0",
+            "scannedTaskCount": 17,
+            "ownedTaskCount": 1,
+            "block": {
+              "number": 70310258,
+              "hash": "0xa388d588234d1efab583ccdf766dff49bd06ba04e2b15b87f0eb5a0ed71d29a0",
+              "timestamp": 1791781759
+            },
+            "credit": {
+              "score": "570",
+              "tier": "C",
+              "tierCapRaw": "200000",
+              "feeBps": "1500",
+              "eligible": true,
+              "rejection": null
+            },
+            "policy": {
+              "maxCashPerTxRaw": "120000",
+              "maxDebtPerTxRaw": "120000",
+              "maxDebtPerDayRaw": "300000",
+              "ownerFrozen": false
+            },
+            "counts": {
+              "repayments": "1",
+              "defaults": "0",
+              "mirrorRepayments": "1",
+              "successes": "1",
+              "mirrorDefaults": "0"
+            }
+          },
+          "financialText": "信用飞轮\n刷新\n\nCHAIN IDENTITY · #2200\n\nInferScore 570\nTier C\ncash\n0.058 USDC\n未偿债务（含 fee）\n0 USDC\nTier 本金上限\n0.2 USDC\n借款 fee\n15%\n任务授信\n可申请\n真实还款 / 违约\n1 / 0\n声誉还款 / 成功 / 违约\n1 / 1 / 0\n\n已核验快照 · chain 10143 · 区块 #70310258\n区块时间 2026/10/12 13:09:19\n读取时间 2026/10/12 13:09:48\n\n完整读取 17 项任务，本人 1 项。成功信用还款写入声誉后，Underwriter 更新评分与 Tier。每笔授信仍需核验任务和协议额度。",
+          "requestsText": "请求记录\n最近 100 条 · 未结束请求保留\n免费德州 · LLM credits 奖励\n[\n已完成]\n\n2026/10/12 11:32:25\n\na6aec4b3-c8f1-422a-9688-b3372f1e6eb9\n阶段 Succeeded\n已确认推理费 0 USDC\n奖励 0 USDC\n赠送 0 tokens\n查看请求与凭证\n按量额度运行任务\n[\n已完成]\n\n2026/10/12 11:12:22\n\na0eec862-aadd-4395-8451-029bf3f05928\n阶段 Succeeded\n已确认推理费 0.12 USDC\n消费 235 tokens\n任务结算\n\ncash 支付 0.04 · 信用支付 0.08 USDC\n\n链上任务通过 · 实际还款 0.092 USDC · 结算入账 0.058 USDC\n\n借款状态：已足额还款\n\n查看结算交易 · 0x477a0d…d809e2 ↗\n\nTaskSettled 已核验 · 区块 #70287007 · 2026/10/12 11:12:18\n\n查看请求与凭证\nUSDC 入账\n[\n已完成]\n\n2026/10/12 10:54:07\n\n16079f71-6770-47cb-91ee-b620ebd7a550\n阶段 Deposited\n已确认推理费 0 USDC\n查看请求与凭证\n初始化 Agent\n[\n已完成]\n\n2026/10/12 10:53:51\n\n2e24d9f9-15e0-407b-bf3b-5d74e1f2d47d\n阶段 Ready\n已确认推理费 0 USDC\n查看请求与凭证",
+          "alerts": []
+        },
+        {
+          "kind": "strong",
+          "id": "fd7ae7b2-3f98-49e8-bd2b-8e3211fc5ad2",
+          "name": "Monad real strong",
+          "finance": {
+            "status": "confirmed",
+            "observedAt": "2026-10-12T05:10:16.952Z",
+            "chainId": "10143",
+            "agentId": "2201",
+            "wallet": "0xaCdE52184B7db806DeC982afBa7D4b4B114286E6",
+            "cashRaw": "58000",
+            "debtRaw": "0",
+            "scannedTaskCount": 17,
+            "ownedTaskCount": 1,
+            "block": {
+              "number": 70310371,
+              "hash": "0x040bea4ba632ea3892a8ba809c5914adaf972e8c426d6fcdcfeca71ea050ad01",
+              "timestamp": 1791781793
+            },
+            "credit": {
+              "score": "570",
+              "tier": "C",
+              "tierCapRaw": "200000",
+              "feeBps": "1500",
+              "eligible": true,
+              "rejection": null
+            },
+            "policy": {
+              "maxCashPerTxRaw": "120000",
+              "maxDebtPerTxRaw": "120000",
+              "maxDebtPerDayRaw": "300000",
+              "ownerFrozen": false
+            },
+            "counts": {
+              "repayments": "1",
+              "defaults": "0",
+              "mirrorRepayments": "1",
+              "successes": "1",
+              "mirrorDefaults": "0"
+            }
+          },
+          "financialText": "信用飞轮\n刷新\n\nCHAIN IDENTITY · #2201\n\nInferScore 570\nTier C\ncash\n0.058 USDC\n未偿债务（含 fee）\n0 USDC\nTier 本金上限\n0.2 USDC\n借款 fee\n15%\n任务授信\n可申请\n真实还款 / 违约\n1 / 0\n声誉还款 / 成功 / 违约\n1 / 1 / 0\n\n已核验快照 · chain 10143 · 区块 #70310371\n区块时间 2026/10/12 13:09:53\n读取时间 2026/10/12 13:10:16\n\n完整读取 17 项任务，本人 1 项。成功信用还款写入声誉后，Underwriter 更新评分与 Tier。每笔授信仍需核验任务和协议额度。",
+          "requestsText": "请求记录\n最近 100 条 · 未结束请求保留\n按量额度运行任务\n[\n已完成]\n\n2026/10/12 11:14:27\n\n7b7eee42-51bf-4449-89d4-dd75e66e75e6\n阶段 Succeeded\n已确认推理费 0.12 USDC\n消费 440 tokens\n任务结算\n\ncash 支付 0.04 · 信用支付 0.08 USDC\n\n链上任务通过 · 实际还款 0.092 USDC · 结算入账 0.058 USDC\n\n借款状态：已足额还款\n\n查看结算交易 · 0x38567f…3e3802 ↗\n\nTaskSettled 已核验 · 区块 #70287420 · 2026/10/12 11:14:22\n\n查看请求与凭证\nUSDC 入账\n[\n已完成]\n\n2026/10/12 11:08:05\n\n27e465ec-93bd-4b36-81c3-d5caac60bdd3\n阶段 Deposited\n已确认推理费 0 USDC\n查看请求与凭证\n初始化 Agent\n[\n已完成]\n\n2026/10/12 11:07:45\n\nc55f343b-e965-42b0-869f-f32507c7c021\n阶段 Ready\n已确认推理费 0 USDC\n查看请求与凭证",
+          "alerts": []
+        },
+        {
+          "kind": "autonomy",
+          "id": "7312a9e5-a2db-412a-85e9-0a10f34c3a26",
+          "name": "Monad real autonomy",
+          "finance": {
+            "status": "confirmed",
+            "observedAt": "2026-10-12T05:10:40.478Z",
+            "chainId": "10143",
+            "agentId": "2202",
+            "wallet": "0x3616A1998046c15AEbf7A7eeE61D902175B4DaE3",
+            "cashRaw": "72240",
+            "debtRaw": "0",
+            "scannedTaskCount": 17,
+            "ownedTaskCount": 4,
+            "block": {
+              "number": 70310467,
+              "hash": "0x60af078782d923f0668b902182f65d2bf006601c0756b42d2447ddf05e099bc3",
+              "timestamp": 1791781822
+            },
+            "credit": {
+              "score": "710",
+              "tier": "A",
+              "tierCapRaw": "2000000",
+              "feeBps": "300",
+              "eligible": true,
+              "rejection": null
+            },
+            "policy": {
+              "maxCashPerTxRaw": "120000",
+              "maxDebtPerTxRaw": "120000",
+              "maxDebtPerDayRaw": "450000",
+              "ownerFrozen": false
+            },
+            "counts": {
+              "repayments": "3",
+              "defaults": "0",
+              "mirrorRepayments": "3",
+              "successes": "3",
+              "mirrorDefaults": "0"
+            }
+          },
+          "financialText": "信用飞轮\n刷新\n\nCHAIN IDENTITY · #2202\n\nInferScore 710\nTier A\ncash\n0.07224 USDC\n未偿债务（含 fee）\n0 USDC\nTier 本金上限\n2 USDC\n借款 fee\n3%\n任务授信\n可申请\n真实还款 / 违约\n3 / 0\n声誉还款 / 成功 / 违约\n3 / 3 / 0\n\n已核验快照 · chain 10143 · 区块 #70310467\n区块时间 2026/10/12 13:10:22\n读取时间 2026/10/12 13:10:40\n\n完整读取 17 项任务，本人 4 项。成功信用还款写入声誉后，Underwriter 更新评分与 Tier。每笔授信仍需核验任务和协议额度。",
+          "requestsText": "请求记录\n最近 100 条 · 未结束请求保留\nPi 连续运行\n[\n已完成]\n\n2026/10/12 12:49:56\n\nf4a39eb2-8161-4cb6-86fc-62f15f0530b9\n\n已达到本次连续运行的任务数上限。\n\n阶段 Completed\n已确认推理费 0.26 USDC\n连续完成 2 单\n查看请求与凭证\nUSDC 入账\n[\n已完成]\n\n2026/10/12 12:45:48\n\n9c89339c-ab46-4615-8299-ab37ab2ce738\n阶段 Deposited\n已确认推理费 0 USDC\n查看请求与凭证\nPi 连续运行\n[\n失败]\n\n2026/10/12 12:39:10\n\nf9e2498c-da47-4911-a8f3-60cb68d2e13a\n\nAUTONOMY_INVALID_DECISION\n\n阶段 Stopped\n已确认推理费 0.14 USDC\n连续完成 1 单\n查看请求与凭证\nUSDC 入账\n[\n已完成]\n\n2026/10/12 12:18:36\n\na7b1b326-bc4b-4d57-bb8c-286c9a9aab90\n阶段 Deposited\n已确认推理费 0 USDC\n查看请求与凭证\nPi 连续运行\n[\n失败]\n\n2026/10/12 12:14:45\n\n910f477d-8bed-4e80-b4cd-69fffcbb8e78\n\n推理服务异常，已补偿退款并终止任务。\n\n阶段 Stopped\n已确认推理费 0.01 USDC\n连续完成 0 单\n查看请求与凭证\nUSDC 入账\n[\n已完成]\n\n2026/10/12 11:09:41\n\n6b231a31-dffd-4ff6-857b-a24311355664\n阶段 Deposited\n已确认推理费 0 USDC\n查看请求与凭证\n初始化 Agent\n[\n已完成]\n\n2026/10/12 11:09:23\n\n6c962fde-104c-4666-81cc-ab1e01cc0da3\n阶段 Ready\n已确认推理费 0 USDC\n查看请求与凭证",
+          "alerts": []
+        }
+      ],
+      "visibility": [
+        {
+          "at": "2026-10-12T05:09:04.417Z",
+          "state": "visible"
+        },
+        {
+          "at": "2026-10-12T05:10:41.122Z",
+          "state": "hidden"
+        }
+      ]
+    },
+    {
+      "name": "mobile",
+      "walletMethods": [
+        "eth_requestAccounts",
+        "eth_chainId",
+        "eth_accounts",
+        "eth_accounts",
+        "eth_chainId",
+        "personal_sign",
+        "eth_accounts",
+        "eth_chainId"
+      ],
+      "signatures": 1,
+      "http": [
+        {
+          "method": "GET",
+          "path": "/api/hosted/agents",
+          "status": 401
+        },
+        {
+          "method": "POST",
+          "path": "/api/hosted/auth/challenge",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/hosted/auth/login",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/hosted/agents",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/hosted/agents/a9d65266-634d-4ce3-b5e3-eed8235771df/finance",
+          "status": 200,
+          "financeStatus": "confirmed"
+        },
+        {
+          "method": "GET",
+          "path": "/api/hosted/agents",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/hosted/agents/fd7ae7b2-3f98-49e8-bd2b-8e3211fc5ad2/finance",
+          "status": 200,
+          "financeStatus": "confirmed"
+        },
+        {
+          "method": "GET",
+          "path": "/api/hosted/agents",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/hosted/agents/7312a9e5-a2db-412a-85e9-0a10f34c3a26/finance",
+          "status": 200,
+          "financeStatus": "confirmed"
+        }
+      ],
+      "requestFailures": [
+        {
+          "path": "/arena",
+          "error": "net::ERR_ABORTED"
+        },
+        {
+          "path": "/advanced",
+          "error": "net::ERR_ABORTED"
+        }
+      ],
+      "pageErrors": [],
+      "screenshots": [
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-mobile-cheap-resources.png",
+          "viewport": 393,
+          "scrollWidth": 393,
+          "panels": [
+            {
+              "id": "panel-resources",
+              "visibleHeight": 172,
+              "contentHeight": 172
+            }
+          ]
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-mobile-cheap-resources-scrolled-1.png",
+          "viewport": 393,
+          "scrollWidth": 393,
+          "panels": [
+            {
+              "id": "panel-resources",
+              "visibleHeight": 172,
+              "contentHeight": 172
+            }
+          ],
+          "resourceScroll": {
+            "scrollTop": 120,
+            "visibleHeight": 140,
+            "contentHeight": 953
+          }
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-mobile-cheap-resources-scrolled-2.png",
+          "viewport": 393,
+          "scrollWidth": 393,
+          "panels": [
+            {
+              "id": "panel-resources",
+              "visibleHeight": 172,
+              "contentHeight": 172
+            }
+          ],
+          "resourceScroll": {
+            "scrollTop": 240,
+            "visibleHeight": 140,
+            "contentHeight": 953
+          }
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-mobile-cheap-requests.png",
+          "viewport": 393,
+          "scrollWidth": 393,
+          "panels": [
+            {
+              "id": "panel-requests",
+              "visibleHeight": 172,
+              "contentHeight": 172
+            }
+          ]
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-mobile-cheap-agent.png",
+          "viewport": 393,
+          "scrollWidth": 393,
+          "panels": [
+            {
+              "id": "panel-agent",
+              "visibleHeight": 172,
+              "contentHeight": 172
+            }
+          ]
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-mobile-strong-resources.png",
+          "viewport": 393,
+          "scrollWidth": 393,
+          "panels": [
+            {
+              "id": "panel-resources",
+              "visibleHeight": 172,
+              "contentHeight": 172
+            }
+          ]
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-mobile-strong-resources-scrolled-1.png",
+          "viewport": 393,
+          "scrollWidth": 393,
+          "panels": [
+            {
+              "id": "panel-resources",
+              "visibleHeight": 172,
+              "contentHeight": 172
+            }
+          ],
+          "resourceScroll": {
+            "scrollTop": 120,
+            "visibleHeight": 140,
+            "contentHeight": 953
+          }
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-mobile-strong-resources-scrolled-2.png",
+          "viewport": 393,
+          "scrollWidth": 393,
+          "panels": [
+            {
+              "id": "panel-resources",
+              "visibleHeight": 172,
+              "contentHeight": 172
+            }
+          ],
+          "resourceScroll": {
+            "scrollTop": 240,
+            "visibleHeight": 140,
+            "contentHeight": 953
+          }
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-mobile-strong-requests.png",
+          "viewport": 393,
+          "scrollWidth": 393,
+          "panels": [
+            {
+              "id": "panel-requests",
+              "visibleHeight": 172,
+              "contentHeight": 172
+            }
+          ]
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-mobile-strong-agent.png",
+          "viewport": 393,
+          "scrollWidth": 393,
+          "panels": [
+            {
+              "id": "panel-agent",
+              "visibleHeight": 172,
+              "contentHeight": 172
+            }
+          ]
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-mobile-autonomy-resources.png",
+          "viewport": 393,
+          "scrollWidth": 393,
+          "panels": [
+            {
+              "id": "panel-resources",
+              "visibleHeight": 172,
+              "contentHeight": 172
+            }
+          ]
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-mobile-autonomy-resources-scrolled-1.png",
+          "viewport": 393,
+          "scrollWidth": 393,
+          "panels": [
+            {
+              "id": "panel-resources",
+              "visibleHeight": 172,
+              "contentHeight": 172
+            }
+          ],
+          "resourceScroll": {
+            "scrollTop": 120,
+            "visibleHeight": 140,
+            "contentHeight": 953
+          }
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-mobile-autonomy-resources-scrolled-2.png",
+          "viewport": 393,
+          "scrollWidth": 393,
+          "panels": [
+            {
+              "id": "panel-resources",
+              "visibleHeight": 172,
+              "contentHeight": 172
+            }
+          ],
+          "resourceScroll": {
+            "scrollTop": 240,
+            "visibleHeight": 140,
+            "contentHeight": 953
+          }
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-mobile-autonomy-requests.png",
+          "viewport": 393,
+          "scrollWidth": 393,
+          "panels": [
+            {
+              "id": "panel-requests",
+              "visibleHeight": 172,
+              "contentHeight": 172
+            }
+          ]
+        },
+        {
+          "file": "/Users/jungle/Desktop/dev/agentfuel/frontend/acceptance/monad-hosted-20261012/final-mobile-autonomy-agent.png",
+          "viewport": 393,
+          "scrollWidth": 393,
+          "panels": [
+            {
+              "id": "panel-agent",
+              "visibleHeight": 172,
+              "contentHeight": 172
+            }
+          ]
+        }
+      ],
+      "agents": [
+        {
+          "kind": "cheap",
+          "id": "a9d65266-634d-4ce3-b5e3-eed8235771df",
+          "name": "Monad real cheap",
+          "finance": {
+            "status": "confirmed",
+            "observedAt": "2026-10-12T05:10:59.872Z",
+            "chainId": "10143",
+            "agentId": "2200",
+            "wallet": "0xe2b56B1aaf8dc6B287f682709F5C7144468400c1",
+            "cashRaw": "58000",
+            "debtRaw": "0",
+            "scannedTaskCount": 17,
+            "ownedTaskCount": 1,
+            "block": {
+              "number": 70310547,
+              "hash": "0xc1af69fb7da75bed0bc375496d17a2dc5fe5211e4eeda4072b3e34dd5466b9a0",
+              "timestamp": 1791781846
+            },
+            "credit": {
+              "score": "570",
+              "tier": "C",
+              "tierCapRaw": "200000",
+              "feeBps": "1500",
+              "eligible": true,
+              "rejection": null
+            },
+            "policy": {
+              "maxCashPerTxRaw": "120000",
+              "maxDebtPerTxRaw": "120000",
+              "maxDebtPerDayRaw": "300000",
+              "ownerFrozen": false
+            },
+            "counts": {
+              "repayments": "1",
+              "defaults": "0",
+              "mirrorRepayments": "1",
+              "successes": "1",
+              "mirrorDefaults": "0"
+            }
+          },
+          "financialText": "信用飞轮\n刷新\n\nCHAIN IDENTITY · #2200\n\nInferScore 570\nTier C\ncash\n0.058 USDC\n未偿债务（含 fee）\n0 USDC\nTier 本金上限\n0.2 USDC\n借款 fee\n15%\n任务授信\n可申请\n真实还款 / 违约\n1 / 0\n声誉还款 / 成功 / 违约\n1 / 1 / 0\n\n已核验快照 · chain 10143 · 区块 #70310547\n区块时间 2026/10/12 13:10:46\n读取时间 2026/10/12 13:10:59\n\n完整读取 17 项任务，本人 1 项。成功信用还款写入声誉后，Underwriter 更新评分与 Tier。每笔授信仍需核验任务和协议额度。",
+          "requestsText": "请求记录\n最近 100 条 · 未结束请求保留\n免费德州 · LLM credits 奖励\n[\n已完成]\n\n2026/10/12 11:32:25\n\na6aec4b3-c8f1-422a-9688-b3372f1e6eb9\n阶段 Succeeded\n已确认推理费 0 USDC\n奖励 0 USDC\n赠送 0 tokens\n查看请求与凭证\n按量额度运行任务\n[\n已完成]\n\n2026/10/12 11:12:22\n\na0eec862-aadd-4395-8451-029bf3f05928\n阶段 Succeeded\n已确认推理费 0.12 USDC\n消费 235 tokens\n任务结算\n\ncash 支付 0.04 · 信用支付 0.08 USDC\n\n链上任务通过 · 实际还款 0.092 USDC · 结算入账 0.058 USDC\n\n借款状态：已足额还款\n\n查看结算交易 · 0x477a0d…d809e2 ↗\n\nTaskSettled 已核验 · 区块 #70287007 · 2026/10/12 11:12:18\n\n查看请求与凭证\nUSDC 入账\n[\n已完成]\n\n2026/10/12 10:54:07\n\n16079f71-6770-47cb-91ee-b620ebd7a550\n阶段 Deposited\n已确认推理费 0 USDC\n查看请求与凭证\n初始化 Agent\n[\n已完成]\n\n2026/10/12 10:53:51\n\n2e24d9f9-15e0-407b-bf3b-5d74e1f2d47d\n阶段 Ready\n已确认推理费 0 USDC\n查看请求与凭证",
+          "alerts": []
+        },
+        {
+          "kind": "strong",
+          "id": "fd7ae7b2-3f98-49e8-bd2b-8e3211fc5ad2",
+          "name": "Monad real strong",
+          "finance": {
+            "status": "confirmed",
+            "observedAt": "2026-10-12T05:11:19.616Z",
+            "chainId": "10143",
+            "agentId": "2201",
+            "wallet": "0xaCdE52184B7db806DeC982afBa7D4b4B114286E6",
+            "cashRaw": "58000",
+            "debtRaw": "0",
+            "scannedTaskCount": 17,
+            "ownedTaskCount": 1,
+            "block": {
+              "number": 70310612,
+              "hash": "0x78fc8d95a257d0c7dbb08ef3ba2f81a3a35edb795c5b9f035b38620309b66649",
+              "timestamp": 1791781865
+            },
+            "credit": {
+              "score": "570",
+              "tier": "C",
+              "tierCapRaw": "200000",
+              "feeBps": "1500",
+              "eligible": true,
+              "rejection": null
+            },
+            "policy": {
+              "maxCashPerTxRaw": "120000",
+              "maxDebtPerTxRaw": "120000",
+              "maxDebtPerDayRaw": "300000",
+              "ownerFrozen": false
+            },
+            "counts": {
+              "repayments": "1",
+              "defaults": "0",
+              "mirrorRepayments": "1",
+              "successes": "1",
+              "mirrorDefaults": "0"
+            }
+          },
+          "financialText": "信用飞轮\n刷新\n\nCHAIN IDENTITY · #2201\n\nInferScore 570\nTier C\ncash\n0.058 USDC\n未偿债务（含 fee）\n0 USDC\nTier 本金上限\n0.2 USDC\n借款 fee\n15%\n任务授信\n可申请\n真实还款 / 违约\n1 / 0\n声誉还款 / 成功 / 违约\n1 / 1 / 0\n\n已核验快照 · chain 10143 · 区块 #70310612\n区块时间 2026/10/12 13:11:05\n读取时间 2026/10/12 13:11:19\n\n完整读取 17 项任务，本人 1 项。成功信用还款写入声誉后，Underwriter 更新评分与 Tier。每笔授信仍需核验任务和协议额度。",
+          "requestsText": "请求记录\n最近 100 条 · 未结束请求保留\n按量额度运行任务\n[\n已完成]\n\n2026/10/12 11:14:27\n\n7b7eee42-51bf-4449-89d4-dd75e66e75e6\n阶段 Succeeded\n已确认推理费 0.12 USDC\n消费 440 tokens\n任务结算\n\ncash 支付 0.04 · 信用支付 0.08 USDC\n\n链上任务通过 · 实际还款 0.092 USDC · 结算入账 0.058 USDC\n\n借款状态：已足额还款\n\n查看结算交易 · 0x38567f…3e3802 ↗\n\nTaskSettled 已核验 · 区块 #70287420 · 2026/10/12 11:14:22\n\n查看请求与凭证\nUSDC 入账\n[\n已完成]\n\n2026/10/12 11:08:05\n\n27e465ec-93bd-4b36-81c3-d5caac60bdd3\n阶段 Deposited\n已确认推理费 0 USDC\n查看请求与凭证\n初始化 Agent\n[\n已完成]\n\n2026/10/12 11:07:45\n\nc55f343b-e965-42b0-869f-f32507c7c021\n阶段 Ready\n已确认推理费 0 USDC\n查看请求与凭证",
+          "alerts": []
+        },
+        {
+          "kind": "autonomy",
+          "id": "7312a9e5-a2db-412a-85e9-0a10f34c3a26",
+          "name": "Monad real autonomy",
+          "finance": {
+            "status": "confirmed",
+            "observedAt": "2026-10-12T05:11:39.374Z",
+            "chainId": "10143",
+            "agentId": "2202",
+            "wallet": "0x3616A1998046c15AEbf7A7eeE61D902175B4DaE3",
+            "cashRaw": "72240",
+            "debtRaw": "0",
+            "scannedTaskCount": 17,
+            "ownedTaskCount": 4,
+            "block": {
+              "number": 70310676,
+              "hash": "0x05a9545530b429541526fd74a34bdf47948a43e0e4ee02ae8991d0335e6e4b09",
+              "timestamp": 1791781885
+            },
+            "credit": {
+              "score": "710",
+              "tier": "A",
+              "tierCapRaw": "2000000",
+              "feeBps": "300",
+              "eligible": true,
+              "rejection": null
+            },
+            "policy": {
+              "maxCashPerTxRaw": "120000",
+              "maxDebtPerTxRaw": "120000",
+              "maxDebtPerDayRaw": "450000",
+              "ownerFrozen": false
+            },
+            "counts": {
+              "repayments": "3",
+              "defaults": "0",
+              "mirrorRepayments": "3",
+              "successes": "3",
+              "mirrorDefaults": "0"
+            }
+          },
+          "financialText": "信用飞轮\n刷新\n\nCHAIN IDENTITY · #2202\n\nInferScore 710\nTier A\ncash\n0.07224 USDC\n未偿债务（含 fee）\n0 USDC\nTier 本金上限\n2 USDC\n借款 fee\n3%\n任务授信\n可申请\n真实还款 / 违约\n3 / 0\n声誉还款 / 成功 / 违约\n3 / 3 / 0\n\n已核验快照 · chain 10143 · 区块 #70310676\n区块时间 2026/10/12 13:11:25\n读取时间 2026/10/12 13:11:39\n\n完整读取 17 项任务，本人 4 项。成功信用还款写入声誉后，Underwriter 更新评分与 Tier。每笔授信仍需核验任务和协议额度。",
+          "requestsText": "请求记录\n最近 100 条 · 未结束请求保留\nPi 连续运行\n[\n已完成]\n\n2026/10/12 12:49:56\n\nf4a39eb2-8161-4cb6-86fc-62f15f0530b9\n\n已达到本次连续运行的任务数上限。\n\n阶段 Completed\n已确认推理费 0.26 USDC\n连续完成 2 单\n查看请求与凭证\nUSDC 入账\n[\n已完成]\n\n2026/10/12 12:45:48\n\n9c89339c-ab46-4615-8299-ab37ab2ce738\n阶段 Deposited\n已确认推理费 0 USDC\n查看请求与凭证\nPi 连续运行\n[\n失败]\n\n2026/10/12 12:39:10\n\nf9e2498c-da47-4911-a8f3-60cb68d2e13a\n\nAUTONOMY_INVALID_DECISION\n\n阶段 Stopped\n已确认推理费 0.14 USDC\n连续完成 1 单\n查看请求与凭证\nUSDC 入账\n[\n已完成]\n\n2026/10/12 12:18:36\n\na7b1b326-bc4b-4d57-bb8c-286c9a9aab90\n阶段 Deposited\n已确认推理费 0 USDC\n查看请求与凭证\nPi 连续运行\n[\n失败]\n\n2026/10/12 12:14:45\n\n910f477d-8bed-4e80-b4cd-69fffcbb8e78\n\n推理服务异常，已补偿退款并终止任务。\n\n阶段 Stopped\n已确认推理费 0.01 USDC\n连续完成 0 单\n查看请求与凭证\nUSDC 入账\n[\n已完成]\n\n2026/10/12 11:09:41\n\n6b231a31-dffd-4ff6-857b-a24311355664\n阶段 Deposited\n已确认推理费 0 USDC\n查看请求与凭证\n初始化 Agent\n[\n已完成]\n\n2026/10/12 11:09:23\n\n6c962fde-104c-4666-81cc-ab1e01cc0da3\n阶段 Ready\n已确认推理费 0 USDC\n查看请求与凭证",
+          "alerts": []
+        }
+      ],
+      "visibility": [
+        {
+          "at": "2026-10-12T05:10:41.505Z",
+          "state": "visible"
+        },
+        {
+          "at": "2026-10-12T05:11:40.538Z",
+          "state": "hidden"
+        }
+      ]
+    }
+  ],
+  "issues": []
+}

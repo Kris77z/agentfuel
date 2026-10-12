@@ -409,6 +409,8 @@ test("SDK/relay real Anvil flow, recovery and refunds in both settlement modes",
         const postRefundNonce = await f.provider.getTransactionCount(await f.admin.getAddress(), "latest");
         await running.refunder.recover();
         assert.equal((await running.relay.store.read(failed.quote.paymentId)).state, "Refunded");
+        const refundedStatus = await running.request(`/payments/${failed.quote.paymentId}?agentId=1&requestDigest=${failed.quote.requestDigest}`);
+        assert.equal(refundedStatus.body.refundPending, false); assert.equal(refundedStatus.body.refundedAmount, (12n * f.unit / 100n).toString());
         assert.equal(await f.provider.getTransactionCount(await f.admin.getAddress(), "latest"), postRefundNonce);
         assert.equal(await read(f.account, "cash", [1n]), cashBefore + 12n * f.unit / 100n);
         await assert.rejects(infer.resume(failed), errorCode("REFUNDED"));

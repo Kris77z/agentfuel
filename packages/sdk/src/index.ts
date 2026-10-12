@@ -129,6 +129,14 @@ export class InferCredit {
     if (!delivered.ok) throw new PaymentError(body.error || "DELIVERY_PENDING", "Delivery is pending; resume the same payment handle");
     return { result: body.result, receipt: body.receipt, handle };
   }
+  private async assertQuoteLive(quote: Quote) {
+    // A stalled/local chain's last mined block can lag real time. Neither clock may
+    // authorize a new signature or broadcast after the quote's expiry.
+    const block = await this.rpc.getBlock("latest");
+    if (!block) throw new PaymentError("PAYMENT_UNCERTAIN", "Latest block unavailable before payment");
+    if (BigInt(block.timestamp) > BigInt(quote.quoteExpiry) || BigInt(Math.floor(Date.now() / 1000)) > BigInt(quote.quoteExpiry))
+      throw new PaymentError("QUOTE_EXPIRED", "Unpaid quote expired; reconcile the original handle without sending payment");
+  }
   private async pay(handle: PaymentHandle) {
     const quote = handle.quote;
     const record = await this.account.getFunction("getPayment").staticCall(quote.paymentId);
@@ -142,15 +150,14 @@ export class InferCredit {
       await this.options.beforePayment?.(structuredClone(handle));
       if (!handle.submission.rawTransaction) throw new PaymentError("PAYMENT_UNCERTAIN", "Wallet submission is uncertain; no second send is allowed");
       if (handle.submission.txHash && await this.rpc.getTransaction(handle.submission.txHash)) throw new PaymentError("PAYMENT_PENDING", "Recorded payment is known to the chain; wait for its receipt");
-      if (BigInt((await this.rpc.getBlock("latest"))!.timestamp) > BigInt(quote.quoteExpiry)) throw new PaymentError("QUOTE_EXPIRED", "Unconfirmed signed payment expired; reconcile this handle without broadcasting again");
+      await this.assertQuoteLive(quote);
       const currentNonce = await this.rpc.getTransactionCount(handle.submission.from, "latest");
       if (currentNonce > handle.submission.nonce) throw new PaymentError("PAYMENT_UNCERTAIN", "Nonce was consumed but payment is not confirmed");
       await this.broadcast(handle); // Exactly the same signed bytes, never another payment transaction.
       return;
     }
     await this.options.beforePayment?.(structuredClone(handle));
-    const block = (await this.rpc.getBlock("latest"))!;
-    if (BigInt(block.timestamp) > BigInt(quote.quoteExpiry)) throw new PaymentError("QUOTE_EXPIRED", "Unpaid quote expired");
+    await this.assertQuoteLive(quote);
     const adapter = new Contract(await this.account.getFunction("adapter").staticCall(), ["function resolveAgent(uint256) view returns(address owner,address wallet)"], this.rpc);
     const identity = await adapter.getFunction("resolveAgent").staticCall(this.options.agentId);
     const from = await this.signer.getAddress();
@@ -175,6 +182,7 @@ export class InferCredit {
       data: accountInterface.encodeFunctionData("payProvider", [quote.agentId, quote.payTo, quote.price, quote.paymentId, auth, signature]) };
     const populated = await this.signer.populateTransaction(request);
     await this.options.beforePayment?.(structuredClone(handle));
+    await this.assertQuoteLive(quote);
     handle.submission = { from, nonce: Number(populated.nonce) };
     if (this.signer instanceof Wallet) {
       handle.submission.rawTransaction = await this.signer.signTransaction(populated);
@@ -184,6 +192,7 @@ export class InferCredit {
     } else {
       await this.saved(handle); // Browser wallet intent is durable before eth_sendTransaction.
       await this.options.beforePayment?.(structuredClone(handle));
+      await this.assertQuoteLive(quote);
       let sent;
       try { sent = await this.signer.sendTransaction(populated); }
       catch (error) {
@@ -201,6 +210,7 @@ export class InferCredit {
   }
   private async broadcast(handle: PaymentHandle) {
     await this.options.beforePayment?.(structuredClone(handle));
+    await this.assertQuoteLive(handle.quote);
     const sent = await this.rpc.broadcastTransaction(handle.submission!.rawTransaction!);
     const receipt = await sent.wait(1, this.options.timeoutMs || 15_000);
     await this.confirmSubmittedReceipt(handle, receipt);

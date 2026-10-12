@@ -2,7 +2,7 @@ import { Contract, Wallet, keccak256, ZeroAddress } from "ethers";
 import { setTimeout as delay } from "node:timers/promises";
 import { MANAGER_ABI, managerInterface, sameAddress, uint } from "@agentfuel/sdk/protocol";
 import { Relay, RelayError } from "./relay.js";
-import type { PaymentRecord, Refund, SignedOperation } from "./store.js";
+import { validOperatorResolution, validOperatorCompensation, type PaymentRecord, type Refund, type SignedOperation } from "./store.js";
 export interface RefunderOptions { maxFeePerGas?: bigint; gasLimit?: bigint }
 
 export class Refunder {
@@ -21,6 +21,21 @@ export class Refunder {
     return manager;
   }
   async initialize() { if (this.wallet) await this.manager(); }
+  private assertResolvedRefund(record: PaymentRecord, refundId: string, amount: string) {
+    if (record.operatorCompensation) {
+      if (!validOperatorCompensation(record)) throw new RelayError("ALLOWANCE_COMPENSATION_CONFLICT", "Invalid delivered-allowance compensation decision");
+      if (amount !== record.quote.price || record.refunds.length > 1 || record.refunds.some(refund => refund.id !== refundId || refund.amount !== amount))
+        throw new RelayError("OPERATOR_REFUND_FULL_ONLY", "Compensation requires one full original-price refund");
+      return;
+    }
+    if (!record.operatorResolution) {
+      if (this.relay.isDeliveryUncertain(record)) throw new RelayError("UPSTREAM_UNCERTAIN", "Reconcile the original dispatch before deciding delivery or refund");
+      return;
+    }
+    if (!validOperatorResolution(record)) throw new RelayError("OPERATOR_RESOLUTION_CONFLICT", "Operator resolution no longer matches original unknown evidence");
+    if (amount !== record.quote.price || record.refunds.length > 1 || record.refunds.some(refund => refund.id !== refundId || refund.amount !== amount))
+      throw new RelayError("OPERATOR_REFUND_FULL_ONLY", "Operator-resolved unknown payment requires one full original-price refund");
+  }
   refund(paymentId: string, refundId: string, amount: string) {
     try {
       if (typeof paymentId !== "string" || !/^0x[0-9a-f]{64}$/.test(paymentId) || typeof refundId !== "string" || !/^0x[0-9a-f]{64}$/.test(refundId) || uint(amount, "amount") === 0n) throw new Error();
@@ -29,8 +44,10 @@ export class Refunder {
       const record = await this.relay.store.read(paymentId);
       await this.manager();
       await this.relay.confirm(record);
-      if (record.state === "Quoted" || record.state === "Delivered") throw new RelayError("REFUND_NOT_ALLOWED", "Only paid, undelivered inference can be refunded");
-      if (this.relay.isDeliveryUncertain(record)) throw new RelayError("UPSTREAM_UNCERTAIN", "Reconcile the original dispatch before deciding delivery or refund");
+      if (record.state === "Quoted" || record.state === "Delivered" && !record.operatorCompensation) throw new RelayError("REFUND_NOT_ALLOWED", "Delivered inference requires a verified allowance compensation decision");
+      this.assertResolvedRefund(record, refundId, amount);
+      if (record.operatorCompensation) await this.relay.verifyCompensation(record);
+      if (record.operatorResolution) await this.relay.proof(record.quote, record.proof!.txHash);
       let entry = record.refunds.find(refund => refund.id === refundId);
       if (entry && entry.amount !== amount) throw new RelayError("REFUND_MISMATCH", "RefundId is already bound to another amount");
       if (!entry) {
@@ -133,7 +150,15 @@ export class Refunder {
       if (!record.refunds.length || record.state === "Refunded") continue;
       await this.relay.store.lock(id, async () => {
         const current = await this.relay.store.read(id);
-        if (this.relay.isDeliveryUncertain(current)) return;
+        if (current.operatorCompensation) {
+          for (const entry of current.refunds) this.assertResolvedRefund(current, entry.id, entry.amount);
+          await this.relay.verifyCompensation(current);
+        }
+        if (this.relay.isDeliveryUncertain(current) && !validOperatorResolution(current)) return;
+        if (current.operatorResolution) {
+          for (const entry of current.refunds) this.assertResolvedRefund(current, entry.id, entry.amount);
+          await this.relay.proof(current.quote, current.proof!.txHash);
+        }
         for (const entry of current.refunds) if (entry.state !== "Confirmed") await this.finish(current, entry, false);
       });
     }

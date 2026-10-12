@@ -8,6 +8,7 @@ export interface HostedHttpService {
   authenticate(token: string): string | Promise<string>;
   logout(token: string): unknown | Promise<unknown>;
   snapshot(owner: string): unknown | Promise<unknown>;
+  finance(owner: string, id: string): unknown | Promise<unknown>;
   create(owner: string, input: AgentSettings & { requestId: string }): HostedAgent | Promise<HostedAgent>;
   update(owner: string, id: string, input: AgentSettings): HostedAgent | Promise<HostedAgent>;
   pause(owner: string, id: string, paused: boolean): HostedAgent | Promise<HostedAgent>;
@@ -53,12 +54,13 @@ export function createHostedHttpServer(service: HostedHttpService) {
         const input = await body(request, ["challengeId", "signature"]); send(200, await service.login(input.challengeId, input.signature)); return;
       }
       if (["/auth/challenge", "/auth/login"].includes(path)) fail("HOSTED_METHOD_NOT_ALLOWED", 405);
-      const match = /^\/agents\/([a-zA-Z0-9_-]{1,80})(?:\/(pause|runs))?$/.exec(path);
+      const match = /^\/agents\/([a-zA-Z0-9_-]{1,80})(?:\/(pause|runs|finance))?$/.exec(path);
       if (!["/auth/logout", "/agents"].includes(path) && !match) fail("HOSTED_ROUTE_NOT_FOUND", 404);
-      if (!(method === "POST" && path === "/auth/logout" || path === "/agents" && ["GET", "POST"].includes(method ?? "") || match && (match[2] ? method === "POST" : method === "PATCH"))) fail("HOSTED_METHOD_NOT_ALLOWED", 405);
+      if (!(method === "POST" && path === "/auth/logout" || path === "/agents" && ["GET", "POST"].includes(method ?? "") || match && (match[2] === "finance" ? method === "GET" : match[2] ? method === "POST" : method === "PATCH"))) fail("HOSTED_METHOD_NOT_ALLOWED", 405);
       const bearer = token(request), owner = await service.authenticate(bearer);
       if (path === "/auth/logout") { await body(request, []); await service.logout(bearer); send(200, { authenticated: false }); }
       else if (path === "/agents") send(method === "GET" ? 200 : 202, method === "GET" ? await service.snapshot(owner) : await service.create(owner, await body(request, ["requestId", ...settings])));
+      else if (match![2] === "finance") send(200, await service.finance(owner, match![1]));
       else if (match![2] === "pause") { const input = await body(request, ["paused"]); if (typeof input.paused !== "boolean") fail("HOSTED_BODY_INVALID"); send(200, await service.pause(owner, match![1], input.paused)); }
       else if (match![2] === "runs") send(202, await service.command(owner, match![1], await body(request, ["action", "requestId", "rewardKind", "amountRaw"])));
       else send(200, await service.update(owner, match![1], await body(request, settings)));

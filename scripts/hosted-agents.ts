@@ -1,3 +1,4 @@
+import { HostedAutonomyExecutor, validateHostedAutonomyConfig, type HostedAutonomyConfig } from "../services/hosted-agents/src/autonomy-executor.js";
 import { once } from "node:events";
 import { isAbsolute, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -9,7 +10,7 @@ import { createHostedTaskExecutor, loadHostedTaskExecutorConfig, type HostedTask
 import { createHostedGameExecutor, loadHostedGameExecutorConfig, type HostedGameExecutorConfig } from "../services/hosted-agents/src/game-executor.js";
 import { HostedError, type HostedConfig, type HostedExecutor } from "../services/hosted-agents/src/types.js";
 
-export interface HostedDaemonConfig { version: 1; port: number; hosted: HostedConfig; executor: { taskConfigFile: string; gameConfigFile: string } }
+export interface HostedDaemonConfig { version: 1; port: number; autonomy?: HostedAutonomyConfig; hosted: HostedConfig; executor: { taskConfigFile: string; gameConfigFile: string } }
 export interface LoadedHostedDaemon { config: HostedDaemonConfig; task: HostedTaskExecutorConfig; game: HostedGameExecutorConfig }
 function fail(code: string): never { throw new HostedError(code, 503); }
 function object(value: unknown, fields: string[]): asserts value is Record<string, any> {
@@ -21,10 +22,12 @@ const ids = (models: { id: string }[]) => models.map(model => model.id).sort().j
 export async function loadHostedDaemonConfig(path: string): Promise<LoadedHostedDaemon> {
   try {
     const value: unknown = JSON.parse(await taskPrivateFile(absolute(path)));
-    object(value, ["version", "port", "hosted", "executor"]); object(value.executor, ["taskConfigFile", "gameConfigFile"]);
+    object(value, ["version", "port", "hosted", "executor", "autonomy"]); object(value.executor, ["taskConfigFile", "gameConfigFile"]);
     if (value.version !== 1 || !Number.isSafeInteger(value.port) || value.port < 1024 || value.port > 65535) fail("HOSTED_DAEMON_CONFIG_INVALID");
+    const autonomy = value.autonomy === undefined ? undefined : validateHostedAutonomyConfig(value.autonomy);
     const hosted = validateHostedConfig(value.hosted), taskConfigFile = absolute(value.executor.taskConfigFile), gameConfigFile = absolute(value.executor.gameConfigFile);
     const task = await loadHostedTaskExecutorConfig(taskConfigFile), game = await loadHostedGameExecutorConfig(gameConfigFile);
+    if (autonomy && !task.metered) fail("HOSTED_AUTONOMY_NOT_CONFIGURED");
     const workflow = task.models[0].templates.conservative;
     if (ids(hosted.models) !== ids(task.models) || ids(hosted.models) !== ids(game.models)) fail("HOSTED_DAEMON_MODELS_MISMATCH");
     if (hosted.chainId !== workflow.chainId || hosted.chainId !== game.chainId || task.identity.toLowerCase() !== game.identity.toLowerCase() ||
@@ -35,12 +38,18 @@ export async function loadHostedDaemonConfig(path: string): Promise<LoadedHosted
     const bot = new Wallet((await taskPrivateFile(game.opponent.keyFile)).trim()).address;
     for (const file of [task.guardianKeyFile, ...(task.gasSponsorKeyFile ? [task.gasSponsorKeyFile] : []), game.sponsorKeyFile])
       if (new Wallet((await taskPrivateFile(file)).trim()).address === bot) fail("HOSTED_DAEMON_OPPONENT_OPERATOR_COLLISION");
-    return { config: { version: 1, port: value.port, hosted, executor: { taskConfigFile, gameConfigFile } }, task, game };
+    return { config: { version: 1, port: value.port, hosted, ...(autonomy ? { autonomy } : {}), executor: { taskConfigFile, gameConfigFile } }, task, game };
   } catch (error) { if (error instanceof HostedError) throw error; throw new HostedError("HOSTED_DAEMON_PRIVATE_CONFIG_REQUIRED", 503); }
 }
 export async function startHostedDaemon(loaded: LoadedHostedDaemon, options: { recover?: boolean } = {}) {
-  const task = createHostedTaskExecutor(loaded.task), game = createHostedGameExecutor(loaded.game);
-  const executor: HostedExecutor = { execute(input) { return ["provision", "deposit", "task"].includes(input.run.action) ? task.execute(input) : game.execute(input); } };
+  const game = createHostedGameExecutor(loaded.game), task = createHostedTaskExecutor(loaded.task, { reward: input => game.rewardTask(input) });
+  const autonomous = loaded.config.autonomy ? new HostedAutonomyExecutor(task, loaded.config.autonomy, { shouldContinue: agentId => service.mayContinue(agentId) }) : undefined;
+  const executor: HostedExecutor = { capabilities: {
+    ...(loaded.task.metered ? { inference: { priceRaw: loaded.task.metered.priceRaw, creditsRaw: loaded.task.metered.creditsRaw,
+      models: loaded.task.metered.catalog.map(({ id, inputMicroCreditsPerToken, outputMicroCreditsPerToken }) => ({ id, inputMicroCreditsPerToken, outputMicroCreditsPerToken })) } } : {}),
+    ...(autonomous ? { autonomy: { maxTasks: autonomous.config.maxTasks, durationMs: autonomous.config.durationMs, plannerPriceRaw: autonomous.config.plannerPriceRaw } } : {}),
+  }, execute(input) { if (input.run.action === "autonomous") { if (!autonomous) throw new HostedError("HOSTED_AUTONOMY_NOT_CONFIGURED", 503); return autonomous.execute(input); } return ["provision", "deposit", "task", "reward-task", "metered-task"].includes(input.run.action) ? task.execute(input) : game.execute(input); }, finance: agent => task.finance(agent),
+    canRecoverTerminal: input => input.run.action === "autonomous" && autonomous ? autonomous.canRecoverTerminal(input) : Promise.resolve(false) };
   let service: HostedService;
   try { service = await HostedService.open(loaded.config.hosted, executor, options); } catch (error) { await game.close(); throw error; }
   const server = createHostedHttpServer(service);

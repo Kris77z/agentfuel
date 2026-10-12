@@ -1,0 +1,38 @@
+[
+  {
+    "name": "desktop",
+    "path": "/onboarding",
+    "noOverflow": true,
+    "errors": [],
+    "unavailable": "✗ 托管服务尚未配置。当前无法登录、创建 Agent 或执行操作。"
+  },
+  {
+    "name": "desktop",
+    "path": "/advanced → /arena/holdem",
+    "errors": []
+  },
+  {
+    "name": "mobile",
+    "path": "/onboarding",
+    "noOverflow": true,
+    "errors": [],
+    "unavailable": "✗ 托管服务尚未配置。当前无法登录、创建 Agent 或执行操作。"
+  },
+  {
+    "name": "mobile",
+    "path": "/advanced → /arena/holdem",
+    "errors": []
+  },
+  {
+    "name": "narrow",
+    "path": "/onboarding",
+    "noOverflow": true,
+    "errors": [],
+    "unavailable": "✗ 托管服务尚未配置。当前无法登录、创建 Agent 或执行操作。"
+  },
+  {
+    "name": "narrow",
+    "path": "/advanced → /arena/holdem",
+    "errors": []
+  }
+]

@@ -1,5 +1,7 @@
 # InferCredit — 工程实施计划（Hackathon 版）
 
+> **2026-10-11 产品范围同步**：[当前产品主线](AGENT_CREDIT_ARCHITECTURE.md#当前产品主线2026-10-11-确认) 固定信誉、借贷、游戏奖励、Magpie 模型网关、执行/独立验收、Pi 自主执行六项能力。Agent 的发布者/接单者是任务内角色，当前用户入口仍是托管执行 Agent。Demo 限定两个底层 LLM，报价来自 Relay；固定价 B、上游 usage 与借贷费用不可混写。两模型托管网关联合验证、专家委托、按量额度借贷/自动续跑是后续工作。Pi 权限/轮数/预算有界，选单选档由配置规则决定。产品不提供 gas 赞助；下文 10-07 的受限 gas sponsor 是已有可选工程能力，不能据此宣传用户获赞助。前端最新证据见 [10-11 验收](docs/frontend-release-acceptance-20261011.md)。
+
 > **2026-10-07 托管 Agent 扩展**：产品入口确定为用户在平台创建托管 Agent。已新增签名登录、独立托管钱包、动态链上开户、受限 gas 赞助、幂等入金、任务/比赛调度及 owner 隔离。原预设 TaskRunner/GameFi 入口保留作运营兼容；用户入口是 `/api/hosted/*`。本轮新链路已通过本地 Anvil + 受控模型整体验收，不代表新 Monad 用户已上线。见 [托管交付](docs/hosted-acceptance.md)。
 
 > 文档四部曲的最后一篇：

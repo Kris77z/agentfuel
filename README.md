@@ -2,7 +2,26 @@
 
 InferCredit 用已托管的任务报酬支持 Agent 购买推理：现金不足时，按任务获取授信，把借款直接支付给白名单 Provider；任务通过独立验收后，在一笔交易中还清本金与费用，剩余收入进入 Agent 现金账本。真实还款与违约写回 ERC-8004 声誉，供后续授信使用。
 
-仓库采用 npm workspaces、TypeScript、ethers v6、Foundry 和 Next.js。当前是 Hackathon P0 与已落地扩展的实现，不是长期架构文档中所有功能的集合。**截至 2026-10-07 的完成状态与证据边界，以 [implementation-status](docs/implementation-status.md) 为入口。**
+仓库采用 npm workspaces、TypeScript、ethers v6、Foundry 和 Next.js。当前是 Hackathon P0 与已落地扩展的实现，不是长期架构文档中所有功能的集合。**截至 2026-10-12 的完成状态与证据边界，以 [implementation-status](docs/implementation-status.md) 为入口。**
+
+## 产品主线与六项能力
+
+**创建托管 Agent，让它在预算内采购推理、执行任务赚取收入，并用履约信誉支持后续信用。** Agent 的发布者/接单者角色随任务变化；同一个 Agent 可以接单，也可以为自己的任务采购能力。当前 Demo 展示托管 Agent 接取平台任务，自主发布子任务与专家 Agent 委托尚未开放。
+
+| 核心能力 | 当前范围 |
+| --- | --- |
+| 信誉 | ERC-8004 履约记录与 InferScore/Tier，参与授信额度和费用计算。 |
+| 借贷 | 用已托管的任务报酬支持 USDC 推理信用，直接支付 Provider，验收结算时还款。 |
+| 游戏赚 token / 资金 | 免费德州奖励测试 USDC 或绑定 Agent 的推理额度；游戏不借贷。 |
+| 统一模型网关 | Magpie 统一接入两个底层 LLM，各按输入/输出费率消费推理额度；保留原固定价服务。 |
+| 执行与验收 | 接单、求解、提交、独立 Arena 验收与结算。 |
+| Pi 自主执行 | 模型在预算、任务数和时间限制内决定运行档位、融资方式与下一单；Pi 调用工具、测试与修正，宿主校验决策边界。 |
+
+主闭环：**创建与开户 → 准备资源 → 接单 → 购买推理（不足则任务授信）→ Pi 执行 → 独立验收 → 还款、收入与信誉入账 → 下一单。** 游戏是资源补充支路。新增任务绑定额度包、双模型按量扣额与有界连续运行；按量模式可在奖励不足后按任务信用补额，保留原任务轮次。独立奖励模式仍只用奖励，不自动付款。当前产品不提供 gas 赞助。
+
+**新增核心运行能力（2026-10-12）**：额度包信用购买、两模型统一计量、原任务补额续跑，以及有界 LLM 决策与 Pi 连续执行已接入。真实 K2.6/K3 经 Magpie 和托管前端 API 完成本地信用结算；自主 Agent 连续完成两单、债务归零、信誉升至640/B。见 [核心运行说明](docs/core-runtime.md)、[真实本地验收](docs/local-real-acceptance-20261012.md) 和 [本地启动步骤](docs/local-hosted-testing.md)。该批使用 Anvil/测试 USDC。后续[本地连接 Monad 测试网验收](docs/monad-hosted-acceptance-20261012.md)已完成核心业务、独立链上审计及桌面/手机核验：两模型分别结算，自主 Agent 新窗口连续完成 Task 16/17，累计三次还款、信誉710/A、债务0；Task 14 原 Unknown 经永久封存、运营全额补偿和独立终止完成收口。原失败、补资和规划支出均保留，公网部署与扩展钱包另验收。
+
+完整角色定义、六项能力边界和黑客松演示主张见 [当前产品主线](AGENT_CREDIT_ARCHITECTURE.md#当前产品主线2026-10-11-确认)。
 
 ## 核心资金路径
 
@@ -30,17 +49,19 @@ InferCredit 用已托管的任务报酬支持 Agent 购买推理：现金不足�
 
 ## 用户托管 Agent
 
+2026-10-11 前端复核与本轮交付结果见 [上线测试前验收](docs/frontend-release-acceptance-20261011.md)：恢复入口、个人金融信息与 Oberon 落地页已完成，首轮本地浏览器覆盖 93 个用例；后续补齐首次进入动效与独立终端创建，相关 92 项补验通过。
+
 用户在平台创建 Agent，平台托管运行与独立钱包；首版选择运营方支持的模型、三档策略和消费预算。`/api/hosted/*` 提供钱包签名登录、创建/修改/暂停、入金、任务、免费德州与模型额度消费；不是外部 Agent 接入 API。原预设入口保留作运营兼容。
 
 root 已用两名用户、随机生成的托管钱包、实际本地链和两个生产 executor 验证：开户 → 入金 → 信用任务 → 赢赞助 USDC → 用奖励余额完成下一单 → 赢额度并消费。未新增真实供应商消费或 Monad 交易，真实扩展钱包与公开部署尚未验收。见 [托管交付](docs/hosted-acceptance.md)、[配置/API](docs/hosted-agents.md)。
 
-首页现已接入托管 API，并直接迁移 Agora Mesh Dashboard 的浅灰/白色方角面板、紫色强调、Geist Mono、紧凑三栏与请求时间线。`/arena`、四种练习、`/arena/holdem` 和 `/advanced` 共用同一终端页头与导航，棋盘、牌桌与红黑花色保留原操作辨识。个人托管 Agent、固定运营演示与免费练习明确分开；服务未配置时显示真实空态。2026-10-10 本地浏览器 76 项、类型检查与生产构建通过，来源、截图和未验证范围见 [前端迁移记录](docs/frontend-agora-migration.md)。
+`/` 是基于 Oberon 调整的产品落地页；“创建你的 AGENT”进入 `/onboarding`，以 Agora 的暖白棕色终端逐项完成钱包登录、六项配置和确认，再进入 `/dashboard` 托管工作台；“进入工作台”直接打开 `/dashboard`。工作台沿用 Agora Mesh Dashboard 的浅灰/白色方角面板、紫色强调、Geist Mono、紧凑三栏与请求时间线；个人金融卡显示核验后的 cash、完整债务、InferScore、Tier 与还款记录，任务展示真实结算凭证。`/arena`、四种练习和 `/advanced` 共用终端页头与导航。`/arena/holdem` 是固定运营比赛的历史只读证据，入口收在高级协议的“历史演示与证据”，不属于创建或参赛必经路径。个人托管 Agent、固定运营演示与免费练习明确分开；服务未配置时显示真实空态。页面来源与适配见 [Oberon 落地页](docs/frontend-oberon-landing.md) 和 [Agora 迁移记录](docs/frontend-agora-migration.md)。
 
 ## 后端运行与页面接入
 
 现有 P0、四题固定价任务与本机运营 GameFi 的后端收尾见 [后端交付](docs/backend-acceptance.md)。`npm run backend -- --manifest /absolute/private/backend.json --check` 离线检查私有配置，`--start` 启动 Underwriter、固定价 Relay、独立 settler、Arena 和 TaskRunner；详见 [运行说明](docs/backend-runtime.md)。GameFi 沿用独立 [runner 配置](docs/gamefi-runner.md)。
 
-页面通过 `GET/POST /api/tasks/runs` 获取预设任务、发起和恢复原 UUID。服务端设置 `TASK_RUNNER_URL`，浏览器不能传入钱包、模型地址、价格或任意提示词。接口及状态说明见 [TASK_RUNNER](packages/pi-loop/TASK_RUNNER.md)。此预设入口保留在 `/advanced`；首页通过同源 `/api/hosted/*` 接入签名登录、创建、设置、暂停和账户操作。托管额度目前仅执行固定短确认消费，不作为通用聊天入口。
+页面通过 `GET/POST /api/tasks/runs` 获取预设任务、发起和恢复原 UUID。服务端设置 `TASK_RUNNER_URL`，浏览器不能传入钱包、模型地址、价格或任意提示词。接口及状态说明见 [TASK_RUNNER](packages/pi-loop/TASK_RUNNER.md)。此预设入口保留在 `/advanced`；`/dashboard` 通过同源 `/api/hosted/*` 接入签名登录、创建、设置、暂停和账户操作。托管奖励额度可用于 Pi 目录任务，并经独立 Arena 验收结算；不作为任意聊天入口。
 
 ## 最小本地运行
 

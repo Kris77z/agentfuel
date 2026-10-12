@@ -1,3 +1,3 @@
-import HostedApp from "../components/hosted/hosted-app";
-import { TerminalTheme } from "../components/terminal/terminal-theme";
-export default function Page() { return <TerminalTheme><HostedApp /></TerminalTheme>; }
+import LandingPage from "../components/landing/landing-page";
+
+export default function Page() { return <LandingPage />; }
