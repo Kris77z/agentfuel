@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "environment": "Ubuntu 24.04 VPS; public HTTPS; Monad Testnet 10143",
+  "basedOnRelease": "ba3b1467bd3310c9bba85e5a406040f2a59b8f01",
+  "origin": "https://monad.tabbyai.xyz",
+  "checkedAt": "2026-10-14T12:57:16.132Z",
+  "pages": {
+    "/": 200,
+    "/dashboard": 200,
+    "/onboarding": 200,
+    "/arena": 200,
+    "/finance": 200
+  },
+  "anonymousHosted": 401,
+  "crossOrigin": 403,
+  "chainWrites": 0,
+  "modelRequests": 0,
+  "signatureLogin": {
+    "status": 200,
+    "originBound": true,
+    "chainId": "10143",
+    "hostOnlySecureCookie": true
+  },
+  "capabilities": {
+    "models": [
+      "kimi-k2.6",
+      "kimi-k3"
+    ],
+    "externalServices": 16,
+    "autonomousGames": {
+      "maxGames": 2,
+      "rewardKinds": [
+        "usdc",
+        "llm-credits"
+      ]
+    }
+  },
+  "logout": 200,
+  "loggedOutSessionRejected": 401,
+  "tempoDashboard": 200,
+  "chainRead": {
+    "status": 200,
+    "profiles": 3,
+    "openTasks": 0,
+    "chainId": "10143",
+    "history": {
+      "fromBlock": 70973145,
+      "toBlock": 70975144,
+      "recent": true
+    },
+    "checkedAt": "2026-10-14T13:12:28.438364+00:00"
+  },
+  "frontendBuildDirectory": ".next-monad-vps-rpcfix",
+  "chainReadDurationSeconds": 66.443181,
+  "runtime": {
+    "financialStatePreserved": true,
+    "agentCount": 6,
+    "runCount": 36,
+    "runStatuses": {
+      "Succeeded": 24,
+      "Failed": 9,
+      "Paused": 3
+    },
+    "gatewayCounters": {
+      "DispatchIntent": 109,
+      "Response": 106,
+      "OutcomeUnknown": 3
+    },
+    "services": {
+      "tabby-monad-gateway": "active",
+      "tabby-monad-runtime": "active",
+      "tabby-monad-frontend": "active",
+      "tabby-tempo-gateway": "active",
+      "tabby-tempo-runtime": "active",
+      "tabby-tempo-frontend": "active"
+    }
+  },
+  "tempo": {
+    "baselineFiles": 210,
+    "baselineUnchanged": true,
+    "publicDashboardStatus": 200
+  },
+  "linuxNamespaceTests": {
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0
+  },
+  "rpcReadLimitTests": {
+    "passed": 9,
+    "failed": 0,
+    "skipped": 0
+  },
+  "frontendTypecheck": "passed",
+  "frontendProductionBuild": "passed",
+  "dns": {
+    "A": [
+      "154.12.34.51"
+    ],
+    "AAAA": []
+  },
+  "tlsExpiry": "2027-01-12",
+  "sourceSha256": {
+    "frontend/lib/read.ts": "3456403d3156fee2e4030e2a23536f2c24d44d776a9a31b15b6930c054f55ea5",
+    "frontend/lib/server-transport.ts": "5a748cc99aae760168febeb543cbd9f8935fec00f1382e7a73d4574bc66a9025",
+    "deploy/monad-vps/frontend.env.example": "643e65cbd283001378bdb6f5dec5b5de5d9e9ef25393042dc2ef69d1cfc18f58"
+  },
+  "limits": [
+    "Signature login used an ephemeral Node acceptance wallet, not a browser wallet extension.",
+    "This deployment check made zero new model requests and zero chain writes.",
+    "The three new business integrations retain their separately recorded local controlled acceptance scope."
+  ]
+}

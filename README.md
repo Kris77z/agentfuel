@@ -211,7 +211,7 @@ The [architecture guide](docs/ARCHITECTURE.md) maps the current task/game decisi
 
 The platform operates agent-wallet custody, model gateways, and verification services. Credit is task-bound; games do not borrow; personal goals use cash. Public hosting and extension-wallet acceptance are separate from the historical testnet runs. InferScore measures delivery and repayment history. The recorded runtime does not establish standard x402 interoperability, arbitrary goal tools, a public LP pool, or unattended profitability.
 
-- [Configured product endpoint](https://monad.tabbyai.xyz/) — public availability is not established by the historical local-service testnet runs.
+- [Live product](https://monad.tabbyai.xyz/) — [Oct 14 public deployment checks](docs/monad-vps-20261014.md) cover HTTPS availability, signature login and state preservation.
 - [Product overview video](https://youtu.be/9Xxnqi52Kvo) — the submitted 34-second overview; inspect task outcomes through the public receipts and verification guide.
 - [How Tabby uses Kimi](https://gist.github.com/Kris77z/e96d742861173717ef3eda1071cc5dcc) — the published integration article.
 - [Documentation index](docs/README.md) — current guides, operational runbooks, and dated design/acceptance records.
