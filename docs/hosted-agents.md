@@ -129,3 +129,7 @@ daemon 可配置 `goals:{durationMs,models:[{id,relayUrl,provider,priceRaw,servi
 ### 过期目标付款
 
 目标调用恢复时，已签名但未付款的过期报价通过 `voidExpiredGoalPayment` 对账。只有规范链证明旧 nonce 已被使用且原 payment 为零才终止；必要时由 Agent 钱包发送同 nonce 的零金额自转账，签名先落盘，恢复重用。未签名过期报价可在零付款确认后结束。旧付款若先上链，继续原付款对账，不能当作未消费。Gas 由 Agent 自付；余额不足仍保留待处理状态。原目标的已交付费用与产出始终保留，具体链上验收见 `chain-lookup-acceptance-20261013.md`。
+
+## 2026-10-14 · 自主资源与外部协作
+
+自动参赛补现金/奖励 token、原自主任务补给和恢复、真实外部目录发现/付费雇佣、同任务新调用按预算降档已接通。每次调用保留真实模型与付款 route，Unknown 不重派；目标交付继续独立复核。自动游戏共用 owner/global 赞助限制，逐场持久准入；无比赛的自主任务不占赞助名额。详细接线、实际测试证据与 Monad 准入范围见 [本轮记录](autonomous-collaboration-20261014.md)。

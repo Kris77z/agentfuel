@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-14T08:16:46.607Z",
+  "chainId": "31337",
+  "environment": "Anvil with controlled LLM responses",
+  "requestId": "3f13f86e-0d95-4f03-9c5e-17e9dcf636b9",
+  "reservedRaw": "70000",
+  "chargedRaw": "60000",
+  "modelSequence": [
+    "strong",
+    "cheap",
+    "cheap",
+    "cheap"
+  ],
+  "payments": [
+    {
+      "stage": "plan",
+      "modelId": "strong",
+      "priceRaw": "30000",
+      "paymentId": "0xe330b3cecccd706ac6ff2ad3b8b714ebe9e01390371bd683ef9c8d96c56974f1",
+      "txHash": "0x0cb2a64f1a425aa97431a4a28a467627d59060a65a86e4b36f2878c5df272ad3",
+      "promptTokens": 10,
+      "completionTokens": 20,
+      "fromCashRaw": "30000",
+      "fromCreditRaw": "0",
+      "blockNumber": 33,
+      "blockHash": "0x7a0b2f926b282be3feade19d295c190ed6542f1fc158fb61c5011ae6ec4c84dd",
+      "physicalModel": "physical-strong",
+      "requestDigest": "0xf1c65a38cc02dfddbaa1a0025f8caaae68385f72f649e1ed0f8a1b10213e1861"
+    },
+    {
+      "stage": "phase-0",
+      "modelId": "cheap",
+      "priceRaw": "10000",
+      "paymentId": "0xb146b18d083d84fb6d1bb1317981496073c0f2658582b88d12f89173733aed68",
+      "txHash": "0x91c5767584a1e4d7f303b33159ec144b0bb5fa0288bcffed5ffe8b26407738bc",
+      "promptTokens": 10,
+      "completionTokens": 20,
+      "fromCashRaw": "10000",
+      "fromCreditRaw": "0",
+      "blockNumber": 34,
+      "blockHash": "0x2159be6b0751c26de928d0105296322b18af6f720ceb7ef7548a728efff5ff8a",
+      "physicalModel": "physical-cheap",
+      "requestDigest": "0xcba9878008df2b40f01664d0a5b89a048e77653ce9e02b51f41a598d6e3c2f0f"
+    },
+    {
+      "stage": "phase-1",
+      "modelId": "cheap",
+      "priceRaw": "10000",
+      "paymentId": "0x357edba5882b6685e41d8d38446a4d47b3cde739b40d62ec33e47eeda936576f",
+      "txHash": "0xf07cbc4e44b9a8f73683c2d60dc56b1bb7a92f75580011d5e4a16cf54400d8a0",
+      "promptTokens": 10,
+      "completionTokens": 20,
+      "fromCashRaw": "10000",
+      "fromCreditRaw": "0",
+      "blockNumber": 35,
+      "blockHash": "0xbec52df4ab3447b1ab86c455c591f6481d3e0b3022389688c83925e5202b1097",
+      "physicalModel": "physical-cheap",
+      "requestDigest": "0x6c3457bf01408ebf84942e99500cbf3b9d462126c2909a9c7d22a3d1ade3d013"
+    },
+    {
+      "stage": "review",
+      "modelId": "cheap",
+      "priceRaw": "10000",
+      "paymentId": "0x0e5ba6fca53adc0d3c060a750b25a9dfe3335ba17c6b9926f0860f7fbb30e01b",
+      "txHash": "0xaf2d4feebcc46b3ad609e4372a7f70b815c9f442851d077e2028ab592cf4f0ec",
+      "promptTokens": 10,
+      "completionTokens": 20,
+      "fromCashRaw": "10000",
+      "fromCreditRaw": "0",
+      "blockNumber": 36,
+      "blockHash": "0x0e389496c49e4ab41befcf9a24fdf9780b8eff3ca3c5a7fc9354b72456095f49",
+      "physicalModel": "physical-cheap",
+      "requestDigest": "0x21ee6c25744a159fee101d4e71781ae701b46d6165b847de28dd466ca558da8e"
+    }
+  ],
+  "priorOutputPreserved": true,
+  "independentReview": {
+    "stage": "review",
+    "passed": true
+  },
+  "replay": {
+    "dispatchesBefore": 4,
+    "dispatchesAfter": 4,
+    "nonceBefore": 8,
+    "nonceAfter": 8
+  },
+  "cashFallback": {
+    "requestId": "127016eb-9336-45df-a9e5-8e154a57c93d",
+    "reservedRaw": "70000",
+    "cashBeforeRaw": "40000",
+    "chargedRaw": "40000",
+    "modelSequence": [
+      "cheap",
+      "cheap",
+      "cheap",
+      "cheap"
+    ]
+  }
+}

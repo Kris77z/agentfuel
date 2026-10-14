@@ -1,0 +1,161 @@
+{
+  "schema": 1,
+  "observedAt": "2026-10-14T07:49:00.110Z",
+  "chainId": "31337",
+  "modelSource": "controlled-http-llm",
+  "requestId": "11d30ee6-3126-46d5-b8a8-45d7439001cc",
+  "discoveredService": {
+    "id": "partner-writer",
+    "name": "partner-writer Expert",
+    "taskType": "writer",
+    "serviceId": "external/partner-writer",
+    "modelId": "expert-partner-writer",
+    "provider": "0xF1F6619B38A98d6De0800F1DefC0a6399eB6d30C",
+    "priceRaw": "10000",
+    "identity": {
+      "chainId": "31337",
+      "registry": "0xF2E246BB76DF876Cef8b38ae84130F4F55De395b",
+      "agentId": "2",
+      "wallet": "0xF1F6619B38A98d6De0800F1DefC0a6399eB6d30C"
+    },
+    "reputation": {
+      "score": 4.8,
+      "samples": 1,
+      "source": "erc8004",
+      "blockNumber": 29,
+      "blockHash": "0xd28456fa365244b04513f8c63942c164a59cee329aad2237c046f2465e5f23cf"
+    }
+  },
+  "goal": "Write a launch note containing only supplied facts A and B.",
+  "mission": {
+    "stage": "completed",
+    "phases": [
+      {
+        "name": "Launch note",
+        "taskType": "writer",
+        "goal": "Use supplied facts A and B; do not invent data.",
+        "output": "Launch note: supplied facts A and B.",
+        "external": {
+          "id": "partner-writer",
+          "name": "partner-writer Expert",
+          "taskType": "writer",
+          "serviceId": "external/partner-writer",
+          "modelId": "expert-partner-writer",
+          "provider": "0xF1F6619B38A98d6De0800F1DefC0a6399eB6d30C",
+          "priceRaw": "10000",
+          "identity": {
+            "chainId": "31337",
+            "registry": "0xF2E246BB76DF876Cef8b38ae84130F4F55De395b",
+            "agentId": "2",
+            "wallet": "0xF1F6619B38A98d6De0800F1DefC0a6399eB6d30C"
+          },
+          "reputation": {
+            "score": 4.8,
+            "samples": 1,
+            "source": "erc8004",
+            "blockNumber": 39,
+            "blockHash": "0x8b18ac0f4bcd60bf96cebd799e6713709e6023677a8772c94a94fd2e19ace88e"
+          }
+        }
+      }
+    ],
+    "answer": "Launch note: supplied facts A and B.",
+    "review": {
+      "passed": true,
+      "summary": "Only the supplied facts are present.",
+      "checks": [
+        "Both A and B are included",
+        "No unsupported claims"
+      ]
+    },
+    "calls": [
+      {
+        "stage": "plan",
+        "model": "cheap",
+        "chargedRaw": "5000",
+        "promptTokens": 30,
+        "completionTokens": 15,
+        "paymentId": "0x28a4ec459314eb9ab32e4afdbc6dd58c004e28ee074f203d2cdb2f9e937b243c",
+        "txHash": "0x60db41d1b4689aa809323365fed2ddd0aae66e33130898e23fb00a50fb110264",
+        "requestDigest": "0x8f06e0d1a5610ff9d3c7a2ef8ada133cb96f20d1e37a317fc861436ed4bb4e6a"
+      },
+      {
+        "stage": "phase-0",
+        "model": "expert-partner-writer",
+        "chargedRaw": "10000",
+        "promptTokens": 21,
+        "completionTokens": 12,
+        "paymentId": "0x2e1b787b3dbeae9265e37eae1f8abb90032020cbf3536b13a97c5d74026c469e",
+        "txHash": "0x9b618eb5d0b506864a8ca4d8d7c0d1cfe7eb8e5ab05ac656752526251706d926",
+        "serviceId": "external/partner-writer",
+        "promptDigest": "6b02c9d5c1a904350482b1ec7d813f2ea705abdf419aa5913ad1711426e918fb",
+        "requestDigest": "0x5a5b45f2da18a41d931abbf5d89a243d0e5e27931f125b43ac723afc8de80bae",
+        "external": {
+          "service": {
+            "id": "partner-writer",
+            "name": "partner-writer Expert",
+            "taskType": "writer",
+            "serviceId": "external/partner-writer",
+            "modelId": "expert-partner-writer",
+            "provider": "0xF1F6619B38A98d6De0800F1DefC0a6399eB6d30C",
+            "priceRaw": "10000",
+            "identity": {
+              "chainId": "31337",
+              "registry": "0xF2E246BB76DF876Cef8b38ae84130F4F55De395b",
+              "agentId": "2",
+              "wallet": "0xF1F6619B38A98d6De0800F1DefC0a6399eB6d30C"
+            },
+            "reputation": {
+              "score": 4.8,
+              "samples": 1,
+              "source": "erc8004",
+              "blockNumber": 39,
+              "blockHash": "0x8b18ac0f4bcd60bf96cebd799e6713709e6023677a8772c94a94fd2e19ace88e"
+            }
+          },
+          "paymentId": "0x2e1b787b3dbeae9265e37eae1f8abb90032020cbf3536b13a97c5d74026c469e",
+          "txHash": "0x9b618eb5d0b506864a8ca4d8d7c0d1cfe7eb8e5ab05ac656752526251706d926",
+          "requestDigest": "0x5a5b45f2da18a41d931abbf5d89a243d0e5e27931f125b43ac723afc8de80bae",
+          "promptDigest": "6b02c9d5c1a904350482b1ec7d813f2ea705abdf419aa5913ad1711426e918fb",
+          "assignmentDigest": "627761ac190a901aa1d028969ef53350ce38a35cc916eee294940ff39e13f60d"
+        }
+      },
+      {
+        "stage": "review",
+        "model": "cheap",
+        "chargedRaw": "5000",
+        "promptTokens": 30,
+        "completionTokens": 15,
+        "paymentId": "0x06e550a0833a24a72e9715ada1479f3217284151b2df61ca8f0da1648ae443db",
+        "txHash": "0xd934f544586d54c7786e0cc0596f6e6dfe522180f4b1c28ab6da2fa2eba34a9e",
+        "requestDigest": "0xb5ec7883ebf25077cdcef6c601d7d5e6fe130059cc2a5aefea95e79a0a0631c5"
+      }
+    ]
+  },
+  "cashBeforeRaw": "30000",
+  "cashAfterRaw": "10000",
+  "chargedRaw": "20000",
+  "modelDispatches": {
+    "commander": 1,
+    "externalSpecialist": 1,
+    "independentReviewer": 1
+  },
+  "replay": {
+    "sameResult": true,
+    "extraModelDispatches": 0,
+    "nonceBefore": 8,
+    "nonceAfter": 8
+  },
+  "unknownRecovery": {
+    "requestId": "0f60aeab-10c8-4c44-a398-bdd7749ab239",
+    "paymentId": "0xa2712ab9e1246fa38b0906de2ed995127c18a343af24319119f8efeadc7a6e5d",
+    "originalPaymentTxHash": "0x4d7fa2084d168eabd57be3efaee56b1f10015d1d52e14fdc43289ddda6bea567",
+    "chargedRaw": "0",
+    "refundedRaw": "10000",
+    "resolved": true,
+    "sameHandleOnStop": true,
+    "extraPaymentsOnStop": 0,
+    "extraModelDispatchesOnStop": 0,
+    "extraModelDispatchesAfterRefund": 0
+  }
+}

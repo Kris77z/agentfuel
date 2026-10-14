@@ -1,4 +1,4 @@
-import type { GoalView } from "./goal-types.js";
+import type { GoalView, ExternalServiceView } from "./goal-types.js";
 import type { HostedActivity, HostedActivityInput } from "./scene-types.js";
 /** Owner-controlled configuration, never wallet keys, RPCs, provider URLs or reward recipients. */
 export type HostedStrategy = "conservative" | "balanced" | "aggressive";
@@ -16,7 +16,7 @@ export interface HostedAgent extends AgentSettings {
 export type HostedAction = "provision" | "deposit" | "task" | "game" | "credits" | "reward-task" | "metered-task" | "autonomous" | "goal";
 export interface HostedRun {
   requestId: string; agentId: string; action: HostedAction; fundingFor?: string; rewardKind?: "usdc" | "llm-credits"; amountRaw?: string;
-  goal?: string; mission?: GoalView; stopRequested?: boolean;
+  goal?: string; mission?: GoalView; stopRequested?: boolean; fundingNeed?: "cash" | "reward-tokens";
   activities?: HostedActivity[];
   status: "Queued" | "Running" | "Paused" | "Succeeded" | "Failed";
   createdAt: string; updatedAt: string; reservedRaw: string; chargedRaw: string; recoverable: boolean;
@@ -27,6 +27,7 @@ export interface HostedRun {
 export interface HostedResult {
   mission?: GoalView;
   autonomousTasks?: number;
+  autonomousGames?: number;
   phase: string; terminal: boolean; success: boolean; chargedRaw: string; reason?: string;
   binding?: HostedBinding; taskId?: string; paymentId?: string; txHash?: string; matchId?: string;
   cashRaw?: string; principalRaw?: string; feeRaw?: string; rewardRaw?: string;
@@ -54,9 +55,9 @@ export interface HostedExecution {
   deadlineMs?: number; agent: HostedAgent; run: HostedRun; directory: string; keyFile: string; recover: boolean;
 }
 export interface HostedCapabilities {
-  goals?: { maxPhases: number; chainLookup?:{chainId:string;maxTargets:number}; specialists?:{id:string;serviceId:string;name:string;output:"text"|"json"}[]; models: { id: string; pricePerCallRaw: string }[] };
+  goals?: { maxPhases: number; external?: { services: ExternalServiceView[] }; chainLookup?:{chainId:string;maxTargets:number}; specialists?:{id:string;serviceId:string;name:string;output:"text"|"json"}[]; models: { id: string; pricePerCallRaw: string }[] };
   inference?: { priceRaw: string; creditsRaw: string; models: { id: string; inputMicroCreditsPerToken: string; outputMicroCreditsPerToken: string }[] };
-  autonomy?: { maxTasks: number; durationMs: number; plannerPriceRaw: string };
+  autonomy?: { maxTasks: number; durationMs: number; plannerPriceRaw: string; games?: { maxGames: number; rewardKinds: ("usdc" | "llm-credits")[] } };
 }
 export interface HostedExecutor {
   capabilities?: HostedCapabilities;

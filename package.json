@@ -17,6 +17,7 @@
   },
   "scripts": {
     "docs:check": "node scripts/check-doc-links.mjs",
+    "evidence:check": "node scripts/check-acceptance-evidence.mjs",
     "typecheck": "tsc --noEmit",
     "test": "npm run test:all",
     "test:core": "npm test --workspace @agentfuel/underwriter && npm test --workspace @agentfuel/provider-relay",

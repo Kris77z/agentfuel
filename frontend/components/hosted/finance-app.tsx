@@ -13,7 +13,7 @@ export default function FinanceApp({onTask}:{onTask:()=>void}){
  const [amount,setAmount]=useState(''),[error,setError]=useState(''),[settings,setSettings]=useState(false);
  useEffect(()=>{setSettings(false);setError('');setAmount('');},[agent?.id]);
  const active=state.snapshot?.runs.find(r=>r.requestId===agent?.activeRequestId);
- const funding=active?.status==='Paused'&&active.reason==='INFERENCE_FUNDING_REQUIRED'&&['goal','metered-task','autonomous'].includes(active.action);
+ const funding=active?.status==='Paused'&&(active.fundingNeed==='cash'||!active.fundingNeed&&active.reason==='INFERENCE_FUNDING_REQUIRED'&&['goal','metered-task'].includes(active.action));
  const locked=state.busy||!!state.pending||!agent||agent.status!=='Ready'||!agent.binding||!!agent.activeRequestId&&!funding;
  const deposits=state.snapshot?.runs.filter(r=>r.agentId===agent?.id&&r.action==='deposit')??[];
  const latestDeposit=deposits[0];

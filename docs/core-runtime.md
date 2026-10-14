@@ -95,3 +95,7 @@ runtime 新增 goalCheap/goalStrong 监听端口。旧 Monad 父 runtime 必须�
 ## 五项专用专家（2026-10-13）
 
 个人 `goal` 入口新增 monad-rebel 的 ABI Reader、Gas Optimizer、Token Risk Scanner、Transaction Decoder、Yield Strategy Finder，使用原服务 ID、任务别名、prompt/config 与结构化输出规则。与三个通用执行角色共用现金付款、Magpie 路由、阶段恢复、一次修订及独立复核。评审收到与执行器相同的输出格式约定；非法 JSON/字段会停止任务并保留已经支付的费用。新专家已接入受限的 Monad 只读 RPC/Sourcify 自动查链，不扩展到自动发布悬赏、外部专家钱包或任意网页访问，不改变原借贷边界。验收记录见 [Dashboard 专家接入](dashboard-goal-workspace-20261013.md)。
+
+## 2026-10-14 · 自主资源与外部协作
+
+自动参赛补现金/奖励 token、原自主任务补给和恢复、真实外部目录发现/付费雇佣、同任务新调用按预算降档已接通。每次调用保留真实模型与付款 route，Unknown 不重派；目标交付继续独立复核。自动游戏共用 owner/global 赞助限制，逐场持久准入；无比赛的自主任务不占赞助名额。详细接线、实际测试证据与 Monad 准入范围见 [本轮记录](autonomous-collaboration-20261014.md)。

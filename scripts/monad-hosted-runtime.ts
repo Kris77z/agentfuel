@@ -1,3 +1,4 @@
+import { startExternalSpecialistStack } from "./external-specialist-stack.js";
 import { once } from "node:events";
 import { createHash, randomBytes } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -38,10 +39,11 @@ export interface MonadHostedBootstrap {
   opponentBinding: { chainId: "10143"; agentId: string; wallet: string };
   /** Real, operator-selected chain identities for the public protocol dashboard. */
   dashboardAgents: { id: string; name: string }[];
+  externalProvider?: { chainId:"10143";registry:string;agentId:string;wallet:string };
   gatewayReadyFile: string; vendorKeyFile: string; tasks: WorkflowConfig["tasks"];
   maxFeePerGas: string; frontendOrigin: "http://127.0.0.1:3024";
 }
-type PortName = "underwriter" | "arena" | "fixed" | "allowance" | "planner" | "goalCheap" | "goalStrong";
+type PortName = `external-${string}` | "underwriter" | "arena" | "fixed" | "allowance" | "planner" | "goalCheap" | "goalStrong";
 interface CatalogMigration {
   id: string; status: "Intent" | "Applied"; createdAt: string; appliedAt?: string;
   beforeBinding: string; afterBinding: string; before: MonadHostedBootstrap; after: MonadHostedBootstrap;
@@ -57,7 +59,7 @@ const fail = (code: string): never => { throw new Error(code); };
 const safe = (error: unknown) => /^[A-Z][A-Z0-9_]{1,100}$/.test((error as Error)?.message) ? (error as Error).message : "MONAD_HOSTED_RUNTIME_FAILED";
 const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 function runtimeBinding(bootstrap: MonadHostedBootstrap, gateway: GatewayReady, catalog: GatewayModel[]) {
-  const { dashboardAgents: _dashboardAgents, ...executionBootstrap } = bootstrap;
+  const { dashboardAgents: _dashboardAgents, externalProvider: _externalProvider, ...executionBootstrap } = bootstrap;
   return hash({ bootstrap: executionBootstrap, gateway: { url: gateway.url, endpoint: gateway.endpoint, keyFile: gateway.keyFile }, catalog });
 }
 const address = (value: string) => { const result = getAddress(value); if (result === ZeroAddress) fail("MONAD_ADDRESS_INVALID"); return result; };
@@ -73,6 +75,8 @@ export async function loadMonadHostedBootstrap(file: string) {
   for (const value of Object.values(b.contracts)) address(value);
   if (Object.keys(b.contracts).sort().join(",") !== "account,adapter,escrow,manager" || new Set(Object.values(b.contracts).map(address)).size !== 4) fail("MONAD_CONTRACTS_INVALID");
   address(b.payTo); address(b.opponentBinding.wallet);
+  if (b.externalProvider && (b.externalProvider.chainId !== "10143" || !same(b.externalProvider.registry,b.identity)
+    || same(b.externalProvider.wallet,b.payTo) || !/^[1-9][0-9]{0,77}$/.test(b.externalProvider.agentId))) fail("MONAD_EXTERNAL_PROVIDER_INVALID");
   if (b.opponentBinding.chainId !== "10143" || !/^[1-9][0-9]*$/.test(b.opponentBinding.agentId)) fail("MONAD_OPPONENT_INVALID");
   if (!Array.isArray(b.dashboardAgents) || b.dashboardAgents.length < 3 || b.dashboardAgents.length > 12
     || new Set(b.dashboardAgents.map(agent => agent.id)).size !== b.dashboardAgents.length
@@ -119,6 +123,11 @@ export async function checkMonadHostedBootstrap(file: string) {
     if (!same(roleAddresses.refunder, b.payTo) || !same(roleAddresses.opponent, b.opponentBinding.wallet)
       || ["guardian", "underwriter", "refunder", "sponsor"].some(role => same(roleAddresses[role], roleAddresses.opponent))) fail("MONAD_ROLE_BINDING_MISMATCH");
     if (!await account.providerWhitelist(b.payTo)) fail("MONAD_PROVIDER_NOT_WHITELISTED");
+    if (b.externalProvider) {
+      const registry = new Contract(b.externalProvider.registry,["function getAgentWallet(uint256) view returns(address)"],p);
+      if (!same(await registry.getFunction("getAgentWallet").staticCall(b.externalProvider.agentId),b.externalProvider.wallet)
+        || !await account.providerWhitelist(b.externalProvider.wallet)) fail("MONAD_EXTERNAL_PROVIDER_NOT_READY");
+    }
     const opponent = await adapter.resolveAgent(b.opponentBinding.agentId);
     if (!same(opponent.wallet, b.opponentBinding.wallet) || await adapter.identityChanged(b.opponentBinding.agentId)) fail("MONAD_OPPONENT_BINDING_MISMATCH");
     for (const agent of b.dashboardAgents) {
@@ -183,7 +192,7 @@ export async function appendMonadHostedTasks(directory: string, bootstrapFile: s
   let connection: Awaited<ReturnType<typeof monadProvider>> | undefined;
   try {
     const state = await store.read() ?? fail("MONAD_RUNTIME_JOURNAL_REQUIRED");
-    for (const port of [8792, ...Object.values(state.ports)]) if (await portListening(port)) fail("MONAD_RUNTIME_STOP_REQUIRED");
+    for (const port of [8792, ...Object.values(state.ports)]) if (port !== undefined && await portListening(port)) fail("MONAD_RUNTIME_STOP_REQUIRED");
     try {
       const pid = Number((await readFile(join(state.ipcDirectory, "settler.owner"), "utf8")).trim());
       if (!Number.isSafeInteger(pid) || pid < 1) fail("MONAD_SETTLER_OWNER_INVALID");
@@ -244,10 +253,12 @@ export async function startMonadHostedRuntime(directory: string, bootstrapFile: 
   let connection: Awaited<ReturnType<typeof monadProvider>> | undefined, hosted: ChildProcess | undefined, settler: ChildProcess | undefined;
   let arena: ReturnType<typeof createArenaHttpServer> | undefined, underwriter: Underwriter | undefined;
   const servers: ReturnType<typeof relayHttp>[] = [], relays: Relay[] = [];
+  let external:Awaited<ReturnType<typeof startExternalSpecialistStack>>|undefined;
   let state: RuntimeJournal | undefined, reload: (() => void) | undefined, closing: Promise<void> | undefined, ownsIpc = false;
   const close = () => closing ??= (async () => {
     if (reload) process.off("SIGUSR2", reload);
     await stopChild(hosted);
+    await external?.close();
     for (const server of servers) if (server.listening) await new Promise<void>(done => { server.close(() => done()); server.closeIdleConnections(); });
     await arena?.close(); await stopChild(settler);
     if (ownsIpc && state) await backupAndRemoveArenaIpc(state.ipcDirectory, join(directory, "settlement-journal.json"));
@@ -326,12 +337,13 @@ export async function startMonadHostedRuntime(directory: string, bootstrapFile: 
       rpcUrlFile: b.rpcUrlFile, rpcTransport: b.rpcTransport, upstreamTransport: "system-https-proxy", walletDirectory, sponsorKeyFile: b.roleKeyFiles.sponsor,
       opponent: { binding: b.opponentBinding, keyFile: b.roleKeyFiles.opponent, modelId: "kimi-k2.6", strategy: "balanced" },
       models: models.map(id => ({ id, baseUrl: "https://api.moonshot.cn/v1", keyFile: b.vendorKeyFile })), creditsDirectory: join(directory, "credits") });
+    if(b.externalProvider)external=await startExternalSpecialistStack({base,provider:rpc,providerIdentity:b.externalProvider,directory:join(directory,"external-services"),ports:journal.ports as Record<string,number>,savePort:async(name,port)=>{journal.ports[name as PortName]=port;await store.write(journal);},models:catalog.map((model,index)=>({id:models[index],model:model.model,responseModel:model.responseModel,baseUrl:gateway.url,key:gatewayKey,priceRaw:index?"20000":"10000"}))});
     const hostedConfigFile = await put("hosted.json", { version: 1, port: 8792,
       hosted: { directory: join(directory, "hosted"), origin: b.frontendOrigin, chainId: "10143", models: models.map(id => ({ id, label: id === "kimi-k2.6" ? "Kimi K2.6" : "Kimi K3" })),
         maxAgentsPerOwner: 6, maxTotalBudgetRaw: "1000000", maxPerRunBudgetRaw: "120000" }, executor: { taskConfigFile, gameConfigFile },
-      goals: { chainLookup: true, durationMs: 1200000, models: catalog.map((model, index) => ({ id: models[index], relayUrl: `${url(goalPorts[index])}/v1/chat`, provider: b.payTo,
+      goals: { ...(external?{external:external.config}:{}), chainLookup: true, durationMs: 1200000, models: catalog.map((model, index) => ({ id: models[index], relayUrl: `${url(goalPorts[index])}/v1/chat`, provider: b.payTo,
         priceRaw: goalRelays[index].config.service.price.toString(), service: "tabby/mission", model: model.id, physicalModel: model.model, responseModel: model.responseModel })) },
-      autonomy: { maxTasks: 2, maxDecisions: 3, durationMs: 1200000, plannerRelayUrl: `${url("planner")}/v1/chat`, plannerProvider: b.payTo, plannerPriceRaw: "10000",
+      autonomy: { maxTasks: 2, maxDecisions: 6, games: {maxGames: 2, maxSpendPerGameRaw: "0", rewardKinds: ["usdc", "llm-credits"], rewardTaskMinTokens: 2048}, durationMs: 1200000, plannerRelayUrl: `${url("planner")}/v1/chat`, plannerProvider: b.payTo, plannerPriceRaw: "10000",
         plannerService: "infercredit/plan", plannerModel: "logical-planner", plannerPhysicalModel: catalog[0].model, plannerResponseModel: catalog[0].responseModel } });
     await loadHostedDaemonConfig(hostedConfigFile);
     const launch = () => childReady("scripts/hosted-agents.ts", ["--start", "--recover"], { ...process.env, HOSTED_AGENTS_CONFIG: hostedConfigFile });

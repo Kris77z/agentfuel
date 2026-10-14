@@ -1,5 +1,8 @@
 # Implementation status
 
+
+> **2026-10-14 自主资源与协作已接通**：自动比赛补给、独立外部服务 HTTP 402 雇佣与交付、同任务预算降档均有本地真实执行与付款验收；Monad 外部注册身份和白名单新增回执已核验。具体范围与公开记录见 [本轮验收](autonomous-collaboration-20261014.md)。
+
 > **Public review entry (2026-10-14):** [overview](../README.md), [architecture](ARCHITECTURE.md), and [verification](VERIFICATION.md). This is the chronological development ledger. Local `demo-output/` links are private operator archives and are not available in a fresh clone; use the verification guide for published evidence.
 
 > **2026-10-13 自动查链已接入**：Dashboard 合约地址/交易哈希 → Monad RPC/Sourcify → 专家分析与独立复核 → 读取快照及付款凭证。支持代理实现、代币状态和交易解码；固定区块与原请求恢复。自动化与实际测试网结果见 [验收记录](chain-lookup-acceptance-20261013.md)。

@@ -7,6 +7,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const guides = [
   'README.md', 'README.zh-CN.md', 'CONTRIBUTING.md',
   'docs/README.md', 'docs/ARCHITECTURE.md', 'docs/VERIFICATION.md', 'docs/ATTRIBUTION.md', 'docs/local-hosted-testing.md',
+  'docs/autonomous-collaboration-20261014.md', 'frontend/acceptance/autonomous-collaboration-20261014/README.md',
   'contracts/README.md', 'services/underwriter/README.md', 'services/provider-relay/README.md',
   'services/hosted-agents/README.md', 'services/arena/README.md',
   'packages/sdk/README.md', 'packages/pi-loop/README.md', 'packages/erc8004/README.md', 'frontend/README.md',

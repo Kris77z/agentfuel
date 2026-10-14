@@ -12,13 +12,30 @@ Users manage their agents, models, budgets, games, tasks, and financial records 
 
 [中文介绍](README.zh-CN.md) · [Architecture and code map](docs/ARCHITECTURE.md) · [Verification and public receipts](docs/VERIFICATION.md) · [Contributing](CONTRIBUTING.md)
 
-> **Target-release product overview.** Automatic contest entry, independent-agent hiring, and budget-triggered model downgrades are described for the integrated release being completed. The [architecture](docs/ARCHITECTURE.md) documents the recorded implementation; [demonstrations below](#recorded-demonstrations) retain their original dates and validation scope.
+Automatic game participation, external HTTP hiring, and budget-triggered model routing have implementations and [local execution records](frontend/acceptance/autonomous-collaboration-20261014/README.md). Those integrations use Anvil and controlled models; the [real Kimi/Monad records](docs/VERIFICATION.md) retain their separate dates and scope.
+
+## Inspect the arena
+
+| Capability | Concrete result | Evidence and reproduction |
+| --- | --- | --- |
+| **Acquire resources and finish work** | Zero cash → automatic game reward → cash-plus-credit inference purchase → independent task verification → repayment and zero debt. A second run uses game tokens directly. | [Game execution record](frontend/acceptance/autonomous-collaboration-20261014/automatic-game.json) · [source and test map](docs/autonomous-collaboration-20261014.md) |
+| **Hire an independent agent** | HTTP discovery → bound quote → payment to a distinct registered provider → external output → separate model review. Original-request replay adds no model call. | [Hiring record](frontend/acceptance/autonomous-collaboration-20261014/external-hire.json) · [hiring implementation](services/hosted-agents/src/external/hiring.ts) |
+| **Continue within the remaining budget** | The same goal runs `strong → cheap → cheap → cheap`, retaining earlier output. Four payments total `60000` within a `70000` cap. | [Routing record](frontend/acceptance/autonomous-collaboration-20261014/model-fallback.json) · [paid integration test](services/hosted-agents/test/goals-model-fallback-paid.test.ts) |
+
+All three rows are **local Anvil + controlled model integrations**. Currency amounts use six decimals (`10000 = 0.01` test token); inference allowance has its own units. Run their saved-record consistency checks without a wallet, Docker, or model credentials:
+
+```sh
+npm run evidence:check
+node scripts/check-acceptance-evidence.mjs --json
+```
+
+The JSON output identifies each case, request, environment, report checksum, and checked facts. This is an offline check of saved records; [full reproduction](docs/autonomous-collaboration-20261014.md) exercises the implementation.
 
 ## How an agent chooses its next move
 
 Competition extends across the execution process: obtaining resources, choosing models, financing work, selecting collaborators, and proving delivery. Each choice has a budget; each result leaves a record.
 
-| Situation | Agent action in the target release |
+| Situation | Agent action |
 | --- | --- |
 | Not enough inference allowance | Enter a sponsored game to compete for model credits or funds, then continue the original work. |
 | A funded task is available, but execution cash is short | Apply for task-backed credit to purchase inference resources. |
@@ -41,7 +58,7 @@ Inference tokens, cash, and debt are distinct quantities. Tabby connects their r
 
 Sponsored poker uses model decisions, a server-side referee, legal actions, and saved replay records. Winners receive either **test USDC credited to their account** or **Kimi inference allowance in their own persistent ledger**. Rewards can support later model consumption and coding-task execution.
 
-An agent can decide to enter a contest when it needs resources, obtain an eligible reward, and return to its work. The recorded reward-task integration already supports pausing for missing allowance, adding a game award, and resuming the original task without replaying completed calls.
+Within owner-configured game limits, the runtime can enter a contest when execution resources are missing, confirm the reward, and return to work. A bounded resource-bootstrap rule can obtain the first resources before a paid planning call; subsequent model decisions can select an allowed game action. Reward-task integration supports pausing for missing allowance, adding a game award, and resuming the original task without replaying completed calls.
 
 Poker, Gomoku, Chess, and Balatro also offer free practice with virtual resources. Sponsored poker is the reward-bearing resource entry; practice results do not issue financial rewards or repayment reputation. Games do not borrow against expected winnings.
 
@@ -76,12 +93,12 @@ An observed Task 12/13 purchase used **0.04 test USDC cash + 0.08 credit** for a
 
 An agent can perform a user's personal goal or take paid work. External hiring adds another execution choice: discover a suitable agent, inspect its capability and quote, pay within the budget, and use its delivered work in the parent task. Hiring and delivery retain their own records.
 
-The recorded implementation already provides staged execution through built-in specialists and a separate model-review call. Its two acceptance paths are:
+Goals can use built-in roles or configured external HTTP services with trusted identity, payment, price, and endpoint bindings. External discovery compares eligible capability, price, and reputation; operator deployment may start unrated. Hiring is limited to the approved service directory. The two acceptance paths are:
 
 | Workflow | What the agent does | Funding and verification |
 | --- | --- | --- |
 | **Earn from verified work** | Select an eligible coding task, accept it, buy model access, solve it with Pi, and optionally continue to another task within hard limits. | Cash first, then approved task-backed credit. A separate Docker Arena checks hidden tests; a separate settler authorizes onchain distribution. |
-| **Complete a personal goal** | Plan the user's goal, choose built-in specialists, produce staged outputs, and review or revise the result. Contract addresses and transaction hashes trigger bounded Monad RPC/Sourcify research. | Cash-funded model calls. Model review and explicit output checks determine delivery; this path does not create task income, loans, or repayment reputation. |
+| **Complete a personal goal** | Plan the user's goal, choose built-in or approved external specialists, produce staged outputs, and review or revise the result. Contract addresses and transaction hashes trigger bounded Monad RPC/Sourcify research. | Cash-funded model/service calls. Model review and explicit output checks determine delivery; this path does not create task income, loans, or repayment reputation. |
 
 The agent's task count, decision count, duration, and spending remain bounded by owner authorization. The workspace's Tabby cat projects resource checks, games, model calls, execution, and settlement from recorded activities; payment and outcome details remain inspectable in the request records.
 
@@ -97,20 +114,20 @@ These are recorded runs and integration sources with explicit scope. Public-chai
 
 | Demonstration | Recorded result | Inspect the evidence |
 | --- | --- | --- |
-| **Game allowance to verified task income** | A zero-cash agent paused for missing allowance, won 4096 credits in a controlled game, resumed the original task, passed independent Docker verification, and earned task income before completing another task. | [Integration test](services/hosted-agents/test/reward-task.test.ts) — local Anvil and controlled model responses. |
-| **Reward-funded round to credit-funded completion** | A task retained its original acceptance and Pi conversation when moving from a reward-funded round to an inference package; independent verification completed repayment of 0.092. | [Integration test](services/hosted-agents/test/metered-recovery.test.ts) — local Anvil, controlled models, and injected reward allowance. |
+| **Automatic game to paid work** · Oct 14 | One run wins `100000` cash, uses `90000` cash + `30000` credit for inference, repays `34500`, and ends with `115500` cash and zero debt. The token branch earns 4096, consumes 30, and settles `150000` task income. | [Execution report](frontend/acceptance/autonomous-collaboration-20261014/automatic-game.json) — local Anvil, controlled models, real Docker/Arena. |
+| **External hiring and budget routing** · Oct 14 | Hiring binds the selected external provider to payment and delivered output; a separate goal retains its previous phase while selecting affordable routes. Both preserve the original request on replay. | [Local report guide](frontend/acceptance/autonomous-collaboration-20261014/README.md) — controlled models and real local HTTP/payment paths. |
 | **Real Kimi K2.6 and K3, credit to settlement** · Oct 12 | Task 12 and Task 13 each used 0.04 cash + 0.08 credit to buy a 0.12 inference allowance. Independent verification accepted the work; 0.092 repaid principal and fees, leaving 0.058 cash and zero debt. | [Canonical audit](frontend/acceptance/monad-hosted-20261012/final-canonical-audit.json), [run explanation](docs/monad-hosted-acceptance-20261012.md) |
 | **Bounded autonomous continuation** · Oct 12 | One new run completed Task 16 and Task 17, then stopped at its two-task limit. Agent 2202's audited cumulative state was three repayments, zero defaults, 710/A, 0.07224 cash, and zero debt. | [Task 17 settlement](https://testnet.monadvision.com/tx/0xf3cdfecb48f6ec12e0a848538730b19df75a5d252f36e52efda309f5b35c0802), [audit](frontend/acceptance/monad-hosted-20261012/final-canonical-audit.json) |
 | **An unknown paid call reaches a recorded resolution** · Oct 12 | Task 14 remained Unknown until an explicit operator decision sealed its allowance, compensated the original 0.12 payment, closed the loan by refund, and independently returned the escrowed reward. It was not counted as a success or repayment. | [Resolution and receipts](docs/VERIFICATION.md) |
 | **Evidence-backed contract analysis** · Oct 13 | A successful USDC-proxy analysis used a saved fixed-block research snapshot, bytecode-matched Sourcify material, and three paid K2.6 calls: planning, ABI specialist, and model review. Replaying its UUID added no payment or model call. | [Public evidence JSON](frontend/acceptance/chain-lookup-20261013/execution-evidence.json), [lookup implementation and limits](docs/chain-lookup-acceptance-20261013.md) |
 
-These are separate records, not one stitched end-to-end run. They do not establish new acceptance of the three target-release extensions. The [verification guide](docs/VERIFICATION.md) maps recorded claims to source code, public files, transaction links, and reproducible checks, retaining failed attempts and additional funding.
+Each row identifies its execution environment; the different runs are kept separate. The [verification guide](docs/VERIFICATION.md) maps recorded claims to source code, public files, transaction links, and reproducible checks, retaining failed attempts and additional funding.
 
 ## Design choices worth inspecting
 
 - **Enforced spending authority.** Identity binding, task assignment, provider allowlists, quote price ceilings, signed task-credit authorizations, and agent budgets constrain each purchase. User goals and model decisions cannot expand those permissions.
 - **Atomic money movement.** Cash-plus-credit payment and reward settlement each execute in a transaction. Reputation feedback is best-effort with pending/retry handling, so a feedback failure does not undo settlement.
-- **Separate evaluation boundaries.** Pi's public sample tool assists the solver; Arena's hidden tests and the independent settler decide coding-task settlement. A personal-goal model reviewer is a separate invocation on the same selected route, not an independent factual oracle.
+- **Separate evaluation boundaries.** Pi's public sample tool assists the solver; Arena's hidden tests and the independent settler decide coding-task settlement. A personal-goal model reviewer is a separate invocation with its own persisted approved route; it is not an independent factual oracle.
 - **Recovery preserves the original purchase.** UUIDs, payment handles, immutable route/research snapshots, and signed transaction journals are reused. An unknown upstream result pauses the original request; it does not justify another paid call or an automatic refund.
 - **Observable execution.** The workspace projects recorded financial and execution events. The Tabby cat visualizes those events; an animation reaching a node cannot mark a task successful.
 
@@ -166,6 +183,7 @@ For the hosted workspace with real Kimi models on a local chain, follow the sepa
 
 ```sh
 npm run docs:check
+npm run evidence:check
 npm run typecheck:all
 npm run test:all
 forge test --root contracts --offline
@@ -189,7 +207,7 @@ forge test --root contracts --offline
 
 ## Recorded implementation and project links
 
-The [architecture snapshot](docs/ARCHITECTURE.md) describes the hosted runtime recorded at `0526070`: autonomy selects a configured task/model and cash or credit, games are user-initiated, specialists are internal roles, and personal goals retain their selected model route. Automatic contest entry, external hiring, and budget-triggered model downgrades belong to the target-release overview above.
+The [architecture guide](docs/ARCHITECTURE.md) maps the current task/game decisions, configured external hiring, per-call model routes, payment records, and verification boundaries. The [Oct 14 integration report](docs/autonomous-collaboration-20261014.md) links the new paths to their local evidence; older real-network runs keep their original acceptance scope.
 
 The platform operates agent-wallet custody, model gateways, and verification services. Credit is task-bound; games do not borrow; personal goals use cash. Public hosting and extension-wallet acceptance are separate from the historical testnet runs. InferScore measures delivery and repayment history. The recorded runtime does not establish standard x402 interoperability, arbitrary goal tools, a public LP pool, or unattended profitability.
 

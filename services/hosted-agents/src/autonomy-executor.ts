@@ -9,11 +9,13 @@ import { createAutonomyDecisionPrompt, parseAutonomyDecision, runAutonomy, type 
 import { taskLoopbackUrl, taskPrivateFile } from "../../../packages/pi-loop/src/task-runner/config.js";
 import { monadProvider, type RpcTransport } from "../../../scripts/demo-rpc.js";
 import type { HostedTaskExecutor } from "./task-executor.js";
+import type { HostedGameExecutor } from "./game-executor.js";
 import { HostedError, type HostedExecution, type HostedExecutor, type HostedResult } from "./types.js";
 
 export interface HostedAutonomyConfig {
   maxTasks: number; maxDecisions: number; durationMs: number;
   plannerRelayUrl: string; plannerProvider: string; plannerPriceRaw: string; plannerService: string; plannerModel: string; plannerPhysicalModel: string; plannerResponseModel?: string;
+  games?: { maxGames: number; maxSpendPerGameRaw: string; rewardKinds: ("usdc" | "llm-credits")[]; rewardTaskMinTokens: number };
 }
 export interface HostedAutonomyDependencies {
   provider?: JsonRpcProvider;
@@ -23,6 +25,10 @@ export interface HostedAutonomyDependencies {
   recoverPlanner?(context: AutonomyContext, decisionId: string, limits: AutonomyLimits, input: HostedExecution): Promise<AutonomyDecisionRecovery>;
   now?: () => number;
   shouldContinue?: (agentId: string) => Promise<boolean>;
+  /** Same identity-bound real game executor used by the manual play path. */
+  games?: Pick<HostedGameExecutor, "execute" | "rewardBalance">;
+  /** Persist owner/global sponsor admission for each original game child before any model or chain call. */
+  admitGame?(parent: HostedExecution, child: HostedExecution): Promise<void>;
 }
 interface Snapshot {
   version: 1; config: HostedAutonomyConfig; input: HostedExecution; controller: AutonomyConfig; children: Record<string, HostedExecution>;
@@ -32,7 +38,7 @@ type TaskAdapter = Pick<HostedTaskExecutor, "config" | "finance" | "execute">;
 const min = (...values: bigint[]) => values.reduce((a, b) => a < b ? a : b);
 function invalid(code: string): never { throw new HostedError(code, 503); }
 export function validateHostedAutonomyConfig(config: HostedAutonomyConfig): HostedAutonomyConfig {
-  if (!config || Object.keys(config).some(key => !["maxTasks", "maxDecisions", "durationMs", "plannerRelayUrl", "plannerProvider", "plannerPriceRaw", "plannerService", "plannerModel", "plannerPhysicalModel", "plannerResponseModel"].includes(key))
+  if (!config || Object.keys(config).some(key => !["maxTasks", "maxDecisions", "durationMs", "plannerRelayUrl", "plannerProvider", "plannerPriceRaw", "plannerService", "plannerModel", "plannerPhysicalModel", "plannerResponseModel", "games"].includes(key))
     || !Number.isSafeInteger(config.maxTasks) || config.maxTasks < 1 || config.maxTasks > 20
     || !Number.isSafeInteger(config.maxDecisions) || config.maxDecisions < 1 || config.maxDecisions > 40
     || !Number.isSafeInteger(config.durationMs) || config.durationMs < 1000 || config.durationMs > 3600000
@@ -40,6 +46,15 @@ export function validateHostedAutonomyConfig(config: HostedAutonomyConfig): Host
     || (config.plannerResponseModel !== undefined && (typeof config.plannerResponseModel !== "string" || !/^[a-zA-Z0-9_./:-]{1,120}$/.test(config.plannerResponseModel)))
     || [config.plannerService, config.plannerModel, config.plannerPhysicalModel].some(model => typeof model !== "string" || !/^[a-zA-Z0-9_./:-]{1,120}$/.test(model))) invalid("HOSTED_AUTONOMY_CONFIG_INVALID");
   taskLoopbackUrl(config.plannerRelayUrl); getAddress(config.plannerProvider);
+  if (config.games) {
+    const games = config.games;
+    if (Object.keys(games).some(key => !["maxGames", "maxSpendPerGameRaw", "rewardKinds", "rewardTaskMinTokens"].includes(key))
+      || !Number.isSafeInteger(games.maxGames) || games.maxGames < 1 || games.maxGames > 20
+      || typeof games.maxSpendPerGameRaw !== "string" || !/^(0|[1-9][0-9]{0,77})$/.test(games.maxSpendPerGameRaw)
+      || !Number.isSafeInteger(games.rewardTaskMinTokens) || games.rewardTaskMinTokens < 1 || games.rewardTaskMinTokens > 100000
+      || !Array.isArray(games.rewardKinds) || !games.rewardKinds.length || games.rewardKinds.length > 2
+      || games.rewardKinds.some(kind => !["usdc", "llm-credits"].includes(kind)) || new Set(games.rewardKinds).size !== games.rewardKinds.length) invalid("HOSTED_AUTONOMY_CONFIG_INVALID");
+  }
   return structuredClone(config);
 }
 
@@ -121,7 +136,41 @@ export async function reconcileHostedPlannerPayment(handle: PaymentHandle, expec
 export class HostedAutonomyExecutor implements HostedExecutor {
   readonly config: HostedAutonomyConfig;
   constructor(private task: TaskAdapter, config: HostedAutonomyConfig, private deps: HostedAutonomyDependencies = {}) { this.config = validateHostedAutonomyConfig(config); }
+  /** New game defaults never grant an old paid session more games, decisions, spending or time. */
+  private async legacyExecutor(input: HostedExecution): Promise<HostedAutonomyExecutor | undefined> {
+    try {
+      const saved: Snapshot = JSON.parse(await readFile(join(input.directory, "autonomy-host", "session.json"), "utf8"));
+      const old = validateHostedAutonomyConfig(saved.config);
+      if (old.games !== undefined || this.config.games === undefined || old.maxDecisions > this.config.maxDecisions
+        || !isDeepStrictEqual({ ...old, maxDecisions: this.config.maxDecisions, games: this.config.games }, this.config)) return undefined;
+      return new HostedAutonomyExecutor(this.task, old, this.deps);
+    } catch { return undefined; }
+  }
+  /** Read only a known resource pause. Unknown payment/entry/dispatch is never a funding admission. */
+  async resolveFundingTarget(input: HostedExecution): Promise<{ childId: string; modelId: string; funding: "cash" | "reward-tokens" } | undefined> {
+    const legacy = await this.legacyExecutor(input); if (legacy) return legacy.resolveFundingTarget(input);
+    try {
+      if (input.run.action !== "autonomous" || input.run.status !== "Paused" || !["INFERENCE_FUNDING_REQUIRED", "AUTONOMY_GAME_LIMIT"].includes(input.run.reason ?? "")) return undefined;
+      const host: Snapshot = JSON.parse(await readFile(join(input.directory, "autonomy-host", "session.json"), "utf8"));
+      const loop: AutonomyState = JSON.parse(await readFile(join(input.directory, "autonomy-loop", "session.json"), "utf8"));
+      if (!isDeepStrictEqual(host.config, this.config) || !isDeepStrictEqual(host.controller, loop.config) || loop.phase !== "Paused" || loop.resumingTaskChildId
+        || loop.config.deadlineMs <= (this.deps.now ?? Date.now)()
+        || host.input.agent.id !== input.agent.id || host.input.agent.owner !== input.agent.owner || host.input.agent.wallet !== input.agent.wallet
+        || !isDeepStrictEqual(host.input.agent.binding, input.agent.binding) || host.input.keyFile !== input.keyFile
+        || host.input.run.requestId !== input.run.requestId || host.input.run.reservedRaw !== input.run.reservedRaw) return undefined;
+      const step = loop.pendingTaskChildId ? loop.steps.find(step => step.childId === loop.pendingTaskChildId) : loop.steps.at(-1);
+      if (!step?.childId || step.decision?.action !== "run-task" || step.outcome?.terminal || step.outcome?.reason !== "INFERENCE_FUNDING_REQUIRED"
+        || loop.steps.some(other => other.childId && other.childId !== step.childId && !other.outcome?.terminal)) return undefined;
+      const child = host.children[step.childId];
+      if (!child || !["reward-task", "metered-task"].includes(child.run.action) || (child.run.action === "reward-task") !== (step.decision.funding === "reward-tokens") || child.run.requestId !== step.childId
+        || child.run.agentId !== input.agent.id || child.agent.id !== input.agent.id || child.agent.owner !== input.agent.owner || child.agent.wallet !== input.agent.wallet
+        || !isDeepStrictEqual(child.agent.binding, input.agent.binding) || child.keyFile !== input.keyFile
+        || child.directory !== join(input.directory, "children", step.childId) || child.agent.modelId !== step.decision.modelId) return undefined;
+      return { childId: step.childId, modelId: child.agent.modelId, funding: child.run.action === "reward-task" ? "reward-tokens" : "cash" };
+    } catch { return undefined; }
+  }
   async canRecoverTerminal(input: HostedExecution): Promise<boolean> {
+    const legacy = await this.legacyExecutor(input); if (legacy) return legacy.canRecoverTerminal(input);
     let owned: Awaited<ReturnType<typeof openHostedPlannerConnection>> | undefined;
     try {
       const snapshot: Snapshot = JSON.parse(await readFile(join(input.directory, "autonomy-host", "session.json"), "utf8"));
@@ -146,7 +195,9 @@ export class HostedAutonomyExecutor implements HostedExecutor {
     } catch { return false; } finally { owned?.close(); }
   }
   async execute(input: HostedExecution): Promise<HostedResult> {
+    if (input.recover) { const legacy = await this.legacyExecutor(input); if (legacy) return legacy.execute(input); }
     if (String(input.run.action) !== "autonomous" || !input.agent.binding || !this.task.config.metered) invalid("HOSTED_AUTONOMY_NOT_READY");
+    if (this.config.games && !this.deps.games) invalid("HOSTED_AUTONOMY_GAMES_NOT_READY");
     const store = new SessionStore<Snapshot>(join(input.directory, "autonomy-host")); await store.start(input.recover);
     let ownedTransport: Awaited<ReturnType<typeof openHostedPlannerConnection>> | undefined;
     try {
@@ -159,18 +210,30 @@ export class HostedAutonomyExecutor implements HostedExecutor {
         if (!models.length || !/^[1-9][0-9]{0,77}$/.test(input.run.reservedRaw) || BigInt(input.run.reservedRaw) > BigInt(input.agent.totalBudgetRaw) - BigInt(input.agent.spentRaw)) invalid("HOSTED_AUTONOMY_BUDGET_INVALID");
         const controller: AutonomyConfig = { version: 1, sessionId: input.run.requestId, maxTasks: this.config.maxTasks, maxDecisions: this.config.maxDecisions,
           maxSpendRaw: input.run.reservedRaw, deadlineMs: (this.deps.now ?? Date.now)() + this.config.durationMs, models,
-          funding: input.agent.allowCredit ? ["cash", "credit"] : ["cash"], decisionReserveRaw: this.config.plannerPriceRaw };
+          funding: [...(input.agent.allowCredit ? ["cash", "credit"] as const : ["cash"] as const),
+            ...(this.config.games?.rewardKinds.includes("llm-credits") && models.includes("kimi-k2.6") ? ["reward-tokens" as const] : [])], decisionReserveRaw: this.config.plannerPriceRaw,
+          ...(this.config.games ? { games: { maxGames: this.config.games.maxGames, maxSpendPerGameRaw: this.config.games.maxSpendPerGameRaw, rewardKinds: [...this.config.games.rewardKinds] } } : {}) };
         const {activity:_activity,progress:_progress,...persistedInput}=input;
         snapshot = { version: 1, config: this.config, input: structuredClone(persistedInput), controller, children: {} }; await store.write(snapshot);
       }
       const state = snapshot, parent = state.input;
       const executeChild = async (child: HostedExecution, recover: boolean) => {
-        const result = await this.task.execute({ ...structuredClone(child), recover, activity:input.activity });
+        if (child.run.action === "game" && this.deps.admitGame) {
+          try { await this.deps.admitGame(parent, child); }
+          catch (error) {
+            if (error instanceof HostedError && ["HOSTED_SPONSOR_LIMIT", "HOSTED_AGENT_PAUSED", "HOSTED_AUTONOMY_GAME_ADMISSION_INVALID"].includes(error.code))
+              return { terminal: true, success: false, chargedRaw: "0", reason: error.code };
+            return { terminal: false, success: false, chargedRaw: "0", reason: "HOSTED_AUTONOMY_GAME_ADMISSION_UNCERTAIN" };
+          }
+        }
+        const adapter = child.run.action === "game" ? this.deps.games : this.task;
+        if (!adapter) invalid("HOSTED_AUTONOMY_GAMES_NOT_READY");
+        const result = await adapter.execute({ ...structuredClone(child), recover, activity:input.activity });
         return { terminal: result.terminal, success: result.success, chargedRaw: result.chargedRaw, ...(result.refundedRaw !== undefined ? { refundedRaw: result.refundedRaw } : {}), ...(result.reason ? { reason: result.reason } : {}) };
       };
       const result = await runAutonomy(join(input.directory, "autonomy-loop"), state.controller, {
         now: this.deps.now,
-        onProgress:async progress=>{const decision=progress.decision;await input.activity?.({scene:progress.phase==="Paused"?"interruption":"decision",state:progress.phase==="Deciding"?"started":progress.phase==="Executing"?"selected":progress.phase==="Paused"?/UNKNOWN|UNCERTAIN|UNCONFIRMED/.test(progress.reason??"")?"reconciling":"paused":progress.phase==="Stopped"||progress.phase==="Completed"?"completed":"waiting",...(progress.decisionId?{phaseId:progress.decisionId}:{}),...(decision?.action==="run-task"?{subject:{id:decision.modelId,name:decision.modelId,kind:"model" as const}}:{}),...(progress.reason&&/^[A-Z][A-Z0-9_]{0,100}$/.test(progress.reason)?{reason:progress.reason}:{}),evidence:{chargedRaw:progress.chargedRaw,completedTasks:progress.completedTasks}});},
+        onProgress:async progress=>{const decision=progress.decision;await input.activity?.({scene:progress.phase==="Paused"?"interruption":decision?.action==="run-game"?"game":"decision",state:progress.phase==="Deciding"?"started":progress.phase==="Executing"?"selected":progress.phase==="Paused"?/UNKNOWN|UNCERTAIN|UNCONFIRMED/.test(progress.reason??"")?"reconciling":"paused":progress.phase==="Stopped"||progress.phase==="Completed"?"completed":"waiting",...(progress.decisionId?{phaseId:progress.decisionId}:{}),...(decision&&decision.action!=="stop"?{subject:{id:decision.modelId,name:decision.modelId,kind:"model" as const}}:{}),...(progress.reason&&/^[A-Z][A-Z0-9_]{0,100}$/.test(progress.reason)?{reason:progress.reason}:{}),evidence:{chargedRaw:progress.chargedRaw,completedTasks:progress.completedTasks}});},
         observe: async () => {
           await input.activity?.({scene:"funding",state:"started"});
           const finance = await this.task.finance(parent.agent); if (finance.status !== "confirmed") throw new Error(finance.reason);
@@ -180,13 +243,37 @@ export class HostedAutonomyExecutor implements HostedExecutor {
           const metered = this.task.config.metered!;
           const plans = this.task.config.models.map(model => ({ modelId: model.id, workflow: model.templates[parent.agent.strategy] }));
           const limits = plans.flatMap(plan => plan.workflow.tasks.map(task => BigInt(task.creditLimit)));
+          const rewards = this.config.games && this.deps.games ? await this.deps.games.rewardBalance(parent.agent) : undefined;
           return { cashRaw: finance.cashRaw, debtRaw: finance.debtRaw, creditAvailableRaw: (credit > BigInt(finance.debtRaw) ? credit - BigInt(finance.debtRaw) : 0n).toString(), inferenceCreditsAvailable: "0",
+            ...(rewards ? { rewardTokens: { modelId: rewards.modelId, availableTokens: String(rewards.availableTokens), minTaskTokens: String(this.config.games!.rewardTaskMinTokens), blocked: rewards.blocked } } : {}),
             executionCosts: { planningCashRaw: this.config.plannerPriceRaw, taskPackagePriceRaw: metered.priceRaw, taskPackageCreditsRaw: metered.creditsRaw,
               taskPerRunLimitRaw: parent.agent.perRunBudgetRaw, taskCreditLimitRaw: limits.length ? min(...limits).toString() : "0", borrowerFeeBps: finance.credit.feeBps,
               modelTiers: plans.map(plan => ({ modelId: plan.modelId, tiers: [...new Set(plan.workflow.providers.flatMap(provider => provider.routes.flatMap(route => route.solve.tiers)))] })),
               tokenRates: metered.catalog.map((model, index) => ({ tier: index === 0 ? "cheap" : "strong", inputMicroCreditsPerToken: model.inputMicroCreditsPerToken, outputMicroCreditsPerToken: model.outputMicroCreditsPerToken })) } };
 
         },
+        ...(this.config.games ? {
+          runtimeDecision: async (context: AutonomyContext) => {
+            if (this.deps.shouldContinue && !await this.deps.shouldContinue(parent.agent.id)) return { action: "stop" as const, reason: "HOSTED_AGENT_PAUSED" };
+            const rewards = context.observation.rewardTokens;
+            const rewardReady = rewards && !rewards.blocked && context.models.includes(rewards.modelId) && context.funding.includes("reward-tokens")
+              && BigInt(rewards.availableTokens) >= BigInt(rewards.minTaskTokens);
+            const feasiblePaidTask = context.fundingQuote?.options.some(option => option.feasible);
+            if (!context.pendingTask && feasiblePaidTask) return null;
+            if (!context.pendingTask && rewardReady) return { action: "run-task" as const, modelId: rewards.modelId, funding: "reward-tokens" as const };
+            if (rewards?.blocked) return { action: "stop" as const, reason: "REWARD_ACCOUNT_BLOCKED_BY_USAGE_OVERRUN" };
+            if ((context.remainingGames ?? 0) < 1) return { action: "stop" as const, reason: "AUTONOMY_GAME_LIMIT" };
+            const kind = context.pendingTask ? "llm-credits" : BigInt(context.observation.cashRaw) < BigInt(this.config.plannerPriceRaw) && this.config.games!.rewardKinds.includes("usdc") ? "usdc" : this.config.games!.rewardKinds.includes("llm-credits") ? "llm-credits" : "usdc";
+            if (!this.config.games!.rewardKinds.includes(kind) || !rewards || !context.models.includes(rewards.modelId)) return { action: "stop" as const, reason: "AUTONOMY_REWARD_RESOURCE_UNAVAILABLE" };
+            return { action: "run-game" as const, modelId: rewards.modelId, funding: "cash" as const, rewardKind: kind };
+          },
+          canResumeTask: async (context: AutonomyContext) => {
+            if (this.deps.shouldContinue && !await this.deps.shouldContinue(parent.agent.id)) return false;
+            const rewards = context.observation.rewardTokens, pending = context.pendingTask;
+            return !!(pending && rewards && !rewards.blocked && rewards.modelId === pending.modelId
+              && BigInt(rewards.availableTokens) >= BigInt(rewards.minTaskTokens) && BigInt(rewards.availableTokens) > BigInt(pending.lastResumeTokens ?? "0"));
+          },
+        } : {}),
         decide: async (context, decisionId, limits) => {
           if (this.deps.shouldContinue && !await this.deps.shouldContinue(parent.agent.id)) return { decision: { action: "stop", reason: "HOSTED_AGENT_PAUSED" }, chargedRaw: "0",source:"runtime" as const };
           if (BigInt(context.observation.cashRaw) < BigInt(this.config.plannerPriceRaw)) return { decision: { action: "stop", reason: "AUTONOMY_PLANNER_CASH_REQUIRED" }, chargedRaw: "0",source:"runtime" as const };
@@ -210,15 +297,27 @@ export class HostedAutonomyExecutor implements HostedExecutor {
         execute: async (decision, childId, limits) => {
           if (this.deps.shouldContinue && !await this.deps.shouldContinue(parent.agent.id)) return { terminal: true, success: false, chargedRaw: "0", reason: "HOSTED_AGENT_PAUSED" };
           const budget = min(BigInt(parent.agent.perRunBudgetRaw), BigInt(limits.maxSpendRaw)).toString();
-          if (BigInt(budget) < BigInt(this.task.config.metered!.priceRaw)) return { terminal: true, success: false, chargedRaw: "0", reason: "AUTONOMY_TASK_BUDGET_REQUIRED" };
+          if (decision.funding !== "reward-tokens" && BigInt(budget) < BigInt(this.task.config.metered!.priceRaw)) return { terminal: true, success: false, chargedRaw: "0", reason: "AUTONOMY_TASK_BUDGET_REQUIRED" };
           const timestamp = new Date((this.deps.now ?? Date.now)()).toISOString();
           const child: HostedExecution = { agent: { ...structuredClone(parent.agent), modelId: decision.modelId, allowCredit: decision.funding === "credit",
-            perRunBudgetRaw: budget, totalBudgetRaw: parent.agent.totalBudgetRaw,
-            spentRaw: (BigInt(parent.agent.spentRaw) + BigInt(parent.run.reservedRaw) - BigInt(limits.maxSpendRaw)).toString(), reservedRaw: budget, activeRequestId: childId },
-            run: { requestId: childId, agentId: parent.agent.id, action: "metered-task", status: "Running", createdAt: timestamp, updatedAt: timestamp,
-              reservedRaw: budget, chargedRaw: "0", recoverable: true }, directory: join(parent.directory, "children", childId), keyFile: parent.keyFile, recover: false, deadlineMs: limits.deadlineMs };
+            perRunBudgetRaw: decision.funding === "reward-tokens" ? parent.agent.perRunBudgetRaw : budget, totalBudgetRaw: parent.agent.totalBudgetRaw,
+            spentRaw: (BigInt(parent.agent.spentRaw) + BigInt(parent.run.reservedRaw) - BigInt(limits.maxSpendRaw)).toString(), reservedRaw: decision.funding === "reward-tokens" ? "0" : budget, activeRequestId: childId },
+            run: { requestId: childId, agentId: parent.agent.id, action: decision.funding === "reward-tokens" ? "reward-task" : "metered-task", status: "Running", createdAt: timestamp, updatedAt: timestamp,
+              reservedRaw: decision.funding === "reward-tokens" ? "0" : budget, chargedRaw: "0", recoverable: true }, directory: join(parent.directory, "children", childId), keyFile: parent.keyFile, recover: false, deadlineMs: limits.deadlineMs };
           state.children[childId] = child; await store.write(state);
           return executeChild(child, false);
+        },
+        executeGame: async (decision, childId, limits, fundingFor) => {
+          if (this.deps.shouldContinue && !await this.deps.shouldContinue(parent.agent.id)) return { terminal: true, success: false, chargedRaw: "0", reason: "HOSTED_AGENT_PAUSED" };
+          if (!this.deps.games) return { terminal: true, success: false, chargedRaw: "0", reason: "HOSTED_AUTONOMY_GAMES_NOT_READY" };
+          const timestamp = new Date((this.deps.now ?? Date.now)()).toISOString();
+          const child: HostedExecution = { agent: { ...structuredClone(parent.agent), modelId: decision.modelId, allowCredit: false,
+              reservedRaw: limits.maxSpendRaw, activeRequestId: childId },
+            run: { requestId: childId, agentId: parent.agent.id, action: "game", rewardKind: decision.rewardKind,
+              ...(fundingFor ? { fundingFor } : {}), status: "Running", createdAt: timestamp, updatedAt: timestamp,
+              reservedRaw: limits.maxSpendRaw, chargedRaw: "0", recoverable: true },
+            directory: join(parent.directory, "children", childId), keyFile: parent.keyFile, recover: false, deadlineMs: limits.deadlineMs };
+          state.children[childId] = child; await store.write(state); return executeChild(child, false);
         },
         recover: async (childId) => {
           const child = state.children[childId]; if (!child) return { terminal: false, success: false, chargedRaw: "0", reason: "AUTONOMY_CHILD_SNAPSHOT_MISSING" };
@@ -232,7 +331,8 @@ export class HostedAutonomyExecutor implements HostedExecutor {
       const reason = modelStopped && result.steps.at(-1)?.decisionSource!=="runtime" && !admissionStops.includes(result.reason ?? "") ? "AUTONOMY_MODEL_STOPPED"
         : result.reason && /^[A-Z][A-Z0-9_]{0,100}$/.test(result.reason) ? result.reason : "AUTONOMY_EXECUTION_STOPPED";
       return Object.assign({ phase: result.phase, terminal, success: terminal && !childFailed && (result.phase === "Completed" || result.steps.at(-1)?.decision?.action === "stop"),
-        chargedRaw: result.chargedRaw, refundedRaw: result.steps.reduce((sum, step) => sum + BigInt(step.decisionRefundedRaw ?? "0") + BigInt(step.outcome?.refundedRaw ?? "0"), 0n).toString(), reason }, { autonomousTasks: result.completedTasks });
+        chargedRaw: result.chargedRaw, refundedRaw: result.steps.reduce((sum, step) => sum + BigInt(step.decisionRefundedRaw ?? "0") + BigInt(step.outcome?.refundedRaw ?? "0"), 0n).toString(), reason }, { autonomousTasks: result.completedTasks,
+          ...(this.config.games ? { autonomousGames: result.completedGames ?? 0 } : {}) });
     } finally { ownedTransport?.close(); await store.close(); }
   }
   private async cachedPlan(input: HostedExecution, context: AutonomyContext, decisionId: string, provider: JsonRpcProvider) {

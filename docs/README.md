@@ -9,6 +9,7 @@ The repository contains current guides and dated engineering/acceptance records.
 | What does Tabby solve, and what can I run? | [English overview](../README.md), [中文介绍](../README.zh-CN.md) |
 | Where is each behavior implemented? | [Architecture and code map](ARCHITECTURE.md) |
 | What evidence supports a claim? | [Verification, amounts, receipts and replay checks](VERIFICATION.md) |
+| Where are automatic games, paid external collaboration and budget downgrade verified? | [2026-10-14 local acceptance and reproduction](autonomous-collaboration-20261014.md) |
 | How should I change and validate the implementation? | [Contributing](../CONTRIBUTING.md) |
 | Which components are original or adapted? | [Attribution](ATTRIBUTION.md) |
 
@@ -33,8 +34,9 @@ Runbooks retain Chinese operational detail. Real-model or public-chain execution
 | Oct 12, 2026 | [Real models and Anvil](local-real-acceptance-20261012.md); [local services connected to Monad](monad-hosted-acceptance-20261012.md) |
 | Oct 13, 2026 | [Personal goals and workspace](dashboard-goal-workspace-20261013.md); [fixed-block Monad lookup](chain-lookup-acceptance-20261013.md) |
 | Oct 14, 2026 | [Execution-scene design](tabby-agent-scenes-20261014.md); [scene/UI acceptance](../frontend/acceptance/tabby-scenes-20261014/README.md) using labeled fixtures/local integrations |
+| Oct 14, 2026 | [Automatic games, external hiring and model downgrade](autonomous-collaboration-20261014.md): local Anvil + controlled LLM responses; [game/task and replenishment report](../frontend/acceptance/autonomous-collaboration-20261014/automatic-game.json), [external hire report](../frontend/acceptance/autonomous-collaboration-20261014/external-hire.json), [goal model downgrade report](../frontend/acceptance/autonomous-collaboration-20261014/model-fallback.json) |
 
-These dates describe recorded work. A screenshot or controlled fixture does not establish a new testnet transaction, supplier call, public deployment, or earlier submission date.
+These dates describe recorded work. The Oct 12–13 real-network records preserve the historical `0526070` implementation scope; the Oct 14 collaboration reports validate the new paths locally. A screenshot or controlled fixture does not establish a new testnet transaction, supplier call, public deployment, or earlier submission date.
 
 ## Design and development history
 

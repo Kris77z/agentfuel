@@ -1,19 +1,30 @@
-import { Contract, Wallet, Interface, keccak256 } from "ethers";
+import { Contract, Wallet, Interface, Transaction, keccak256 } from "ethers";
 import { InferCredit, ACCOUNT_ABI, type Json } from "@agentfuel/sdk";
 import { confirmPaidDelivery } from "@agentfuel/pi-loop/fixed-task";
 import { taskPrivateFile } from "../../../../packages/pi-loop/src/task-runner/config.js";
 import { openHostedPlannerConnection } from "../autonomy-executor.js";
 import type { HostedTaskExecutorConfig } from "../task-executor.js";
 import type { HostedExecution } from "../types.js";
-import type { GoalState, GoalCall } from "./executor.js";
+import { selectGoalModelRoute, type GoalState, type GoalCall } from "./executor.js";
 import { isDeepStrictEqual } from "node:util";
 import { voidExpiredGoalPayment } from "./void-payment.js";
 const policyABI=new Interface(["function setPolicy(uint256,tuple(uint256 maxCashPerTx,uint256 maxDebtPerTx,uint256 maxDebtPerDay,bool ownerFrozen))"]);
 const goalAccountABI=[...ACCOUNT_ABI,"function getPolicy(uint256) view returns(tuple(uint256 maxCashPerTx,uint256 maxDebtPerTx,uint256 maxDebtPerDay,bool ownerFrozen))","function protocolFrozen(uint256) view returns(bool)"];
+/** Read-only admission snapshot. Cash can fund personal goals; task credit is
+ * deliberately excluded because these purchases have taskId=0. */
+export async function readGoalCash(config:HostedTaskExecutorConfig,state:GoalState):Promise<string>{
+  const connection=await openHostedPlannerConnection((await taskPrivateFile(config.rpcUrlFile)).trim(),state.input.chainId,config.rpcTransport);
+  try{
+    const template=config.models[0].templates.conservative;
+    if(template.chainId!==state.input.chainId)throw Error("HOSTED_GOAL_BINDING_CHANGED");
+    const account=new Contract(template.account,goalAccountABI,connection.provider);
+    return String(await account.getFunction("cash").staticCall(state.input.chainAgentId));
+  }finally{connection.close();}
+}
 export async function paidGoalCall(config:HostedTaskExecutorConfig,state:GoalState,call:GoalCall,input:HostedExecution,save:()=>Promise<void>,control:()=>Promise<{paused:boolean;cancelled:boolean}>|undefined){
   const connection=await openHostedPlannerConnection((await taskPrivateFile(config.rpcUrlFile)).trim(),state.input.chainId,config.rpcTransport);
   const rpc=connection.provider, template=config.models[0].templates.conservative;
-  const wallet=new Wallet((await taskPrivateFile(input.keyFile)).trim(),rpc), route=state.route;
+  const wallet=new Wallet((await taskPrivateFile(input.keyFile)).trim(),rpc);let route=call.route??state.route;
   let sdk:InferCredit|undefined;
   const guard=async()=>{
     const c=await control();
@@ -34,18 +45,29 @@ export async function paidGoalCall(config:HostedTaskExecutorConfig,state:GoalSta
         await guard();
         await input.activity?.({scene:"funding",state:"started",phaseId:call.stage,evidence:{priceRaw:route.priceRaw}});
         const cash=await account.getFunction("cash").staticCall(state.input.chainAgentId);
+        if((state.routes??[state.route]).some(m=>isDeepStrictEqual(m,route))&&cash<BigInt(route.priceRaw)+BigInt(call.futureReserveRaw??"0")){
+          const chosen=selectGoalModelRoute(route,state.routes??[state.route],String(cash),call.futureReserveRaw??"0");
+          if(chosen&&chosen.id!==route.id){
+            const previous=route;route=chosen;call.route=structuredClone(chosen);await save();
+            await input.activity?.({scene:"model",state:"selected",phaseId:call.stage,subject:{id:chosen.id,name:chosen.id,kind:"model"},reason:"HOSTED_GOAL_MODEL_DOWNGRADED",evidence:{candidateIds:[previous.id,chosen.id],cashRaw:String(cash),priceRaw:chosen.priceRaw}});
+          }
+        }
         await input.activity?.({scene:"funding",state:cash<BigInt(route.priceRaw)?"blocked":"confirmed",phaseId:call.stage,evidence:{cashRaw:String(cash),priceRaw:route.priceRaw},...(cash<BigInt(route.priceRaw)?{reason:"INFERENCE_FUNDING_REQUIRED",requiredAction:"deposit" as const}:{})});
-        if(cash<BigInt(route.priceRaw))throw new Error("INFERENCE_FUNDING_REQUIRED");
+        if(cash<BigInt(route.priceRaw)){call.unpaid=true;await save();throw new Error("INFERENCE_FUNDING_REQUIRED");}
         const policy=await account.getFunction("getPolicy").staticCall(state.input.chainAgentId);
         if(policy.ownerFrozen||await account.getFunction("protocolFrozen").staticCall(state.input.chainAgentId))throw new Error("HOSTED_AGENT_FROZEN");
         if(policy.maxCashPerTx<BigInt(route.priceRaw)){
-          if(!state.policy){
-            const tx=await wallet.populateTransaction({to:template.account,chainId:BigInt(state.input.chainId),data:policyABI.encodeFunctionData("setPolicy",[state.input.chainAgentId,{maxCashPerTx:route.priceRaw,maxDebtPerTx:policy.maxDebtPerTx,maxDebtPerDay:policy.maxDebtPerDay,ownerFrozen:false}])});
-            const raw=await wallet.signTransaction(tx);state.policy={raw,hash:keccak256(raw)};await save();
+          if(!call.policy&&state.policy){
+            const prior=Transaction.from(state.policy.raw),operation=policyABI.parseTransaction({data:prior.data,value:prior.value});
+            if(operation?.name==="setPolicy"&&operation.args[0]===BigInt(state.input.chainAgentId)&&operation.args[1].maxCashPerTx>=BigInt(route.priceRaw))call.policy=structuredClone(state.policy);
+          }
+          if(!call.policy){
+            const tx=await wallet.populateTransaction({to:template.account,chainId:BigInt(state.input.chainId),data:policyABI.encodeFunctionData("setPolicy",[state.input.chainAgentId,{maxCashPerTx:state.input.reservedRaw,maxDebtPerTx:policy.maxDebtPerTx,maxDebtPerDay:policy.maxDebtPerDay,ownerFrozen:false}])});
+            const raw=await wallet.signTransaction(tx);call.policy={raw,hash:keccak256(raw)};await save();
           }
           await guard();
-          let receipt=await rpc.getTransactionReceipt(state.policy.hash);
-          if(!receipt){const sent=await rpc.broadcastTransaction(state.policy.raw);receipt=await sent.wait(1,config.timeoutMs??60000);}
+          let receipt=await rpc.getTransactionReceipt(call.policy.hash);
+          if(!receipt){const sent=await rpc.broadcastTransaction(call.policy.raw);receipt=await sent.wait(1,config.timeoutMs??60000);}
           if(!receipt||receipt.status!==1||(await rpc.getBlock(receipt.blockNumber))?.hash!==receipt.blockHash)throw new Error("HOSTED_GOAL_POLICY_UNCERTAIN");
         }
       }else if(!call.inference){

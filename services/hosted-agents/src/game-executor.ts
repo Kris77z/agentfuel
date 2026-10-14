@@ -14,7 +14,7 @@ import { createKimiRewardDispatch } from "../../arena/src/inference-rewards/prov
 import { DemoJournal } from "../../../scripts/demo-journal.js";
 import { saveJson } from "../../../scripts/demo-common.js";
 import { monadProvider, proxyUpstreamFetch, readRpcUrlFile, systemHttpsProxy, type RpcTransport } from "../../../scripts/demo-rpc.js";
-import { HostedError, type HostedBinding, type HostedExecution, type HostedExecutor, type HostedResult, type HostedStrategy } from "./types.js";
+import { HostedError, type HostedAgent, type HostedBinding, type HostedExecution, type HostedExecutor, type HostedResult, type HostedStrategy } from "./types.js";
 
 export interface HostedGameExecutorConfig {
   version: 1; chainId: "31337" | "10143"; identity: string; account: string; token: string;
@@ -176,7 +176,9 @@ export class HostedGameExecutor implements HostedExecutor {
       await store.start(input.recover); held = true; state = await store.read();
       if (state && (state.version !== 1 || state.binding !== bound)) fail("HOSTED_GAME_RUN_BINDING_CHANGED");
       if (state?.result?.terminal) { await updateWallet(state.result.success ? "Succeeded" : "Failed"); return structuredClone(state.result); }
-      if (!state) { const startedAtMs = Date.now(); state = { version: 1, binding: bound, startedAtMs, deadlineMs: startedAtMs + HOLDEM_LIVE_LIMITS.deadlineDurationMs, phase: input.run.action === "game" ? "Game" : "CreditsPending", ...(suspended ? { suspended } : {}) }; await store.write(state); }
+      if (!state) { const startedAtMs = Date.now(); const deadlineMs = Math.min(startedAtMs + HOLDEM_LIVE_LIMITS.deadlineDurationMs, input.deadlineMs ?? Infinity);
+        if (!Number.isSafeInteger(deadlineMs) || deadlineMs <= startedAtMs) fail("HOSTED_GAME_DEADLINE");
+        state = { version: 1, binding: bound, startedAtMs, deadlineMs, phase: input.run.action === "game" ? "Game" : "CreditsPending", ...(suspended ? { suspended } : {}) }; await store.write(state); }
       await updateWallet("Running");
       await this.preflight(rpc, actor, bot);
       const account = new Contract(this.config.account, ACCOUNT_ABI, rpc);
@@ -254,6 +256,16 @@ export class HostedGameExecutor implements HostedExecutor {
     for (const player of [actor, bot]) {
       if (!same(await identity.getFunction("ownerOf").staticCall(player.agentId), player.wallet) || !same(await identity.getFunction("getAgentWallet").staticCall(player.agentId), player.wallet)) fail("HOSTED_GAME_IDENTITY_CHANGED");
     }
+  }
+  /** Observe spendable reward tokens, never conflate them with cash or gateway microcredits. */
+  async rewardBalance(agent: HostedAgent): Promise<{ modelId: string; availableTokens: number; blocked: boolean }> {
+    if (!agent.binding) fail("HOSTED_GAME_IDENTITY_MISMATCH");
+    const actor = binding(agent.binding), bot = this.config.opponent.binding;
+    if (actor.chainId !== this.config.chainId || !same(actor.wallet, agent.wallet)) fail("HOSTED_GAME_IDENTITY_MISMATCH");
+    const ledger = await this.ledger(agent.id, actor, bot, true);
+    try { const balance = await ledger.balance(actor);
+      return { modelId: INFERENCE_REWARD_POLICY.model, availableTokens: balance.availableTokens, blocked: balance.blocked };
+    } finally { await ledger.close(); }
   }
   /** Shares the exact reward ledger used by trusted game settlement. No cash or credit fallback. */
   async rewardTask(input: HostedExecution): Promise<NonNullable<WorkflowOptions["reward"]> & { close: () => Promise<void> }> {

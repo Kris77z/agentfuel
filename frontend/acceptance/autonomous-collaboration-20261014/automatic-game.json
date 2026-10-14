@@ -1,0 +1,263 @@
+{
+  "version": 1,
+  "chainId": "31337",
+  "cases": [
+    {
+      "rewardKind": "usdc",
+      "chainId": "31337",
+      "modelMode": "controlled-loopback-http",
+      "independentVerifier": "Docker + separate Arena settler",
+      "parentRequestId": "b0622765-2061-407f-bec9-540414290b1d",
+      "gameRequestId": "36b53f95-7dd8-4827-ab81-9308512a000c",
+      "taskRequestId": "0bf8dd46-5798-4027-8efd-5809ff800e11",
+      "matchId": "hosted-36b53f95-7dd8-4827-ab81-9308512a000c",
+      "taskId": "1",
+      "paymentId": "0xcfe8898ced60d58ca2b05a7ba56c634256a7f8eedeb22fd6cac3b8df94d61c86",
+      "winners": [
+        0
+      ],
+      "gameActionCount": 2,
+      "rewardRaw": "100000",
+      "creditsGranted": 0,
+      "balanceBefore": {
+        "cashRaw": "0",
+        "rewardTokens": 0
+      },
+      "balanceAfter": {
+        "cashRaw": "115500",
+        "rewardTokens": 0,
+        "debtRaw": "0",
+        "successes": "1"
+      },
+      "taskFunding": {
+        "fromCashRaw": "90000",
+        "fromCreditRaw": "30000",
+        "creditsUsed": 30
+      },
+      "parent": {
+        "phase": "Completed",
+        "chargedRaw": "130000",
+        "completedGames": 1,
+        "completedTasks": 1
+      },
+      "settlement": {
+        "txHash": "0xff157852e42334d6172ed86b6b15488626fa285a12d0e290fa12c90dcdce58d9",
+        "block": {
+          "number": 36,
+          "hash": "0x7518dbbb038c931f794640b7c5505b82e21f683c5dd4690be4b685762eb5d468",
+          "timestamp": 1791965671
+        },
+        "passed": true,
+        "loanStatus": "2",
+        "repaidRaw": "34500",
+        "slashedRaw": "0",
+        "residualRaw": "115500"
+      },
+      "plannerPayments": [
+        {
+          "decisionId": "1a5999a7-5f3c-47bb-9ca4-df36451a1f76",
+          "paymentId": "0xe8949242c0799c8a827ec0718e453ee7b843dae6eb37862285696982ad1b7436",
+          "txHash": "0x677c3905d570e156bcae23aca4bf063596bf2123241ee7c6e06a04fa37282cd1",
+          "fromCashRaw": "10000",
+          "fromCreditRaw": "0"
+        }
+      ],
+      "gameAwardTxHashes": [
+        "0xec24eaff38bab99402278049e7ea05b8cee79b23ebc43838d70a5141b98d0a9b",
+        "0x7bdd8911bc115d9a4392396214dc11f025098f22898fdd1c61b53c2a878bfcc5",
+        "0xac253b36e55a4775d24f9ec56d08defe463e9aaa2da7fe05db0c82a7fce83d54"
+      ],
+      "canonicalReceipts": [
+        {
+          "txHash": "0xec24eaff38bab99402278049e7ea05b8cee79b23ebc43838d70a5141b98d0a9b",
+          "blockNumber": 30,
+          "blockHash": "0x9aa223ae3fe2cafde4f879c5d9f4ece93ee5d6462f01758d2218574b00c06d75",
+          "status": 1,
+          "canonical": true
+        },
+        {
+          "txHash": "0x7bdd8911bc115d9a4392396214dc11f025098f22898fdd1c61b53c2a878bfcc5",
+          "blockNumber": 31,
+          "blockHash": "0x9e24006e8451fa49ed5b7edaf7626b75c954be17a2e31e78a2e294b2cea4f1cd",
+          "status": 1,
+          "canonical": true
+        },
+        {
+          "txHash": "0xac253b36e55a4775d24f9ec56d08defe463e9aaa2da7fe05db0c82a7fce83d54",
+          "blockNumber": 32,
+          "blockHash": "0xfb13528c83e28eca8101efbf2a3f3772b07066f977d3bc913a5321c7333a57f6",
+          "status": 1,
+          "canonical": true
+        },
+        {
+          "txHash": "0x677c3905d570e156bcae23aca4bf063596bf2123241ee7c6e06a04fa37282cd1",
+          "blockNumber": 33,
+          "blockHash": "0xd01b1a3f308374c4a3b5b305c011f89fbcfc526a0b5e364e242de76047cb0ea7",
+          "status": 1,
+          "canonical": true
+        },
+        {
+          "txHash": "0x8ef295cd248758ab22e65b07f54d1d5bf0bdd460008f5cc7728449efc2422eb0",
+          "blockNumber": 34,
+          "blockHash": "0x7adfaab4aba954091a433a409b44c22c47c9e7dcea6e4806aaf67d6333c65f6a",
+          "status": 1,
+          "canonical": true
+        },
+        {
+          "txHash": "0x0e10cfbd8e55b2502ec92921c6476fea01e7a5a7e885aace197ddc8521d45705",
+          "blockNumber": 35,
+          "blockHash": "0x973a1d44c69058e00b730d36b76e4c043ae3e607adda3630cd95b2ee84924c71",
+          "status": 1,
+          "canonical": true
+        },
+        {
+          "txHash": "0xff157852e42334d6172ed86b6b15488626fa285a12d0e290fa12c90dcdce58d9",
+          "blockNumber": 36,
+          "blockHash": "0x7518dbbb038c931f794640b7c5505b82e21f683c5dd4690be4b685762eb5d468",
+          "status": 1,
+          "canonical": true
+        }
+      ],
+      "readOnlyRecovery": {
+        "requestCountBefore": 4,
+        "requestCountAfter": 4,
+        "noncesBefore": [
+          7,
+          26
+        ],
+        "noncesAfter": [
+          7,
+          26
+        ],
+        "originalResultPreserved": true
+      },
+      "completedAt": "2026-10-14T08:14:32.896Z"
+    },
+    {
+      "rewardKind": "llm-credits",
+      "chainId": "31337",
+      "modelMode": "controlled-loopback-http",
+      "independentVerifier": "Docker + separate Arena settler",
+      "parentRequestId": "8bb04f96-cd1a-49a8-a12d-3cd120107520",
+      "gameRequestId": "d9e07d25-990d-4c9f-b00c-960ed427a640",
+      "taskRequestId": "7963f60a-b7ca-43d1-83d9-31923e8e2389",
+      "matchId": "hosted-d9e07d25-990d-4c9f-b00c-960ed427a640",
+      "taskId": "1",
+      "winners": [
+        0
+      ],
+      "gameActionCount": 2,
+      "rewardRaw": "0",
+      "creditsGranted": 4096,
+      "balanceBefore": {
+        "cashRaw": "0",
+        "rewardTokens": 0
+      },
+      "balanceAfter": {
+        "cashRaw": "150000",
+        "rewardTokens": 4066,
+        "debtRaw": "0",
+        "successes": "1"
+      },
+      "taskFunding": {
+        "fromCashRaw": "0",
+        "fromCreditRaw": "0",
+        "creditsUsed": 30
+      },
+      "parent": {
+        "phase": "Completed",
+        "chargedRaw": "0",
+        "completedGames": 1,
+        "completedTasks": 1
+      },
+      "settlement": {
+        "txHash": "0x03215939b73cab696f694174cbaaedb2a04f15d631c24a738d0fcdca0e18a63a",
+        "block": {
+          "number": 31,
+          "hash": "0x8d9795eccadfca3a83492933021fa394e04067a29e2e8e6f900c621ea2a82407",
+          "timestamp": 1791965683
+        },
+        "passed": true,
+        "loanStatus": "0",
+        "repaidRaw": "0",
+        "slashedRaw": "0",
+        "residualRaw": "150000"
+      },
+      "plannerPayments": [],
+      "gameAwardTxHashes": [],
+      "canonicalReceipts": [
+        {
+          "txHash": "0x42dfecb1b799c43fdfe34bf8077d0e62f1d2f5bf0d84e6bbde20fe078e378ee3",
+          "blockNumber": 30,
+          "blockHash": "0x1f6480bc6dda4721300c736277b92de9c716952f69a95b84a415326f94bd9c48",
+          "status": 1,
+          "canonical": true
+        },
+        {
+          "txHash": "0x03215939b73cab696f694174cbaaedb2a04f15d631c24a738d0fcdca0e18a63a",
+          "blockNumber": 31,
+          "blockHash": "0x8d9795eccadfca3a83492933021fa394e04067a29e2e8e6f900c621ea2a82407",
+          "status": 1,
+          "canonical": true
+        }
+      ],
+      "readOnlyRecovery": {
+        "requestCountBefore": 3,
+        "requestCountAfter": 3,
+        "noncesBefore": [
+          3,
+          25
+        ],
+        "noncesAfter": [
+          3,
+          25
+        ],
+        "originalResultPreserved": true
+      },
+      "completedAt": "2026-10-14T08:14:43.847Z"
+    }
+  ],
+  "manualRefuel": {
+    "chainId": "31337",
+    "modelMode": "controlled-loopback-http",
+    "parentRequestId": "86519e78-f1e0-4af8-8f5b-0cfa55a15f11",
+    "childRequestId": "a5ac20c6-1e85-49e3-ac5b-1d9c21ba66d9",
+    "manualGameRequestId": "605fe5d5-a324-41c9-8b5d-dc2b14f3d31c",
+    "originalTaskId": "1",
+    "originalAcceptTxHash": "0xaf589ecd51452b5f9217d4cdaf914856c9b26b7f2ea2db369b325edb2d9f9b14",
+    "balances": {
+      "earnedTokens": 4096,
+      "consumedBeforeTask": 3584,
+      "availableBeforeTask": 512,
+      "availableAfterManualGame": 4608,
+      "availableAfterTask": 4578,
+      "cashAfterTaskRaw": "150000"
+    },
+    "pause": {
+      "reason": "AUTONOMY_GAME_LIMIT",
+      "fundingNeed": "reward-tokens"
+    },
+    "resumedPhase": "Completed",
+    "taskIdPreserved": true,
+    "acceptTxHashPreserved": true,
+    "actorNonceBeforeResume": 3,
+    "actorNonceAfterResume": 3,
+    "newHttpRequestsOnResume": 1,
+    "sponsoredOwnerSlots": 3,
+    "settlement": {
+      "txHash": "0x20ce71ea56b44c4315700ec339839ae0a59292b0c66d07415b59f6ef0e407ab0",
+      "block": {
+        "number": 31,
+        "hash": "0xdf4466851a60b76fad45aac3480844d411f0bba272fa65a8e7435835f58c5846",
+        "timestamp": 1791965697
+      },
+      "passed": true,
+      "loanStatus": "0",
+      "repaidRaw": "0",
+      "slashedRaw": "0",
+      "residualRaw": "150000"
+    },
+    "settlementCanonical": true,
+    "completedAt": "2026-10-14T08:14:57.534Z"
+  }
+}

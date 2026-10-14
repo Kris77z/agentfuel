@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "scope": "Monad Testnet external provider identity and whitelist admission; no new model or game run",
+  "checked": true,
+  "readOnly": false,
+  "chainId": "10143",
+  "externalProvider": {
+    "chainId": "10143",
+    "registry": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+    "agentId": "1999",
+    "wallet": "0x5C08F50F20609E4CF4ccD2Caf185F03F9BF09ceD"
+  },
+  "whitelisted": true,
+  "metadataReady": true,
+  "blockNumber": 70914457,
+  "blockHash": "0xb5e53529a2062d2cf29ae4db6980420279183e672f8620a6768cdf258954a09b",
+  "ready": true,
+  "applied": true,
+  "cached": false,
+  "chainWrites": 1,
+  "receipt": {
+    "txHash": "0x6db97c6add9261de6153df80d7afc876bea2817bc6f3202f82d0074e4d5bce3d",
+    "blockNumber": 70914363,
+    "blockHash": "0x964dbe0099bb559b0f7472a3d82964d0e513157cb8117de0d6c7217c75182cf8",
+    "status": 1
+  }
+}
