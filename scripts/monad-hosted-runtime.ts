@@ -8,6 +8,7 @@ import { isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Contract, Wallet, getAddress, ZeroAddress } from "ethers";
 import { SessionStore } from "../packages/pi-loop/src/session.js";
+import { taskPrivateFile } from "../packages/pi-loop/src/task-runner/config.js";
 import type { WorkflowConfig } from "../packages/pi-loop/src/workflow.js";
 import { isFixedProblemId } from "../packages/pi-loop/src/public-sample.js";
 import { DockerExecutor } from "../services/arena/src/docker.js";
@@ -41,7 +42,7 @@ export interface MonadHostedBootstrap {
   dashboardAgents: { id: string; name: string }[];
   externalProvider?: { chainId:"10143";registry:string;agentId:string;wallet:string };
   gatewayReadyFile: string; vendorKeyFile: string; tasks: WorkflowConfig["tasks"];
-  maxFeePerGas: string; frontendOrigin: "http://127.0.0.1:3024";
+  maxFeePerGas: string; frontendOrigin: string;
 }
 type PortName = `external-${string}` | "underwriter" | "arena" | "fixed" | "allowance" | "planner" | "goalCheap" | "goalStrong";
 interface CatalogMigration {
@@ -49,18 +50,77 @@ interface CatalogMigration {
   beforeBinding: string; afterBinding: string; before: MonadHostedBootstrap; after: MonadHostedBootstrap;
   appended: WorkflowConfig["tasks"];
 }
-interface RuntimeJournal {
+export interface RuntimeJournal {
   version: 1; binding: string; startedAt: string; templateDeadlineMs: number; ipcDirectory: string; operatorToken: string; ports: Partial<Record<PortName, number>>;
   originalBootstrap?: MonadHostedBootstrap; originalCatalog?: WorkflowConfig["tasks"];
   effectiveBinding?: string; migrations?: CatalogMigration[];
+  publicOriginMigration?: { version: 1; id: string; fromOrigin: string; toOrigin: string; fromRpcTransport: RpcTransport; toRpcTransport: "direct";
+    previousBinding: string; publicBinding: string; auditFile: string };
 }
 interface GatewayReady { url: string; endpoint: string; keyFile: string; models: GatewayModel[] }
 const fail = (code: string): never => { throw new Error(code); };
 const safe = (error: unknown) => /^[A-Z][A-Z0-9_]{1,100}$/.test((error as Error)?.message) ? (error as Error).message : "MONAD_HOSTED_RUNTIME_FAILED";
 const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
-function runtimeBinding(bootstrap: MonadHostedBootstrap, gateway: GatewayReady, catalog: GatewayModel[]) {
+function runtimeBinding(bootstrap: MonadHostedBootstrap, gateway: Pick<GatewayReady, "url" | "endpoint" | "keyFile">, catalog: GatewayModel[]) {
   const { dashboardAgents: _dashboardAgents, externalProvider: _externalProvider, ...executionBootstrap } = bootstrap;
   return hash({ bootstrap: executionBootstrap, gateway: { url: gateway.url, endpoint: gateway.endpoint, keyFile: gateway.keyFile }, catalog });
+}
+export { runtimeBinding as monadRuntimeBinding };
+export function monadPublicOrigin(value: unknown): string {
+  if (typeof value !== "string") return fail("MONAD_PUBLIC_ORIGIN_INVALID");
+  let url: URL; try { url = new URL(value); } catch { return fail("MONAD_PUBLIC_ORIGIN_INVALID"); }
+  if (url.protocol !== "https:" || url.origin !== value || url.username || url.password || url.pathname !== "/" || url.search || url.hash
+    || !/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.[a-z]{2,}$/.test(url.hostname) || url.hostname.endsWith(".localhost")) fail("MONAD_PUBLIC_ORIGIN_INVALID");
+  return value;
+}
+export function monadFrontendOriginAllowed(value: unknown, publicOrigin = process.env.MONAD_PUBLIC_ORIGIN): boolean {
+  if (value === "http://127.0.0.1:3024") return true;
+  if (!publicOrigin || value !== publicOrigin) return false;
+  try { return monadPublicOrigin(publicOrigin) === value; } catch { return false; }
+}
+export function monadGameUpstreamTransport(platform: NodeJS.Platform = process.platform): RpcTransport {
+  return platform === "linux" ? "direct" : "system-https-proxy";
+}
+
+/** Verify the immutable initial domain, every applied append, and the one audited deployment transition. */
+export function validateMonadRuntimeHistory(state: RuntimeJournal, bootstrap: MonadHostedBootstrap, gateway: Pick<GatewayReady, "url" | "endpoint" | "keyFile">, catalog: GatewayModel[]) {
+  if (state.version !== 1 || !state.originalBootstrap || state.originalBootstrap.chainId !== "10143"
+    || hash(state.originalBootstrap.tasks) !== hash(state.originalCatalog)
+    || runtimeBinding(state.originalBootstrap, gateway, catalog) !== state.binding) fail("MONAD_ORIGINAL_CATALOG_INVALID");
+  let cursor = state.binding, transitioned = false;
+  const transition = state.publicOriginMigration;
+  const advance = () => { if (transition && !transitioned && cursor === transition.previousBinding) { cursor = transition.publicBinding; transitioned = true; } };
+  for (const entry of state.migrations ?? []) {
+    if (transition && entry.beforeBinding !== cursor) advance();
+    if (entry.status !== "Applied" || entry.before.chainId !== "10143" || entry.after.chainId !== "10143"
+      || entry.id !== hash(entry.appended) || entry.beforeBinding !== cursor
+      || runtimeBinding(entry.before, gateway, catalog) !== entry.beforeBinding || runtimeBinding(entry.after, gateway, catalog) !== entry.afterBinding
+      || runtimeBinding({ ...entry.before, tasks: [...entry.before.tasks, ...entry.appended] }, gateway, catalog) !== entry.afterBinding) fail("MONAD_MIGRATION_SNAPSHOT_INVALID");
+    cursor = entry.afterBinding;
+  }
+  advance();
+  if (transition && !transitioned || (state.effectiveBinding ?? state.binding) !== cursor || runtimeBinding(bootstrap, gateway, catalog) !== cursor) fail("MONAD_RUNTIME_BINDING_CHANGED");
+}
+
+/** Recovery accepts a public domain only after its exact Origin/RPC transition has an Applied private audit. */
+export async function validateMonadPublicMigration(directory: string, state: RuntimeJournal, bootstrap: MonadHostedBootstrap, gateway: Pick<GatewayReady, "url" | "endpoint" | "keyFile">, catalog: GatewayModel[]) {
+  const marker = state.publicOriginMigration;
+  if (!marker) { if (bootstrap.frontendOrigin !== "http://127.0.0.1:3024") fail("MONAD_PUBLIC_ORIGIN_MIGRATION_REQUIRED"); return; }
+  if (marker.auditFile !== join(directory, "vps-origin-migration", "session.json")) fail("MONAD_PUBLIC_ORIGIN_MIGRATION_INCOMPLETE");
+  const audit = JSON.parse(await taskPrivateFile(marker.auditFile));
+  if (audit.version !== 1 || audit.status !== "Applied" || audit.id !== marker.id || audit.directory !== directory
+    || audit.origin !== bootstrap.frontendOrigin || marker.toOrigin !== bootstrap.frontendOrigin || marker.fromOrigin !== "http://127.0.0.1:3024"
+    || audit.previousOrigin !== marker.fromOrigin || audit.previousRpcTransport !== marker.fromRpcTransport
+    || audit.rpcTransport !== "direct" || marker.toRpcTransport !== "direct" || bootstrap.rpcTransport !== "direct"
+    || audit.previousBinding !== marker.previousBinding || audit.publicBinding !== marker.publicBinding || audit.changes?.length !== 4) fail("MONAD_PUBLIC_ORIGIN_MIGRATION_INCOMPLETE");
+  const expected = new Set([audit.bootstrapFile, join(directory, "hosted.json"), join(directory, "hosted", "database", "session.json"), join(directory, "runtime-journal", "session.json")]);
+  for (const change of audit.changes) if (!expected.delete(change.path) || typeof change.before !== "string" || typeof change.after !== "string"
+    || createHash("sha256").update(change.before).digest("hex") !== change.beforeHash || createHash("sha256").update(change.after).digest("hex") !== change.afterHash) fail("MONAD_PUBLIC_ORIGIN_MIGRATION_INCOMPLETE");
+  const change = audit.changes.find((item: { path: string }) => item.path === audit.bootstrapFile);
+  const before = JSON.parse(change.before), after = JSON.parse(change.after);
+  if (before.chainId !== "10143" || before.frontendOrigin !== marker.fromOrigin || before.rpcTransport !== marker.fromRpcTransport
+    || hash({ ...before, frontendOrigin: marker.toOrigin, rpcTransport: "direct" }) !== hash(after)
+    || runtimeBinding(before, gateway, catalog) !== marker.previousBinding || runtimeBinding(after, gateway, catalog) !== marker.publicBinding) fail("MONAD_PUBLIC_ORIGIN_MIGRATION_INCOMPLETE");
 }
 const address = (value: string) => { const result = getAddress(value); if (result === ZeroAddress) fail("MONAD_ADDRESS_INVALID"); return result; };
 const same = (a: string, b: string) => address(a) === address(b);
@@ -70,7 +130,7 @@ export async function loadMonadHostedBootstrap(file: string) {
   const b = JSON.parse(await readFile(absolute(file), "utf8")) as MonadHostedBootstrap;
   if (b.version !== 1 || b.chainId !== "10143" || !Number.isSafeInteger(b.deploymentBlock) || b.deploymentBlock < 0
     || b.asset?.symbol !== "USDC" || b.asset.decimals !== 6 || !same(b.asset.address, MONAD_USDC) || !same(b.identity, MONAD_IDENTITY)
-    || !["direct", "system-https-proxy"].includes(b.rpcTransport) || b.frontendOrigin !== "http://127.0.0.1:3024"
+    || !["direct", "system-https-proxy"].includes(b.rpcTransport) || !monadFrontendOriginAllowed(b.frontendOrigin)
     || !/^[1-9][0-9]*$/.test(b.maxFeePerGas)) fail("MONAD_BOOTSTRAP_INVALID");
   for (const value of Object.values(b.contracts)) address(value);
   if (Object.keys(b.contracts).sort().join(",") !== "account,adapter,escrow,manager" || new Set(Object.values(b.contracts).map(address)).size !== 4) fail("MONAD_CONTRACTS_INVALID");
@@ -203,6 +263,7 @@ export async function appendMonadHostedTasks(directory: string, bootstrapFile: s
     const hosted = await hostedLock.read();
     if (!hosted || hosted.runs.some(run => !["Succeeded", "Failed"].includes(run.status))) fail("MONAD_TERMINAL_RUNS_REQUIRED");
     const { bootstrap: current, gateway, catalog } = await loadMonadHostedBootstrap(bootstrapFile);
+    await validateMonadPublicMigration(directory, state, current, gateway, catalog);
     const currentBinding = runtimeBinding(current, gateway, catalog), id = hash(additional);
     if (state.originalBootstrap && (runtimeBinding(state.originalBootstrap, gateway, catalog) !== state.binding
       || hash(state.originalBootstrap.tasks) !== hash(state.originalCatalog))) fail("MONAD_ORIGINAL_CATALOG_INVALID");
@@ -271,6 +332,8 @@ export async function startMonadHostedRuntime(directory: string, bootstrapFile: 
     state = await store.read();
     if (state?.migrations?.some(entry => entry.status === "Intent")) fail("MONAD_MIGRATION_RECOVERY_REQUIRED");
     if (state && (state.effectiveBinding ?? state.binding) !== binding) fail("MONAD_RUNTIME_BINDING_CHANGED");
+    if (state) { if (state.publicOriginMigration) validateMonadRuntimeHistory(state, b, gateway, catalog); await validateMonadPublicMigration(directory, state, b, gateway, catalog); }
+    if (!state && b.frontendOrigin !== "http://127.0.0.1:3024") fail("MONAD_PUBLIC_ORIGIN_MIGRATION_REQUIRED");
     if (state && !recover) fail("MONAD_RUNTIME_RECOVER_REQUIRED");
     if (!state) {
       if (check.tasks.some(task => task.status !== "1" || task.deadlineMs <= Date.now())) fail("MONAD_OPEN_TASKS_REQUIRED");
@@ -334,7 +397,7 @@ export async function startMonadHostedRuntime(directory: string, bootstrapFile: 
       rpcTransport: b.rpcTransport, publicRpcUrl: b.publicRpcUrl, walletDirectory, arenaUrl: url("arena"), underwriterUrl: url("underwriter"), models: taskModels,
       timeoutMs: 120000, pollTimeoutMs: 240000, metered: { relayUrl: `${url("allowance")}/v1/chat`, payTo: b.payTo, priceRaw: "120000", creditsRaw: "200000", catalog, keyFile: gateway.keyFile } });
     const gameConfigFile = await put("game.json", { version: 1, chainId: "10143", identity: b.identity, account: b.contracts.account, token: b.asset.address,
-      rpcUrlFile: b.rpcUrlFile, rpcTransport: b.rpcTransport, upstreamTransport: "system-https-proxy", walletDirectory, sponsorKeyFile: b.roleKeyFiles.sponsor,
+      rpcUrlFile: b.rpcUrlFile, rpcTransport: b.rpcTransport, upstreamTransport: monadGameUpstreamTransport(), walletDirectory, sponsorKeyFile: b.roleKeyFiles.sponsor,
       opponent: { binding: b.opponentBinding, keyFile: b.roleKeyFiles.opponent, modelId: "kimi-k2.6", strategy: "balanced" },
       models: models.map(id => ({ id, baseUrl: "https://api.moonshot.cn/v1", keyFile: b.vendorKeyFile })), creditsDirectory: join(directory, "credits") });
     if(b.externalProvider)external=await startExternalSpecialistStack({base,provider:rpc,providerIdentity:b.externalProvider,directory:join(directory,"external-services"),ports:journal.ports as Record<string,number>,savePort:async(name,port)=>{journal.ports[name as PortName]=port;await store.write(journal);},models:catalog.map((model,index)=>({id:models[index],model:model.model,responseModel:model.responseModel,baseUrl:gateway.url,key:gatewayKey,priceRaw:index?"20000":"10000"}))});

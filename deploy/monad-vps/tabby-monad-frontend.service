@@ -1,0 +1,27 @@
+[Unit]
+Description=Tabby Monad Next.js frontend
+After=network-online.target tabby-monad-runtime.service
+Requires=tabby-monad-runtime.service
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=tabby-monad
+Group=tabby-monad
+WorkingDirectory=/Users/jungle/Desktop/dev/agentfuel/frontend
+EnvironmentFile=/etc/tabby-monad/frontend.env
+ExecStart=/opt/tabby-monad/node/bin/node ../node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3024
+ExecStartPost=/bin/bash /Users/jungle/Desktop/dev/agentfuel/deploy/monad-vps/wait-ready.sh frontend
+UMask=0077
+PrivateTmp=true
+NoNewPrivileges=true
+TimeoutStartSec=330
+TimeoutStopSec=30
+KillMode=mixed
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=8192
+
+[Install]
+WantedBy=multi-user.target

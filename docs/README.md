@@ -10,6 +10,7 @@ The repository contains current guides and dated engineering/acceptance records.
 | Where is each behavior implemented? | [Architecture and code map](ARCHITECTURE.md) |
 | What evidence supports a claim? | [Verification, amounts, receipts and replay checks](VERIFICATION.md) |
 | Where are automatic games, paid external collaboration and budget downgrade verified? | [2026-10-14 local acceptance and reproduction](autonomous-collaboration-20261014.md) |
+| How is Monad prepared for a separate HTTPS VPS instance? | [Monad VPS deployment and state migration](../deploy/monad-vps/README.md) |
 | How should I change and validate the implementation? | [Contributing](../CONTRIBUTING.md) |
 | Which components are original or adapted? | [Attribution](ATTRIBUTION.md) |
 

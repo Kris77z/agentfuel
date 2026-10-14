@@ -1,0 +1,29 @@
+[Unit]
+Upholds=tabby-monad-runtime.service
+Description=Tabby Monad isolated model gateway
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=tabby-monad
+Group=tabby-monad
+WorkingDirectory=/Users/jungle/Desktop/dev/agentfuel
+EnvironmentFile=/etc/tabby-monad/gateway.env
+ExecStart=/opt/tabby-monad/node/bin/node --import tsx scripts/local-model-gateway.ts --config /Users/jungle/Desktop/dev/agentfuel/.data/monad-vps-operator/model-upstream.json --binary /Users/jungle/Desktop/dev/agentfuel/.data/magpie-linux-build/magpie --directory /Users/jungle/Desktop/dev/agentfuel/demo-output/local-hosted-20261012/gateway --port 3426 --bridge-port 3427 --transport direct
+ExecStartPost=/bin/bash /Users/jungle/Desktop/dev/agentfuel/deploy/monad-vps/wait-ready.sh gateway
+UMask=0077
+PrivateTmp=true
+# bwrap needs user/net/mount/ipc/pid/uts namespaces. Do not add RestrictNamespaces,
+# PrivateNetwork, or an untested NoNewPrivileges setting to this service.
+TimeoutStartSec=330
+TimeoutStopSec=30
+KillMode=mixed
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=8192
+
+[Install]
+WantedBy=multi-user.target

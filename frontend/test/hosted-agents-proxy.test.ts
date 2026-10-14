@@ -154,6 +154,63 @@ test("Next loopback URL normalization preserves exact browser Host and Origin ch
   assert.equal(calls, 1);
 });
 
+test("explicit TLS proxy binds the public Monad origin to a loopback Next URL", async () => {
+  const publicOrigin = "https://monad.tabbyai.xyz";
+  const proxyHeaders = { host: "monad.tabbyai.xyz", origin: publicOrigin, "content-type": "application/json",
+    "x-forwarded-host": "monad.tabbyai.xyz", "x-forwarded-proto": "https", "sec-fetch-site": "same-origin" };
+  const proxied = (url = "https://127.0.0.1:3024", headers: Record<string, string> = proxyHeaders) => new NextRequest(`${url}/api/hosted/auth/login`, {
+    method: "POST", headers, body: JSON.stringify({ challengeId: "challenge", signature: "signature" }),
+  });
+  let calls = 0;
+  const fetcher = (async (url, options) => {
+    calls++; assert.equal(String(url), `${upstreamUrl}/auth/login`);
+    const headers = new Headers(options?.headers);
+    assert.equal(headers.get("origin"), upstreamUrl);
+    for (const name of ["x-forwarded-host", "x-forwarded-proto", "authorization", "cookie"]) assert.equal(headers.get(name), null);
+    return Response.json({ token, expiresAt: Date.now() + 3600000 });
+  }) as typeof fetch;
+  const proxyConfig = { ...config, origin: publicOrigin, trustProxy: true, fetcher };
+  assert.equal(new URL(proxied().url).hostname, "localhost");
+  const accepted = await hostedAgentsRequest(proxied(), proxyConfig);
+  assert.equal(accepted.status, 200);
+  assert.match(accepted.headers.get("set-cookie")!, /Path=\/api\/hosted; HttpOnly; SameSite=Strict.*; Secure/);
+  assert.doesNotMatch(accepted.headers.get("set-cookie")!, /Domain=/);
+  const anonymous = new NextRequest("https://127.0.0.1:3024/api/hosted/agents", { headers: { ...proxyHeaders, origin: publicOrigin } });
+  assert.equal((await hostedAgentsRequest(anonymous, proxyConfig)).status, 401);
+  assert.equal((await hostedAgentsRequest(proxied(), { ...proxyConfig, trustProxy: false })).status, 403);
+  for (const headers of [
+    { ...proxyHeaders, host: "tempo.tabbyai.xyz" },
+    { ...proxyHeaders, "x-forwarded-host": "" },
+    { ...proxyHeaders, "x-forwarded-host": "tempo.tabbyai.xyz" },
+    { ...proxyHeaders, "x-forwarded-host": "monad.tabbyai.xyz, evil.example" },
+    { ...proxyHeaders, "x-forwarded-proto": "" },
+    { ...proxyHeaders, "x-forwarded-proto": "http" },
+    { ...proxyHeaders, "x-forwarded-proto": "https, http" },
+    { ...proxyHeaders, origin: "https://tempo.tabbyai.xyz" },
+    { ...proxyHeaders, "sec-fetch-site": "same-site" },
+    { ...proxyHeaders, authorization: `Bearer ${token}` },
+  ]) assert.equal((await hostedAgentsRequest(proxied(undefined, headers), proxyConfig)).status, 403);
+  for (const url of ["http://127.0.0.1:3024", "https://internal.example:3024", "https://192.168.1.2:3024"]) {
+    assert.equal((await hostedAgentsRequest(proxied(url), proxyConfig)).status, 403);
+  }
+  const missingOrigin = proxied(); missingOrigin.headers.delete("origin");
+  assert.equal((await hostedAgentsRequest(missingOrigin, proxyConfig)).status, 403);
+  assert.equal(calls, 1);
+
+  const previous = process.env.HOSTED_FRONTEND_TRUST_PROXY;
+  try {
+    process.env.HOSTED_FRONTEND_TRUST_PROXY = "true";
+    assert.equal((await hostedAgentsRequest(proxied(), { ...config, origin: publicOrigin, fetcher })).status, 403);
+    process.env.HOSTED_FRONTEND_TRUST_PROXY = "1";
+    assert.equal((await hostedAgentsRequest(proxied(), { ...config, origin: publicOrigin, fetcher })).status, 200);
+    assert.equal((await hostedAgentsRequest(proxied(), { ...proxyConfig, trustProxy: false })).status, 403);
+  } finally {
+    if (previous === undefined) delete process.env.HOSTED_FRONTEND_TRUST_PROXY;
+    else process.env.HOSTED_FRONTEND_TRUST_PROXY = previous;
+  }
+  assert.equal(calls, 2);
+});
+
 test("goal snapshots project nested artifacts and cancellation flags without private executor data", async () => {
   const mission = { stage: "completed", phases: [{ name: "Write", taskType: "writer", goal: "Write the plan", output: "A useful plan.", keyFile: "PRIVATE_SENTINEL" }], answer: "A useful plan.",
     review: { passed: true, summary: "Requirements checked", checks: ["Three concrete steps"], modelKey: "PRIVATE_SENTINEL" },

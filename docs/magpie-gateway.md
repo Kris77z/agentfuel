@@ -20,7 +20,7 @@
 
 ## 复现
 
-要求：macOS、Node 22、Go `1.26.3`、Anvil/Foundry、仓库依赖及既有合约 build。未验证 Linux 或容器启动，所以当前 launcher 会明确拒绝其他平台。
+要求：macOS 或支持 user/network/mount namespace 的 Linux、Node 22、Go `1.26.3`、Anvil/Foundry、仓库依赖及既有合约 build。macOS 使用 `sandbox-exec`；Linux 使用 `/usr/bin/bwrap` 和 `/usr/bin/socat`，必须在目标平台重新构建锁定的 Magpie，不能使用 Mac 二进制。Linux 隔离实现复用 Tempo VPS 已上线方案；本仓库的 Linux 定向验收须在目标主机完成，历史 macOS 验收不作为 Linux 运行证据。
 
 ```bash
 npm install
@@ -68,7 +68,17 @@ Relay 继续用现有 `TIERS_JSON`：
 
 `receipt.model` 在此接入中是快照绑定的 `provider/physical-model` 唯一路由 ID；`receipt.upstream` 是 Relay 候选名。Magpie 发到物理上游的 `request.model` 和原返回 `response.model` 是不带 provider 前缀的物理 ID，探针另存两者、usage 与原响应，不能只用路由 alias 推断实际模型。provider 的物理 URL/模型不可在已有已付请求下悄悄改指；本 spike 的受控配置在运行期间固定，生产跨 Magpie 重配置的快照恢复契约尚未实现。
 
-官方 [Accounts()](https://github.com/yetone/magpie/blob/d6096e2fb1710ba123c0d4f59ed8e7e22165de07/internal/provider/account.go#L659) 会发现本机 agent 登录；单独设 XDG 目录不足以隔离 `~/.codex`、`~/.claude` 和 Keychain。官方 [gateway 测试入口](https://github.com/yetone/magpie/blob/d6096e2fb1710ba123c0d4f59ed8e7e22165de07/internal/gateway/main_test.go) 也专门隔离这些来源。本地 launcher 因此保持系统 HOME 原义，用 macOS `sandbox-exec` 拒绝用户 home 的读写，仅放开本次状态目录和 binary，放入惰性的 credential-discovery CLI，网络仅放开 localhost。实际 catalog 检查是这一隔离的验收证据。这里没有修改用户现有 agent 配置，也没有调用付费模型或写 Monad。
+官方 [Accounts()](https://github.com/yetone/magpie/blob/d6096e2fb1710ba123c0d4f59ed8e7e22165de07/internal/provider/account.go#L659) 会发现本机 agent 登录；单独设 XDG 目录不足以隔离 `~/.codex`、`~/.claude` 和 Keychain。官方 [gateway 测试入口](https://github.com/yetone/magpie/blob/d6096e2fb1710ba123c0d4f59ed8e7e22165de07/internal/gateway/main_test.go) 也专门隔离这些来源。launcher 保持系统 HOME 原义，放入惰性的 credential-discovery CLI。macOS `sandbox-exec` 拒绝用户 home 的读写，仅放开本次状态目录和 binary，网络仅放开 localhost。Linux `bwrap --unshare-all` 隐藏宿主 home 和其他项目目录，只挂载只读系统库、本次状态目录、锁定 binary 与私有 socket 目录；独立 network namespace 通过私有 Unix socket 桥接本次显式 provider 的 loopback 端口，不开放其他宿主 localhost 服务或外网。调用方先停止 sandbox，再关闭 socket 并清理临时目录；依赖缺失或 namespace 拒绝会启动失败，不退回宿主直接执行。实际 catalog 检查继续要求只有显式 provider。
+
+Linux 服务用户须能够运行 `bwrap --unshare-all`。Ubuntu 24.04 若 AppArmor 拒绝 bwrap 的 namespace 初始化，应使用发行版提供的 `/usr/bin/bwrap` profile，而非关闭全局 AppArmor 或 namespace 限制。网关 unit 不叠加阻断这些 namespace 的 `RestrictNamespaces`、`PrivateNetwork` 或未经验证的 `NoNewPrivileges`。真实模型薄桥在 Linux 使用 `local-model-gateway.ts --transport direct`；薄桥持有 vendor key，Magpie 仅持本地 routing token。
+
+不调用模型或链的定向检查：
+
+```bash
+npx tsx --test scripts/test/linux-magpie.test.ts
+```
+
+其中端口与 provenance 检查在 macOS/Linux 都运行；文件隔离和 loopback 白名单检查使用受控 HTTP fixture，仅在 Linux 运行。该 fixture 不替代实际 Magpie 的版本/catalog 与禁重试集成验收。
 
 ## 保存的验收证据
 
