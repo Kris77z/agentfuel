@@ -1,5 +1,7 @@
 # Implementation status
 
+> **Public review entry (2026-10-14):** [overview](../README.md), [architecture](ARCHITECTURE.md), and [verification](VERIFICATION.md). This is the chronological development ledger. Local `demo-output/` links are private operator archives and are not available in a fresh clone; use the verification guide for published evidence.
+
 > **2026-10-13 自动查链已接入**：Dashboard 合约地址/交易哈希 → Monad RPC/Sourcify → 专家分析与独立复核 → 读取快照及付款凭证。支持代理实现、代币状态和交易解码；固定区块与原请求恢复。自动化与实际测试网结果见 [验收记录](chain-lookup-acceptance-20261013.md)。
 
 > **2026-10-13 Dashboard 与自由目标已实现**：精简终端三栏、Magpie 状态面板、组件化 dropdown、Agent 动态条、真正的自由目标输入；规划→分阶段产出→独立复核→一次修订，实际预算/费用/停止/原 UUID 恢复接通。K2.6/K3 经真实 Magpie + 本地 Anvil 验证，102 项 hosted 回归通过。个人目标仅用 cash，写作/给定资料分析/代码生成可用；外部工具/任意专家市场未接入，不虚构报酬或信誉。完整证据及边界见 [本轮交付](dashboard-goal-workspace-20261013.md)。

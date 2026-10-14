@@ -14,6 +14,8 @@ export function creditTerms(mirror: Counts, trueRepayments: bigint) {
 
 export function principalCap(capUsdCents: bigint, decimals: number, tokenUsdPrice: bigint,
   payableEscrow: bigint, ltvBps: bigint, feeBps: bigint) {
+  // The price is fixed demo USD/token scaled by 1e18, not an oracle reading.
+  // Preserve both floors: the signed cap plus its fee must fit the on-chain LTV.
   const tierCap = capUsdCents * (10n ** BigInt(decimals)) * (10n ** 18n) / (100n * tokenUsdPrice);
   const escrowCap = (payableEscrow * ltvBps / 10_000n) * 10_000n / (10_000n + feeBps);
   return { tierCap, escrowCap, principalCap: tierCap < escrowCap ? tierCap : escrowCap };

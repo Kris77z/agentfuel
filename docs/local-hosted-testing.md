@@ -4,30 +4,34 @@
 
 ## 启动
 
+当前已验证的 Magpie launcher 使用 macOS（`scripts/magpie-gateway.ts` 显式检查平台）；真实模型联调不是通用 Linux 部署手册。先按 [Magpie 构建与锁定版本](magpie-gateway.md#复现) 准备 binary。没有模型凭据、或只想看工作台时，可使用根 README 的 [独立 UI 样例](../README.md#run-locally) 与零密钥本地协议演示。
+
 需要 Node 22.19+、Foundry、可用 Docker，以及项目锁定的 Magpie 二进制。供应商配置沿用 `verify-live-tiers.ts` 的私有 JSON：`upstream.name=kimi`、`baseUrl=https://api.moonshot.cn/v1`、`apiKeyFile` 为绝对路径。配置和 key 文件权限为 0600。
 
 在仓库根目录分别运行，路径替换为本机实际值：
 
 ```bash
-npx tsx scripts/local-model-gateway.ts --config /absolute/private/demo.monad.json --binary /absolute/locked/magpie --directory /absolute/new/gateway
+npx tsx scripts/local-model-gateway.ts --config /absolute/private/demo.monad.json --binary /absolute/locked/magpie --directory /absolute/new/gateway --transport direct
 npx tsx scripts/local-hosted.ts start /absolute/new/runtime /absolute/new/gateway/ready.json /absolute/private/kimi.key
 ```
 
+示例显式使用直连。需要代理时，改为 `--transport system-https-proxy`，并先配置 macOS 系统 HTTPS 代理；该模式在代理未启用时会停止启动，不会自动切换直连。
+
 网关默认监听 3426，薄桥健康检查为 3427；后端为 8791，前端预期为 `http://127.0.0.1:3024`。启动不发送推理请求。运行目录拒绝覆盖已有链和任务记录。该启动器是开发工具，会创建 16 个报酬已托管的编程任务；关闭它会关闭这一临时链。
 
-在 `frontend` 目录先构建，再启动：
+在新的仓库根目录终端先构建，再启动：
 
 ```bash
-NEXT_DIST_DIR=.next-local npm run build
+NEXT_DIST_DIR=.next-local npm run build --workspace @agentfuel/frontend
 NEXT_DIST_DIR=.next-local FRONTEND_MODE=chain FRONTEND_RPC_TRANSPORT=direct \
 FRONTEND_MANIFEST_PATH=/absolute/new/runtime/deployment.json \
 HOSTED_AGENTS_URL=http://127.0.0.1:8791 HOSTED_FRONTEND_ORIGIN=http://127.0.0.1:3024 \
-../node_modules/.bin/next start --hostname 127.0.0.1 --port 3024
+npm run start --workspace @agentfuel/frontend -- --port 3024
 ```
 
 ## 创建与资金准备
 
-使用本地钱包签名登录，在网页创建 Agent。新钱包没有 gas 时会暂停开户；从页面复制托管钱包地址，明确调用本地 faucet：
+使用本地钱包签名登录，在网页创建 Agent。新钱包没有 gas 时会暂停开户；从页面复制托管钱包地址，在另一个仓库根目录终端调用本地 faucet：
 
 ```bash
 npx tsx scripts/local-hosted.ts fund /absolute/new/runtime 0xAgentWallet 40000
@@ -37,7 +41,7 @@ npx tsx scripts/local-hosted.ts fund /absolute/new/runtime 0xAgentWallet 40000
 
 ## 可重复验收
 
-以下脚本会调用真实模型，使用启动器生成的独立本地验收钱包。先准备三个 Agent，再分别执行两个模型和最多两单的自主循环：
+以下脚本会调用真实模型，使用启动器生成的独立本地验收钱包。在仓库根目录先准备三个 Agent，再分别执行两个模型和最多两单的自主循环：
 
 ```bash
 npx tsx scripts/local-hosted-acceptance.ts /absolute/new/runtime prepare

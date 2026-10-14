@@ -1,4 +1,8 @@
-# Arena（P0）
+# Arena: hidden-test verification and settlement
+
+Arena is the separate coding-task verifier. A trusted host controller keeps expected answers outside the disposable Python container, checks actual JSON outputs, and records a verdict. A separate settlement process holds the verifier signing key and authorizes the onchain financial outcome; the solver's own public tests or printed `PASS` do not authorize settlement.
+
+The catalog contains four bounded Python stdin/stdout problems. This verifier is separate from the personal-goal model Reviewer. See the [architecture](../../docs/ARCHITECTURE.md), [public task receipts](../../docs/VERIFICATION.md), and [task settlement contract](../../contracts/src/TaskEscrow.sol). The operator runbook and error semantics below remain in Chinese.
 
 四道手写 Python 3.12 / JSON stdin-stdout 题：`sum-integers`、`unique-sorted`、`balanced-brackets`、`word-frequency`。`GET /problems` 提供题意及可信任务映射，建议 reward `150000` 使用 USDC 的 6 位小数；实际 reward 与资产必须读链。Arena 不创建链上任务，也不自动把任意新 task 绑定到某道题。
 

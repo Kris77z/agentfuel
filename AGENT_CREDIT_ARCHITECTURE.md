@@ -1,5 +1,7 @@
 # InferCredit — Agent Credit 参考架构与 ERC-8004 集成方案
 
+> **Current implementation guide (2026-10-14):** [Tabby overview](README.md), [architecture/source map](docs/ARCHITECTURE.md), and [public verification](docs/VERIFICATION.md). This document preserves the original design and dated scope decisions. Its older current-state and planned-feature statements are snapshots of their stated dates, not claims about the latest implementation.
+
 ## 当前产品主线（2026-10-11 确认）
 
 **AgentFuel 让用户创建的托管 Agent，在预算内采购模型与能力、执行任务赚取收入，并把可核验的履约信誉转化为后续任务的信用条件。** InferCredit 是其中的任务信用机制。核心痛点是：Agent 有任务、有交付能力，却需要先支付推理等执行成本，收入要等验收后才能收到；有资金的 Agent 同样可以直接购买推理并接单。

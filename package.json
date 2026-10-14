@@ -1,6 +1,7 @@
 {
   "name": "agentfuel",
   "private": true,
+  "license": "MIT",
   "workspaces": [
     "services/underwriter",
     "services/provider-relay",
@@ -15,6 +16,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "docs:check": "node scripts/check-doc-links.mjs",
     "typecheck": "tsc --noEmit",
     "test": "npm run test:all",
     "test:core": "npm test --workspace @agentfuel/underwriter && npm test --workspace @agentfuel/provider-relay",

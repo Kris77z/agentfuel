@@ -1,5 +1,20 @@
 # Tabby frontend
 
+The Next.js/React application presents owner-scoped agents, personal goals, coding-task execution, finance and games. All hosted requests pass through the same-origin [server bridge](lib/hosted-agents-proxy.ts); operator keys and upstream bearer tokens are not browser configuration. Wallet login, selected Agent and original request UUIDs are shared across the user flow.
+
+| Route | Role |
+| --- | --- |
+| `/` | Bilingual product landing page |
+| `/onboarding` | Wallet login and Agent creation; execution settings are configured afterwards |
+| `/dashboard` | Hosted goal/task workspace with evidence, outputs and the Tabby execution scene |
+| `/finance` | Compatibility redirect to `/dashboard?panel=finance` for cash, debt, credit and receipts |
+| `/arena` | Sponsored game controls and four practice modes |
+| `/advanced` | Protocol diagnostics and the historical fixed-Agent demo |
+
+The scene adapter renders recorded activity, not guessed progress. Synthetic scene/UI previews are labeled fixtures and are separate from the [real Monad acceptance](../docs/monad-hosted-acceptance-20261012.md). [Latest scene/UI record](acceptance/tabby-scenes-20261014/README.md) · [Architecture](../docs/ARCHITECTURE.md) · [Verification](../docs/VERIFICATION.md).
+
+For the complete labeled UI fixture, run `node scripts/preview-dashboard.mjs` from the root and open `http://localhost:3033/`; it uses the real components with an in-memory session and blocks external connections. For the protocol fixture, run `npm run dev:fixture --workspace @agentfuel/frontend` and open `http://127.0.0.1:3000/advanced`. The main hosted `/dashboard` needs the [backend configuration](../docs/hosted-agents.md). Chinese setup, history and test commands follow.
+
 2026-10-13 工作台以 `monad-rebel` 原版 Dashboard 为布局基准：左侧 Hunter 身份、信誉与折叠资金设置；右侧实际内置执行角色；中间 mission.log、阶段卡片与底部指挥模式输入框。历史位于顶部抽屉，运行时显示 Magpie。组件 dropdown 支持键盘与移动端。自由目标连接真实规划、分阶段产出与独立模型复核，能力与验收见 [交付清单](../docs/dashboard-goal-workspace-20261013.md)。
 
 品牌采用已选定 A2「队列 T」。正式 [PNG/SVG 与图标资产](public/brand/tabby/README.md) 位于 `public/brand/tabby/`，网站接入与维护见 [Tabby 品牌说明](../docs/tabby-brand.md)。
@@ -31,15 +46,13 @@ Next.js 16 / React 19。首页 `/` 是 Oberon 风格的产品落地页；“创�
 托管 UI 的本地浏览器验收使用合成 API 和本地个人签名，所有 API 均拦截，不会广播交易或调用付费模型：
 
 ```sh
-PATH=/Users/jungle/.nvm/versions/node/v22.23.2/bin:$PATH \
-  npm run test:browser --workspace @agentfuel/frontend -- --config playwright.hosted.config.ts
+npm run test:browser --workspace @agentfuel/frontend -- --config playwright.hosted.config.ts
 ```
 
 其他页面的结构、导航和四种练习操作可用独立 3015 / `.next-terminal-test` 验收。所有 API 拦截；练习动作仅在测试进程内执行免费游戏引擎，钱包、外网请求与付费模型均不可达。合成截图保存在 `frontend/acceptance/terminal-pages/`。
 
 ```sh
-PATH=/Users/jungle/.nvm/versions/node/v22.23.2/bin:$PATH \
-  npm run test:browser --workspace @agentfuel/frontend -- --config playwright.terminal.config.ts
+npm run test:browser --workspace @agentfuel/frontend -- --config playwright.terminal.config.ts
 ```
 
 2026-10-10 终端统一后，托管 40/40、跨页 14/14、运营控制台 16/16、德州报告 6/6 共 76 项通过；类型检查与最终生产构建通过。生产桌面/手机 8 页核对字体、主题和宽度，截图为 `production-local-*`，其中未配置德州明确标记 fixture。
@@ -49,7 +62,7 @@ PATH=/Users/jungle/.nvm/versions/node/v22.23.2/bin:$PATH \
 从仓库根目录运行（依赖由根 npm workspace 统一安装）：
 
 ```sh
-export PATH=/Users/jungle/.nvm/versions/node/v22.23.2/bin:/Users/jungle/.foundry/bin:$PATH
+# Ensure Node.js 22.19+ and Foundry are on PATH.
 npm ci
 npm run typecheck --workspace @agentfuel/frontend
 npm run build --workspace @agentfuel/frontend
@@ -63,7 +76,7 @@ npm run dev --workspace @agentfuel/frontend
 只在 Next server 配置 `HOLDEM_REPORT_PATH` 为本次运行公开 `report.json` 的绝对路径，例如：
 
 ```sh
-HOLDEM_REPORT_PATH=/Users/jungle/Desktop/dev/agentfuel/demo-output/holdem-20261004-root/report.json \
+HOLDEM_REPORT_PATH=/absolute/local-run/holdem/report.json \
   npm run dev --workspace @agentfuel/frontend
 ```
 

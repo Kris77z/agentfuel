@@ -12,6 +12,8 @@ import {ReentrancyGuard} from "./utils/ReentrancyGuard.sol";
 /// @title CreditManager — ENGINEERING §4.2 (v5.3)
 /// @notice Protocol treasury vault, backstop, guardian identity controls and
 ///         task-bound credit, repayment, liquidation and refunds.
+/// @dev Monetary amounts are raw settlement-asset units. Authorization grants
+///      a cap, not a reservation: draw rechecks live identity, task and liquidity.
 contract CreditManager is ICreditManager, ReentrancyGuard {
     // ---------------------------------------------------------------------
     // EIP-712 (§4.2: name="InferCredit", version="1", chainId, verifyingContract)

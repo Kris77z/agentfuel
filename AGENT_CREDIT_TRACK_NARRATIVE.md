@@ -1,5 +1,7 @@
 # InferCredit — 赛道对齐与 Pitch 叙事
 
+> **Current implementation guide (2026-10-14):** [Tabby overview](README.md), [architecture/source map](docs/ARCHITECTURE.md), and [public verification](docs/VERIFICATION.md). This document preserves the original design and dated scope decisions. Its older current-state and planned-feature statements are snapshots of their stated dates, not claims about the latest implementation.
+
 ## 当前产品叙事（2026-10-11）
 
 **Agent 交付后才能收到报酬，但交付前就需要购买推理与其他能力。AgentFuel 用信誉和已托管的任务报酬支持这笔执行信用。** 用户创建托管 Agent；同一个 Agent 可在不同任务中发布或接单，当前 Demo 以接单执行者展示，不宣称已有完整专家委托市场。

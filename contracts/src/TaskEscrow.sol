@@ -11,6 +11,8 @@ import {ReentrancyGuard} from "./utils/ReentrancyGuard.sol";
 
 /// @title TaskEscrow — ENGINEERING §4.4 (waterfall + slashing + reputation)
 /// @dev Task lifecycle, settlements, liquidation transfers and feedback.
+///      The verifier supplies the off-chain outcome; this contract enforces
+///      its financial consequences, not the correctness of submitted work.
 contract TaskEscrow is ITaskEscrow, ReentrancyGuard {
     uint256 public constant BPS_DENOMINATOR = 10_000;
 

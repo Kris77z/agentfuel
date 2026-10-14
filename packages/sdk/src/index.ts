@@ -3,6 +3,8 @@ import { ACCOUNT_ABI, EMPTY_AUTH, MANAGER_ABI, PaymentError, accountInterface, c
   requestDigest, sameAddress, uint, type ChatInput, type InferenceReceipt, type Json, type Quote, type RoutingTier } from "./protocol.js";
 export * from "./protocol.js";
 
+/** Durable recovery identity. Keep the original quote/input and submission;
+ * replacing them after an uncertain send could purchase the same work twice. */
 export interface PaymentHandle {
   version: 1; relayUrl: string; input: ChatInput; quote: Quote; creditNonce: string;
   submission?: { from: string; nonce: number; txHash?: string; rawTransaction?: string;
@@ -11,7 +13,9 @@ export interface PaymentHandle {
 export interface InferOptions {
   agentId: string; rpcUrl?: string; chainId: bigint; account: string; asset: string; provider: string; maxPrice: bigint;
   sessionKey?: string; signer?: Signer; underwriterUrl?: string; timeoutMs?: number;
+  /** Awaited before payment submission; the host supplies durable storage. */
   onHandle?: (handle: PaymentHandle) => Promise<void> | void;
+  /** Idempotent host admission guard. May run repeatedly; delivered reads bypass it. */
   beforePayment?: (handle: PaymentHandle) => Promise<void> | void;
 }
 export interface FetchOptions { body: Record<string, Json> & { service: string; model: string; messages: Json[]; tier?: RoutingTier } }
