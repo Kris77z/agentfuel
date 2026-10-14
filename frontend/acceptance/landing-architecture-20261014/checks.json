@@ -1,0 +1,110 @@
+[
+  {
+    "width": 1440,
+    "locale": "en",
+    "overflow": false,
+    "overlaps": [],
+    "nodes": [
+      "Agent accountAgentAccount",
+      "Task escrowTaskEscrow",
+      "Credit engineCreditManager",
+      "Inference meteringBUDGET + USAGE",
+      "Execute & verifyINDEPENDENT CHECKS",
+      "Identity & reputationERC-8004 + InferScore",
+      "AGENT ID"
+    ],
+    "errors": [],
+    "untranslated": [],
+    "vendors": false
+  },
+  {
+    "width": 1440,
+    "locale": "zh",
+    "overflow": false,
+    "overlaps": [],
+    "nodes": [
+      "Agent 账户AgentAccount",
+      "任务托管TaskEscrow",
+      "信用引擎CreditManager",
+      "推理计量预算与用量",
+      "执行与验收独立检查",
+      "身份与信誉ERC-8004 + InferScore",
+      "AGENT ID"
+    ],
+    "errors": [],
+    "untranslated": [],
+    "vendors": false
+  },
+  {
+    "width": 393,
+    "locale": "en",
+    "overflow": false,
+    "overlaps": [],
+    "nodes": [
+      "Agent accountAgentAccount",
+      "Task escrowTaskEscrow",
+      "Credit engineCreditManager",
+      "Inference meteringBUDGET + USAGE",
+      "Execute & verifyINDEPENDENT CHECKS",
+      "Identity & reputationERC-8004 + InferScore",
+      "AGENT ID"
+    ],
+    "errors": [],
+    "untranslated": [],
+    "vendors": false
+  },
+  {
+    "width": 393,
+    "locale": "zh",
+    "overflow": false,
+    "overlaps": [],
+    "nodes": [
+      "Agent 账户AgentAccount",
+      "任务托管TaskEscrow",
+      "信用引擎CreditManager",
+      "推理计量预算与用量",
+      "执行与验收独立检查",
+      "身份与信誉ERC-8004 + InferScore",
+      "AGENT ID"
+    ],
+    "errors": [],
+    "untranslated": [],
+    "vendors": false
+  },
+  {
+    "width": 320,
+    "locale": "en",
+    "overflow": false,
+    "overlaps": [],
+    "nodes": [
+      "Agent accountAgentAccount",
+      "Task escrowTaskEscrow",
+      "Credit engineCreditManager",
+      "Inference meteringBUDGET + USAGE",
+      "Execute & verifyINDEPENDENT CHECKS",
+      "Identity & reputationERC-8004 + InferScore",
+      "AGENT ID"
+    ],
+    "errors": [],
+    "untranslated": [],
+    "vendors": false
+  },
+  {
+    "width": 320,
+    "locale": "zh",
+    "overflow": false,
+    "overlaps": [],
+    "nodes": [
+      "Agent 账户AgentAccount",
+      "任务托管TaskEscrow",
+      "信用引擎CreditManager",
+      "推理计量预算与用量",
+      "执行与验收独立检查",
+      "身份与信誉ERC-8004 + InferScore",
+      "AGENT ID"
+    ],
+    "errors": [],
+    "untranslated": [],
+    "vendors": false
+  }
+]
