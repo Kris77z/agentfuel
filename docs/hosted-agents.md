@@ -2,6 +2,8 @@
 
 用户用自己的钱包签名登录，先命名创建平台托管的钱包，模型、策略、每次预算、总预算和是否允许信用在创建后的运行设置中调整。用户钱包只用于认证；新 Agent 的私钥由平台在私有目录生成和保存，浏览器不能指定私钥、RPC、provider 地址或奖励收款人。登录是带 origin、nonce、过期时间的个人消息签名，不称为 SIWE，也不发送链上交易。
 
+当前已接通可选自动参赛补给、运营方批准的外部 Agent 雇佣，以及同任务/目标未开始调用的模型降价。自动游戏配置见 [核心运行说明](core-runtime.md#配置与启动)，三项本地受控完整集成与单独的 Monad Provider 准入记录见 [2026-10-14 协作验收](autonomous-collaboration-20261014.md)。
+
 ## 启动
 
 Node 22.19+。所有配置、角色 key、模型 key 和 RPC 文件必须为当前用户拥有的真实绝对路径、普通文件、`0600`，不得使用软链接。服务固定监听 `127.0.0.1`。TLS 由前端部署提供。
@@ -105,22 +107,24 @@ HTTP 测试使用真实 HostedService、两名本地合成签名者和明确 syn
 
 Pi 在每轮持久化供应商请求前核验可用额度。不足时返回 `Paused / INFERENCE_FUNDING_REQUIRED`；只允许为该原请求追加 `game / llm-credits`，服务端生成 `fundingFor`，浏览器不能指定它。游戏结束后恢复原任务为 active request，再用原 UUID 恢复执行。补资沿用游戏名额和原任务截止时间；未知调用不会解锁此入口。没有自动借款或转成 USDC 支付。
 
-生产 daemon 将 game executor 的同一私有账本注入 task executor；没有新 key、客户端 grant 或任意模型入口。本地整合证据见 `services/hosted-agents/test/reward-task.test.ts`。按量 token 借贷、双模型 Magpie 联合验证和 Pi 连续经营决策仍未完成。
+生产 daemon 将 game executor 的同一私有账本注入 task executor；没有新 key、客户端 grant 或任意模型入口。本地整合证据见 `services/hosted-agents/test/reward-task.test.ts`。任务绑定额度包信用、双模型计量与 Pi 连续运行已接通，见 [核心运行说明](core-runtime.md)；启用 `autonomy.games` 的父请求还可自动补额并恢复原任务，配置与复现见 [协作验收指南](autonomous-collaboration-20261014.md)。
 
 
 ## 2026-10-12 核心运行补齐
 
 新增 `metered-task` 与 `autonomous`：任务报酬担保购买不可转移的推理额度包，包内双模型按输入/输出 usage 差异扣费；奖励不足时可在同一 Pi 任务补额，独立验收后按合约还款/清算。有界 LLM 决策选择下一单、模型与现金/信用，宿主限制预算、任务数与截止时间。游戏不借贷、无 gas 赞助。包价与供应商账单分开，未用包额度绑定原任务；规划费现金支付。
 
-本节替代上文这三项“尚未实现”的当前判断；历史外部验收范围保持原样。详细配置、边界与复现见 [核心运行说明](core-runtime.md)。
+本节记录 2026-10-12 的核心运行扩展；历史外部验收范围保持原样。当前配置、边界与复现见 [核心运行说明](core-runtime.md) 与 [2026-10-14 协作验收](autonomous-collaboration-20261014.md)。
 
 ## 自然语言目标（2026-10-13）
 
-`goal` 单独接受 1–12000 字符的 `goal` 原文，保持 owner、Agent、UUID 与目标绑定。请求正文最多 65536 字节（其它操作仍 8192）；同 UUID 改目标拒绝。默认模式是完成个人目标，其余接单、游戏、入账在同一操作下拉框中。原请求未结束时不能改变模型或预算；恢复沿用原路由、价格、付款 handle 和截止时间。
+`goal` 单独接受 1–12000 字符的 `goal` 原文，保持 owner、Agent、UUID 与目标绑定。请求正文最多 65536 字节（其它操作仍 8192）；同 UUID 改目标拒绝。默认模式是完成个人目标，其余接单、游戏、入账在同一操作下拉框中。原请求未结束时不能改变用户模型设置或预算；宿主可在新调用开始前按预算、现金和后续阶段/复核预留选择更便宜的已配置模型。已签名、已付款或 Unknown 的调用恢复沿用原路由、价格、付款 handle 和截止时间，旧请求沿用保存的配置权限。
 
 daemon 可配置 `goals:{durationMs,models:[{id,relayUrl,provider,priceRaw,service,model,physicalModel,responseModel}]}`，模型集合必须与 hosted 目录相同。本地和 Monad runtime 提供 `tabby/mission` 两条 Relay，经 Magpie 转至 K2.6/K3，每次固定价分别 10000/20000 raw USDC；这是协议调用价，不等于上游供应商账单。所有个人目标用 task 0 的 cash 支付，无 escrow 时不能虚构信用、报酬或信誉。
 
-复用 Agora Commander 的逐阶段专家编排：原目标 → 1–3 阶段 → 累积上阶段产出 → 单独模型复核。支持写作、基于提供资料的分析、代码生成与审阅，以及复用 monad-rebel 的 ABI 解读、Gas 优化、Token 风险扫描、交易解码、收益策略比较五项专用定义；共八个执行角色加独立 Reviewer。启用 `goals.chainLookup` 后，合约地址/交易哈希会自动读取当前 Monad 测试网 RPC 与 Sourcify 验证资料；未接入任意网页、外部账户、宿主文件/命令或代码执行工具。缺能力/必要信息时明确返回 `needs-input`。这不是将 Agora 的 BNB x402、外部专家网络整体原样搬入；付款与身份使用本项目 SDK、现金账户与私有 journal。代码是否能运行仍需执行测试，模型复核不能充当运行证明。
+外部雇佣通过可选 `goals.external:{version:1,registryUrl,services:[{id,name,taskType,endpoint,serviceId,modelId,physicalModel,responseModel?,priceRaw,provider,identity?,reputation?}],minReputation?,timeoutMs?}` 配置。运营方批准目录、HTTP 端点、Provider、模型与固定价；`/services` 和 `/identity` 公告必须匹配，配置身份/信誉时再核验固定区块的链上记录。启动器使用独立注册并进入付款白名单的 Provider，按能力、信誉和可用预算准入，再按信誉/价格排序雇佣；浏览器或模型不能增加任意端点。配置类型见 [外部目录实现](../services/hosted-agents/src/external/registry.ts)，完整 HTTP 发现、402 付款、交付/复核与 Unknown 恢复复现见 [协作验收指南](autonomous-collaboration-20261014.md)。
+
+复用 Agora Commander 的逐阶段专家编排：原目标 → 1–3 阶段 → 累积上阶段产出 → 单独模型复核。支持写作、基于提供资料的分析、代码生成与审阅，以及复用 monad-rebel 的 ABI 解读、Gas 优化、Token 风险扫描、交易解码、收益策略比较五项专用定义；内建共八个执行角色加独立 Reviewer，配置外部服务后可雇佣批准的对应专家。启用 `goals.chainLookup` 后，合约地址/交易哈希会自动读取当前 Monad 测试网 RPC 与 Sourcify 验证资料；模型没有任意网页、用户外部账户、宿主文件/命令或代码执行工具。缺能力/必要信息时明确返回 `needs-input`。付款与身份使用本项目 SDK、现金账户与私有 journal；外部协作按运营白名单接入。代码是否能运行仍需执行测试，模型复核不能充当运行证明。
 
 公开 Run 的 `mission` 只含阶段、产出、复核与调用费用/usage/凭证；key、raw transaction、provider endpoint 等留在私有 journal。已知交付异常仍计入已确认费用；未知调用保持暂停与预算预留，恢复只核对原付款。操作详情和逐次凭证在界面折叠展示，最终结果可下载 Markdown。新增范围、证据与边界见 [Dashboard 交付清单](dashboard-goal-workspace-20261013.md)。
 
@@ -132,4 +136,4 @@ daemon 可配置 `goals:{durationMs,models:[{id,relayUrl,provider,priceRaw,servi
 
 ## 2026-10-14 · 自主资源与外部协作
 
-自动参赛补现金/奖励 token、原自主任务补给和恢复、真实外部目录发现/付费雇佣、同任务新调用按预算降档已接通。每次调用保留真实模型与付款 route，Unknown 不重派；目标交付继续独立复核。自动游戏共用 owner/global 赞助限制，逐场持久准入；无比赛的自主任务不占赞助名额。详细接线、实际测试证据与 Monad 准入范围见 [本轮记录](autonomous-collaboration-20261014.md)。
+自动参赛补现金/奖励 token、原自主任务补给和恢复、运营方批准的 HTTP 外部目录发现/付费雇佣、同任务新调用按预算降档已接通。新自主请求的本地/Monad 启动器默认最多 2 场游戏、6 次决策；无资源时由宿主策略选择允许的补给，不产生免费 LLM 决策。每次调用保存实际模型与付款 route，旧配置权限与 Unknown 原 handle 保留；目标交付继续独立复核。自动游戏共用 owner/global 赞助限制，逐场持久准入；无比赛的自主任务不占赞助名额。三项完整集成验收使用本地 Anvil、真实 HTTP/签名交易和受控模型；新增 Monad 记录仅证明外部 Provider Agent 1999 的身份与白名单准入。详细配置、复现及尚待真实供应商/测试网执行的边界见 [本轮记录](autonomous-collaboration-20261014.md)。

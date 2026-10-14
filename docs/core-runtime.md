@@ -1,8 +1,8 @@
 # 托管 Agent 核心运行闭环
 
-2026-10-12。本页描述新增实现；[本地真实双模型联调](local-real-acceptance-20261012.md)和[本地连接 Monad 测试网的核心业务验收](monad-hosted-acceptance-20261012.md)已完成。Monad 共五单成功结算，其中新自主窗口连续完成两单；自主 Agent 累计三次还款、信誉710/A、债务0。原 Task 14 Unknown 经封存、全额运营补偿和独立终止收口，保留全部失败记录。
+当前能力更新于 2026-10-14，自动参赛、批准的外部 Agent 雇佣和同任务新调用降价模型已接通，配置与本地受控验收见 [自主资源与外部协作](autonomous-collaboration-20261014.md)。2026-10-12 的[本地真实双模型联调](local-real-acceptance-20261012.md)和[本地连接 Monad 测试网的核心业务验收](monad-hosted-acceptance-20261012.md)保留原验收范围：Monad 共五单成功结算，其中新自主窗口连续完成两单；自主 Agent 累计三次还款、信誉710/A、债务0。原 Task 14 Unknown 经封存、全额运营补偿和独立终止收口，保留全部失败记录。
 
-主线：创建托管 Agent、链上开户与充值 → 接取托管报酬任务 → 使用可用奖励额度，或以现金/任务信用购买推理额度包 → Pi 调用两个受信模型、运行公开测试并修复 → 独立 Arena 隐藏测试 → 链上还款/失败清算、收入与信誉入账 → 模型决定下一单或停止。游戏仍是用户发起的免费补资支路，不自动借钱参赛，不赞助 gas。
+主线：创建托管 Agent、链上开户与充值 → 接取托管报酬任务 → 使用可用奖励额度，或以现金/任务信用购买推理额度包 → Pi 调用两个受信模型、运行公开测试并修复 → 独立 Arena 隐藏测试 → 链上还款/失败清算、收入与信誉入账 → 决定下一单、配置内的补资游戏或停止。游戏可由用户直接发起，也可由启用 `autonomy.games` 的自主父请求获取 USDC 或模型奖励 tokens；参赛不借贷，不赞助 gas。
 
 ## 三种任务入口
 
@@ -10,7 +10,11 @@
 - `reward-task`：明确只用 Kimi 奖励 tokens，不足暂停；免费比赛补额后恢复原 UUID，不自动付 USDC。
 - `metered-task`：使用任务绑定的双模型额度账本。配置 Kimi 奖励适配时，匹配 Kimi 的轮次优先消费奖励；不足或下一轮换模型时，在原接单、原 Pi 对话和轮次内购买额度包。现金优先，只有 `allowCredit=true` 才可申请任务信用。没有第二次接单，也不重启已完成的模型/工具轮次。
 
-`autonomous` 是上述 `metered-task` 的连续运行入口。付费 LLM 根据资金、负债、信用、预算和已完成任务决定 `run-task(modelId,funding)` 或 `stop`；宿主校验模型与融资白名单，再由 Pi 执行并独立验收。最多任务数、决策次数、持续时间、单任务预算和累计预算均有硬限制。用户暂停 Agent 后不再派发下一单，已派发任务继续核对结果。失败停止；未知结果暂停、保留原请求；恢复只读/续原子请求，不创建替代任务。规划费只用 cash，因此首次规划需少量现金。自动参加游戏、自动发布任务和专家转包不在本轮范围。
+`autonomous` 是连续运行入口，可执行额度包任务、配置内的奖励任务与游戏。付费 LLM 根据资金、负债、信用、预算和已完成任务决定 `run-task(modelId,funding)`、启用时的 `run-game` 或 `stop`；宿主校验模型、融资和游戏白名单，再由 Pi 执行并独立验收。最多任务数、游戏数、决策次数、持续时间、单任务/单场与累计预算均有硬限制。用户暂停 Agent 后不再派发下一单，已派发任务继续核对结果。失败停止；未知结果暂停、保留原请求；恢复只读/续原子请求，不创建替代任务。
+
+规划费仍只用 cash。启用自动游戏后，付费规划或任务资源不足时，宿主可按边界策略先参加允许的补资游戏，或使用已确认且足够的奖励 tokens 接单；原奖励任务缺额时可补给后恢复同一子请求和接单记录。无资源 bootstrap 是宿主策略，不是免费 LLM 决策，也不保证比赛获奖。未启用 `autonomy.games` 的请求继续遵守原现金规划条件。
+
+同一任务或个人目标的未开始调用可按剩余预算、现金或额度选择更便宜的已配置模型，保留原 Pi 对话、候选代码、工具记录和阶段产出。已签名、已付款或 Unknown 的调用保留原模型 route 和付款 handle，不通过换模型重派。个人 `goal` 还可经 `goals.external` 发现运营方批准的 HTTP 服务，核验服务与独立 Provider 身份后按 402/SDK 付费雇佣，并独立复核交付；端点、能力、模型和价格由运营配置批准。当前支持这一受限协作入口，自动发布任务和任意开放专家市场仍在后续范围。
 
 ## 额度、费用和还款
 
@@ -57,7 +61,13 @@ hosted daemon 顶层新增可选 `autonomy`：
 ```json
 {
   "maxTasks": 2,
-  "maxDecisions": 3,
+  "maxDecisions": 6,
+  "games": {
+    "maxGames": 2,
+    "maxSpendPerGameRaw": "0",
+    "rewardKinds": ["usdc", "llm-credits"],
+    "rewardTaskMinTokens": 2048
+  },
   "durationMs": 180000,
   "plannerRelayUrl": "http://127.0.0.1:8790/v1/chat",
   "plannerProvider": "<existing-whitelisted-provider-address>",
@@ -68,7 +78,9 @@ hosted daemon 顶层新增可选 `autonomy`：
 }
 ```
 
-planner 是普通现金 Relay，可路由同一 Magpie 中已有模型，不引入第三个模型。`plannerPhysicalModel` 核验 Relay 路由回执；经 Magpie 时可为 `cheap/kimi-k2.6`，另设 `plannerResponseModel: "kimi-k2.6"` 核验实际响应。省略后者时两者同名。决策输入包含规划扣费后余额、额度包成本、现金/信用可行性和各模型费率，不能把信用、现金与微额度混为一谈。设置 `HOSTED_AGENTS_CONFIG=/absolute/private/hosted.json` 后，预检 `npm run hosted-agents -- --check`，通过后 `--start`；断点使用原私有目录加 `--start --recover`。未配置能力时 API 拒绝新增操作，网页不显示对应按钮；已有任务与游戏保持可用。
+`games` 可省略；`maxGames` 限制父请求游戏次数，`maxSpendPerGameRaw` 限制每场付费预算，`rewardKinds` 限定奖励种类，`rewardTaskMinTokens` 是奖励任务准入/恢复的最低 token 数。实际 [本地启动器](../scripts/local-hosted.ts)和 [Monad 启动器](../scripts/monad-hosted-runtime.ts)为新请求配置 `maxGames=2`、`maxDecisions=6`、每场预算 `0`、两种奖励和最低 `2048` tokens；各自运行期限为 600000/1200000 毫秒。自动比赛还共用 owner/global 赞助限额并逐场持久化准入。
+
+planner 是普通现金 Relay，可路由同一 Magpie 中已有模型，不引入第三个模型。`plannerPhysicalModel` 核验 Relay 路由回执；经 Magpie 时可为 `cheap/kimi-k2.6`，另设 `plannerResponseModel: "kimi-k2.6"` 核验实际响应。省略后者时两者同名。决策输入包含规划扣费后余额、额度包成本、现金/信用可行性和各模型费率，不能把信用、现金与微额度混为一谈。设置 `HOSTED_AGENTS_CONFIG=/absolute/private/hosted.json` 后，预检 `npm run hosted-agents -- --check`，通过后 `--start`；断点使用原私有目录加 `--start --recover`。旧自主请求按保存的配置恢复，不因新游戏默认值增加游戏、决策、费用或时间权限；旧付款和 Unknown 沿用原 handle。未配置能力时 API 拒绝新增操作，网页不显示对应按钮；已有任务与游戏保持可用。外部服务配置见 [Hosted 接口](hosted-agents.md#自然语言目标2026-10-13)，本轮各能力复现及 Monad 准入边界见 [协作验收指南](autonomous-collaboration-20261014.md)。
 
 前端工作台显示额度包价、两个模型输入/输出费率、连续运行边界，以及实际付款、借款、还款与完成单数。所有资金结果来自后端核验的链上回执，页面测试中的 synthetic 成功不构成交易证据。
 
@@ -98,4 +110,4 @@ runtime 新增 goalCheap/goalStrong 监听端口。旧 Monad 父 runtime 必须�
 
 ## 2026-10-14 · 自主资源与外部协作
 
-自动参赛补现金/奖励 token、原自主任务补给和恢复、真实外部目录发现/付费雇佣、同任务新调用按预算降档已接通。每次调用保留真实模型与付款 route，Unknown 不重派；目标交付继续独立复核。自动游戏共用 owner/global 赞助限制，逐场持久准入；无比赛的自主任务不占赞助名额。详细接线、实际测试证据与 Monad 准入范围见 [本轮记录](autonomous-collaboration-20261014.md)。
+自动参赛补现金/奖励 token、原自主任务补给和恢复、运营方批准的 HTTP 外部目录发现/付费雇佣、同任务新调用按预算降档已接通。每次调用保存实际模型与付款 route，Unknown 不重派；目标交付继续独立复核。自动游戏共用 owner/global 赞助限制，逐场持久准入；无比赛的自主任务不占赞助名额。三项完整集成已通过本地 Anvil、真实 HTTP/签名交易和受控模型验收；新增 Monad 记录仅证明外部 Provider Agent 1999 的身份与白名单准入，三项新能力的测试网及真实供应商执行仍需分别验收。详细配置、复现与证据见 [本轮记录](autonomous-collaboration-20261014.md)。

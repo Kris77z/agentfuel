@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "checkedAt": "2026-10-14T08:30:20.756Z",
+  "chainId": "10143",
+  "scope": "Read-only service readiness after original-runtime recovery; no new game, task, model payment or execution acceptance.",
+  "hosted": {
+    "url": "http://127.0.0.1:8792",
+    "unauthenticatedStatus": 401
+  },
+  "frontend": {
+    "url": "http://127.0.0.1:3024/dashboard"
+  },
+  "external": {
+    "registryUrl": "http://127.0.0.1:54249/services",
+    "serviceCount": 16,
+    "specialistTypes": [
+      "writer",
+      "analyst",
+      "coder",
+      "abi-interact",
+      "gas-optimization",
+      "token-scan",
+      "tx-decode",
+      "yield-search"
+    ],
+    "models": [
+      "kimi-k2.6",
+      "kimi-k3"
+    ],
+    "providerIdentity": {
+      "chainId": "10143",
+      "registry": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+      "agentId": "1999",
+      "wallet": "0x5C08F50F20609E4CF4ccD2Caf185F03F9BF09ceD"
+    },
+    "allIdentityAdvertisementsMatch": true
+  },
+  "autonomy": {
+    "maxTasks": 2,
+    "maxDecisions": 6,
+    "games": {
+      "maxGames": 2,
+      "maxSpendPerGameRaw": "0",
+      "rewardKinds": [
+        "usdc",
+        "llm-credits"
+      ],
+      "rewardTaskMinTokens": 2048
+    }
+  },
+  "gateway": {
+    "beforeAcceptedRequests": 109,
+    "afterAcceptedRequests": 109,
+    "newCalls": 0
+  },
+  "taskCatalog": "Six original acceptance tasks are settled or terminated; new Monad task execution requires a fresh escrow-backed catalog."
+}
