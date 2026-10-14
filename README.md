@@ -1,4 +1,6 @@
-# InferCredit / AgentFuel
+# Tabby / InferCredit
+
+**Tabby** 是当前产品品牌，仓库与 workspace 标识仍为 AgentFuel。已选定 A2「队列 T」；正式 PNG/SVG、favicon 与应用图标见 [品牌资产](frontend/public/brand/tabby/README.md) 和 [网站接入说明](docs/tabby-brand.md)。
 
 InferCredit 用已托管的任务报酬支持 Agent 购买推理：现金不足时，按任务获取授信，把借款直接支付给白名单 Provider；任务通过独立验收后，在一笔交易中还清本金与费用，剩余收入进入 Agent 现金账本。真实还款与违约写回 ERC-8004 声誉，供后续授信使用。
 
@@ -61,7 +63,7 @@ root 已用两名用户、随机生成的托管钱包、实际本地链和两个
 
 现有 P0、四题固定价任务与本机运营 GameFi 的后端收尾见 [后端交付](docs/backend-acceptance.md)。`npm run backend -- --manifest /absolute/private/backend.json --check` 离线检查私有配置，`--start` 启动 Underwriter、固定价 Relay、独立 settler、Arena 和 TaskRunner；详见 [运行说明](docs/backend-runtime.md)。GameFi 沿用独立 [runner 配置](docs/gamefi-runner.md)。
 
-页面通过 `GET/POST /api/tasks/runs` 获取预设任务、发起和恢复原 UUID。服务端设置 `TASK_RUNNER_URL`，浏览器不能传入钱包、模型地址、价格或任意提示词。接口及状态说明见 [TASK_RUNNER](packages/pi-loop/TASK_RUNNER.md)。此预设入口保留在 `/advanced`；`/dashboard` 通过同源 `/api/hosted/*` 接入签名登录、创建、设置、暂停和账户操作。托管奖励额度可用于 Pi 目录任务，并经独立 Arena 验收结算；不作为任意聊天入口。
+页面通过 `GET/POST /api/tasks/runs` 获取预设任务、发起和恢复原 UUID。服务端设置 `TASK_RUNNER_URL`，浏览器不能传入钱包、模型地址、价格或任意提示词。接口及状态说明见 [TASK_RUNNER](packages/pi-loop/TASK_RUNNER.md)。此预设入口保留在 `/advanced`；`/dashboard` 通过同源 `/api/hosted/*` 接入签名登录、创建、设置、暂停和账户操作。托管奖励额度可用于 Pi 目录任务，并经独立 Arena 验收结算。工作台另有自由目标入口，经 Magpie 规划、专家分阶段产出与独立模型复核；合约地址/交易哈希已接入 [Monad 自动查链与凭证](docs/chain-lookup-acceptance-20261013.md)；个人目标使用现金，不虚构报酬/授信，工具边界见 [本轮范围](docs/dashboard-goal-workspace-20261013.md)。
 
 ## 最小本地运行
 

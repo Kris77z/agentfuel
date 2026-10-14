@@ -1,47 +1,47 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useHostedAgents } from "../../lib/hosted-agents-provider";
-import { validateAgentSettings, type AgentSettingsDraft } from "../../lib/agent-settings";
-import { inputUsdc, strategyLabel, usdcRaw, type AgentSettings } from "../../lib/hosted-client";
+import { inputUsdc, strategyLabel, type AgentCreation, type AgentSettings } from "../../lib/hosted-client";
 import { TerminalHeader } from "../terminal/terminal-header";
 import styles from "./onboarding.module.css";
 
 type Line = { text: string; style: "cmd" | "out" | "ok" | "dim" | "accent" };
 const bannerRow = (text: string) => `║${text.padStart(Math.floor((32 + text.length) / 2), " ").padEnd(32, " ")}║`;
 const boot: Line[] = [
-  { text: "$ agentfuel init --hosted", style: "cmd" },
+  { text: "$ tabby init --hosted", style: "cmd" },
   { text: "", style: "out" },
-  { text: [`╔${"═".repeat(32)}╗`, bannerRow("A G E N T F U E L"), bannerRow("Hosted Agent Terminal"), `╚${"═".repeat(32)}╝`].join("\n"), style: "accent" },
+  { text: [`╔${"═".repeat(32)}╗`, bannerRow("T A B B Y"), bannerRow("Hosted Agent Terminal"), `╚${"═".repeat(32)}╝`].join("\n"), style: "accent" },
   { text: "", style: "out" },
   { text: "target: 你的钱包 → 独立托管 Agent", style: "dim" },
-  { text: "钱包签名登录 / 六项运行配置 / 确认创建", style: "out" },
+  { text: "钱包签名登录 / 为 Agent 命名 / 确认创建", style: "out" },
 ];
-const labels = ["名称", "模型", "策略", "单次推理预算（USDC）", "累计推理预算（USDC）", "允许任务授信"];
-const keys = ["name", "model", "strategy", "per-run-budget", "total-budget", "allow-credit"];
-
 /** Port of Agora Mesh's terminal-onboarding: boot transcript, typewriter, one
  * command prompt at a time, review and launch. All facts come from the hosted API. */
 export function TerminalOnboarding() {
   const state = useHostedAgents(), router = useRouter();
   const [phase, setPhase] = useState<"boot" | "auth" | "config" | "review">("boot");
-  const [step, setStep] = useState(0), [input, setInput] = useState("");
-  const [draft, setDraft] = useState<AgentSettingsDraft>({ name: "", modelId: "", strategy: "balanced", perRun: "0.12", total: "1", allowCredit: false });
-  const [review, setReview] = useState<AgentSettings | null>(null), [error, setError] = useState("");
+  const [input, setInput] = useState("");
+  const [review, setReview] = useState<AgentCreation | null>(null), [error, setError] = useState("");
   const [lines, setLines] = useState<Line[]>(boot), [typed, setTyped] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null), inputRef = useRef<HTMLInputElement | HTMLSelectElement>(null), mounted = useRef(true);
+  const [paused, setPaused] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null), inputRef = useRef<HTMLInputElement>(null), composing = useRef(false), mounted = useRef(true);
   const models = state.snapshot?.models ?? [], authenticated = state.access === "authenticated" && !!state.owner;
-  const blocked = state.busy || !!state.pending || !authenticated || !models.length;
+  const blocked = state.busy || !!state.pending || !authenticated;
   const pendingCreate = state.pending?.kind === "create" ? state.pending : null;
   const identity = authenticated ? state.owner!.toLowerCase() : null, previousIdentity = useRef(identity);
   const allText = lines.map(line => line.text).join("\n"), typing = typed < allText.length;
   useEffect(() => { mounted.current = true; setReducedMotion(matchMedia("(prefers-reduced-motion: reduce)").matches); return () => { mounted.current = false; }; }, []);
   useEffect(() => {
+    const syncVisibility = () => setPaused(document.hidden);
+    syncVisibility(); document.addEventListener("visibilitychange", syncVisibility);
+    return () => document.removeEventListener("visibilitychange", syncVisibility);
+  }, []);
+  useEffect(() => {
     if (previousIdentity.current && previousIdentity.current !== identity) {
-      setDraft({ name: "", modelId: "", strategy: "balanced", perRun: "0.12", total: "1", allowCredit: false });
-      setReview(null); setInput(""); setStep(0); setError(""); setLines(boot); setTyped(0); setPhase("auth");
+      setReview(null); setInput(""); setError(""); setLines(boot); setTyped(0); setPhase("auth");
     }
     previousIdentity.current = identity;
   }, [identity]);
@@ -51,34 +51,23 @@ export function TerminalOnboarding() {
     const timer = setTimeout(() => setTyped(value => Math.min(allText.length, value + 8)), 12);
     return () => clearTimeout(timer);
   }, [allText.length, typed, typing, reducedMotion]);
-  useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }); }, [typed, phase, step, state.error, state.pending]);
-  useEffect(() => { if (!typing && phase === "config") inputRef.current?.focus(); }, [typing, phase, step]);
+  useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }); }, [typed, phase, error, state.error, state.pending]);
+  useEffect(() => { if (!typing && phase === "config") inputRef.current?.focus(); }, [typing, phase]);
   useEffect(() => {
-    if (phase === "auth" && authenticated && !state.pending && models.length) {
-      setLines(current => [...current, { text: `✓ owner ${state.owner}\n✓ 平台模型目录已读取：${models.length} 项\n\n$ agent configure`, style: "ok" }]);
-      setDraft(current => ({ ...current, modelId: current.modelId || models[0].id }));
+    if (phase === "auth" && authenticated && !state.pending) {
+      setLines(current => [...current, { text: `✓ owner ${state.owner}\n✓ 登录已确认\n\n$ agent create`, style: "ok" }]);
       setPhase("config");
     }
-  }, [phase, authenticated, state.owner, state.pending, models]);
+  }, [phase, authenticated, state.owner, state.pending]);
   const append = (text: string, style: Line["style"] = "cmd") => setLines(current => [...current, { text, style }]);
   function start() { append("\n$ wallet sign-in\n个人消息签名只用于平台登录，不发送链上交易。", "out"); setPhase("auth"); }
   async function login() { setError(""); await state.login(); }
-  function next(event: FormEvent) {
-    event.preventDefault(); if (blocked) return; setError("");
-    try {
-      let value = input.trim();
-      const nextDraft = { ...draft };
-      if (step === 0) { if (!value || value.length > 80 || /[\x00-\x1f\x7f]/.test(value)) throw new Error("名称须为 1–80 个字符。"); nextDraft.name = value; }
-      if (step === 1) { value = draft.modelId; if (!models.some(model => model.id === value)) throw new Error("请选择平台提供的模型。"); }
-      if (step === 2) value = strategyLabel[draft.strategy];
-      if (step === 3) { usdcRaw(value); nextDraft.perRun = value; }
-      if (step === 4) { if (BigInt(usdcRaw(value)) < BigInt(usdcRaw(draft.perRun))) throw new Error("累计预算不能小于单次预算。"); nextDraft.total = value; }
-      if (step === 5) value = draft.allowCredit ? "允许申请" : "关闭";
-      setDraft(nextDraft); append(`$ agent set --${keys[step]} ${value}`);
-      if (step === 5) {
-        setReview(validateAgentSettings(nextDraft, models)); setPhase("review"); append("\n$ agent create --review\n请核对下方参数；确认后由平台生成独立钱包并初始化链上身份。", "out");
-      } else { setStep(step + 1); setInput(step === 2 ? draft.perRun : step === 3 ? draft.total : ""); }
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "设置无效。"); }
+  function next() {
+    if (blocked || composing.current) return;
+    const name = input.trim();
+    if (!name || name.length > 80 || /[\x00-\x1f\x7f]/.test(name)) { setError("名称须为 1–80 个字符。"); return; }
+    setError(""); setReview({ name }); setPhase("review");
+    append(`✓ 名称 › ${name}\n\n$ agent create --review\n创建后，在工作台设置模型、预算和借贷权限。`, "out");
   }
   async function create() {
     if (!review || blocked) return;
@@ -88,12 +77,14 @@ export function TerminalOnboarding() {
   async function recover() {
     if (await state.retryPending() && mounted.current) router.push("/dashboard");
   }
-  function edit() { setPhase("config"); setStep(0); setInput(draft.name); setError(""); append("\n$ agent configure --edit"); }
+  function edit() { setPhase("config"); setInput(review?.name ?? input); setError(""); append("\n$ agent create --edit"); }
   const effectiveReview = pendingCreate?.input ?? review;
+  const legacyReview = effectiveReview && "modelId" in effectiveReview ? effectiveReview as AgentSettings : null;
   let offset = 0;
   const status = state.access === "loading" ? "CONNECTING" : state.access === "unavailable" ? "UNAVAILABLE" : authenticated ? state.busy ? "WAITING" : "AUTHENTICATED" : "SIGN IN REQUIRED";
-  return <div className={styles.shell} data-testid="onboarding-terminal-shell">
+  return <div className={styles.shell} data-testid="onboarding-terminal-shell" data-paused={paused}>
     <TerminalHeader workspace="onboarding" title="创建你的 Agent" testId="onboarding-terminal-header" status={status} actions={<Link className={styles.headerLink} href="/dashboard">进入工作台 →</Link>} />
+    <div className={styles.screen}>
     <main ref={scrollRef} className={styles.terminal} aria-label="Agent 创建终端">
       <div className={styles.transcript} data-testid="onboarding-transcript" aria-hidden={typing ? true : undefined}>{lines.map((line, index) => {
         const text = line.text.slice(0, Math.max(0, typed - offset)); offset += line.text.length + 1;
@@ -104,28 +95,31 @@ export function TerminalOnboarding() {
         <p>› wallet sign-in <span className={styles.dim}>连接你的钱包，签署平台登录消息。</span></p>
         <button onClick={() => void login()} disabled={state.busy || state.access === "loading" || state.access === "unavailable"}>{state.busy ? "等待钱包…" : "签名登录"}</button>
         {state.access === "unavailable" && <button disabled={state.refreshing || state.busy} onClick={() => void state.refresh()}>重新读取平台状态</button>}
-        {authenticated && !models.length && <p role="status">平台模型目录尚不可用，无法配置或创建。</p>}
       </div>}
-      {!typing && phase === "config" && authenticated && !state.pending && <form className={styles.commandForm} onSubmit={next}>
-        <p className={styles.dim}>配置 {String(step + 1).padStart(2, "0")} / 06</p>
-        <label htmlFor="terminal-value">› {labels[step]} <span className={styles.cursor} aria-hidden="true">▋</span></label>
-        {step === 1 ? <select id="terminal-value" aria-label={labels[step]} ref={element => { inputRef.current = element; }} value={draft.modelId} disabled={blocked} onChange={event => setDraft({ ...draft, modelId: event.target.value })}>{models.map(model => <option key={model.id} value={model.id}>{model.label}</option>)}</select>
-          : step === 2 ? <select id="terminal-value" aria-label={labels[step]} ref={element => { inputRef.current = element; }} value={draft.strategy} disabled={blocked} onChange={event => setDraft({ ...draft, strategy: event.target.value as AgentSettings["strategy"] })}>{Object.entries(strategyLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-          : step === 5 ? <select id="terminal-value" aria-label={labels[step]} ref={element => { inputRef.current = element; }} value={draft.allowCredit ? "yes" : "no"} disabled={blocked} onChange={event => setDraft({ ...draft, allowCredit: event.target.value === "yes" })}><option value="no">关闭</option><option value="yes">允许申请</option></select>
-          : <input id="terminal-value" aria-label={labels[step]} ref={element => { inputRef.current = element; }} value={input} maxLength={step === 0 ? 80 : undefined} inputMode={step >= 3 ? "decimal" : "text"} required disabled={blocked} autoComplete="off" onChange={event => setInput(event.target.value)} />}
-        {step === 5 && <p className={styles.dim}>任务授信须经平台核验。推理预算与 cash、gas、借款手续费分别记录。</p>}
-        <button type="submit" disabled={blocked}>{step === 5 ? "检查配置 ↵" : "下一项 ↵"}</button>
+      {!typing && phase === "config" && authenticated && !state.pending && <form className={styles.commandForm} noValidate onSubmit={event => { event.preventDefault(); next(); }}>
+        <div className={styles.questionLine}>
+          <span className={styles.questionMark} aria-hidden="true">?</span>
+          <label htmlFor="terminal-value">名称</label>
+          <span className={styles.separator} aria-hidden="true">›</span>
+          <input id="terminal-value" aria-label="名称" aria-describedby="terminal-hint" aria-invalid={!!error} aria-errormessage={error ? "terminal-error" : undefined} ref={inputRef} value={input} maxLength={80} enterKeyHint="done" required disabled={blocked} autoComplete="off" spellCheck={false} placeholder="your-agent" onChange={event => setInput(event.target.value)} onCompositionStart={() => { composing.current = true; }} onCompositionEnd={() => { composing.current = false; }} onKeyDown={event => { if (event.key === "Enter" && (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229 || event.repeat)) event.preventDefault(); }} />
+          <button className={styles.enterKey} type="submit" disabled={blocked} aria-label="确认名称">↵</button>
+        </div>
+        <p id="terminal-hint" className={styles.hint}>Enter 确认 · 模型、预算和借贷权限在创建后设置</p>
       </form>}
-      {!typing && effectiveReview && authenticated && (phase === "review" || !!pendingCreate) && <section className={styles.review} aria-label="确认 Agent 配置">
-        <p className={styles.accent}>{pendingCreate ? "原请求等待确认 · 已保存原参数" : "review / 确认运行配置"}</p>
-        <dl><div><dt>名称</dt><dd>{effectiveReview.name}</dd></div><div><dt>模型</dt><dd>{models.find(model => model.id === effectiveReview.modelId)?.label ?? effectiveReview.modelId}</dd></div><div><dt>策略</dt><dd>{strategyLabel[effectiveReview.strategy]}</dd></div><div><dt>单次推理预算</dt><dd>{inputUsdc(effectiveReview.perRunBudgetRaw)} USDC</dd></div><div><dt>累计推理预算</dt><dd>{inputUsdc(effectiveReview.totalBudgetRaw)} USDC</dd></div><div><dt>任务授信</dt><dd>{effectiveReview.allowCredit ? "允许申请" : "关闭"}</dd></div></dl>
+      {!typing && effectiveReview && authenticated && (phase === "review" || !!pendingCreate) && <section className={styles.review} aria-label="确认创建 Agent">
+        <p className={styles.accent}>{pendingCreate ? "原请求等待确认 · 已保存原参数" : "review / 确认创建 Agent"}</p>
+        <dl><div><dt>名称</dt><dd>{effectiveReview.name}</dd></div></dl>
+        {legacyReview ? <dl><div><dt>模型</dt><dd>{models.find(model => model.id === legacyReview.modelId)?.label ?? legacyReview.modelId}</dd></div><div><dt>策略</dt><dd>{strategyLabel[legacyReview.strategy]}</dd></div><div><dt>单次推理预算</dt><dd>{inputUsdc(legacyReview.perRunBudgetRaw)} USDC</dd></div><div><dt>累计推理预算</dt><dd>{inputUsdc(legacyReview.totalBudgetRaw)} USDC</dd></div><div><dt>任务授信</dt><dd>{legacyReview.allowCredit ? "允许申请" : "关闭"}</dd></div></dl>
+          : <p className={styles.dim}>平台生成独立钱包并初始化链上身份。运行配置待设置，尚未授权推理消费或借贷。链上开户需要 Agent 钱包有 gas。</p>}
         {pendingCreate ? <><code className={styles.requestId}>{pendingCreate.input.requestId}</code><button disabled={state.busy} onClick={() => void recover()}>继续确认原请求</button></> : <div className={styles.reviewActions}><button disabled={state.busy} onClick={edit}>返回编辑</button><button disabled={blocked} onClick={() => void create()}>{state.busy ? "等待服务器…" : "确认创建"}</button></div>}
       </section>}
       {state.pending?.kind === "run" && authenticated && <p role="status">已有未确认的操作。请先<Link href="/dashboard">进入工作台</Link>，查看或恢复原请求。</p>}
-      {error && <p className={styles.error} role="alert">✗ {error}</p>}
+      {error && <p id="terminal-error" className={styles.error} role="alert">✗ {error}</p>}
       {state.error && <p className={styles.error} role="alert">✗ {state.error}</p>}
       {state.access === "unavailable" && phase === "boot" && <p className={styles.dim}>平台服务尚不可用；连接恢复前无法登录或创建 Agent。</p>}
     </main>
-    <footer className={styles.footer}><span>agentfuel@onboarding:~$</span><span>{status}</span><span>模型目录 {state.snapshot ? models.length : "未读取"}</span></footer>
+    <div className={styles.tracking} aria-hidden="true" />
+    </div>
+    <footer className={styles.footer}><span>tabby@onboarding:~$</span><span>{status}</span><span>模型与预算 · 创建后设置</span></footer>
   </div>;
 }

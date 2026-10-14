@@ -1,17 +1,52 @@
+import { validGoal, validateGoalView } from "./goal-types.js";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
 import { open } from "node:fs/promises";
 import { Wallet, getAddress, verifyMessage } from "ethers";
 import { SessionStore } from "../../../packages/pi-loop/src/session.js";
 import { taskPrivateDirectory } from "../../../packages/pi-loop/src/task-runner/config.js";
-import { HostedError, type AgentSettings, type HostedAgent, type HostedConfig, type HostedExecutor, type HostedFinance, type HostedResult, type HostedRun } from "./types.js";
+import { HostedError, type AgentCreation, type AgentSettings, type HostedAgent, type HostedConfig, type HostedExecutor, type HostedExecution, type HostedFinance, type HostedResult, type HostedRun } from "./types.js";
 import { validateHostedFinance } from "./finance-projection.js";
+import { HOSTED_ACTIVITY_LIMIT, validateHostedActivity, type HostedActivityInput } from "./scene-types.js";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const amount = (v: unknown): v is string => typeof v === "string" && /^(0|[1-9][0-9]{0,29})$/.test(v);
 const hash = (v: string) => createHash("sha256").update(v).digest("hex");
 const now = () => new Date().toISOString();
 const safeCode = (e: unknown) => { const v = (e as any)?.code ?? (e as any)?.message; return typeof v === "string" && /^[A-Z][A-Z0-9_]{0,100}$/.test(v) ? v : "HOSTED_EXECUTION_UNCERTAIN"; };
+function appendActivity(run: HostedRun, input: HostedActivityInput) {
+  const event = validateHostedActivity(input), activities = run.activities ??= [];
+  const seq = (activities.at(-1)?.seq ?? 0) + 1;
+  if (!Number.isSafeInteger(seq)) fail("HOSTED_ACTIVITY_INVALID", 503);
+  activities.push({ ...event, seq, at: now() });
+  if (activities.length > HOSTED_ACTIVITY_LIMIT) activities.splice(0, activities.length - HOSTED_ACTIVITY_LIMIT);
+}
+function runOutcomeActivity(run: HostedRun, result: HostedResult): HostedActivityInput {
+  const reason = result.reason, evidence = { chargedRaw: result.chargedRaw, ...(result.refundedRaw !== undefined ? { refundedRaw: result.refundedRaw } : {}),
+    ...(result.txHash?{txHash:result.txHash}:{}),...(result.taskId?{taskId:result.taskId}:{}),...(result.paymentId?{paymentId:result.paymentId}:{}),...(result.matchId?{matchId:result.matchId}:{}) };
+  if (reason === "HOSTED_AGENT_PAUSED") return {scene:"interruption",state:"paused",reason,requiredAction:"resume",evidence};
+  if (reason === "AUTONOMY_PLANNER_CASH_REQUIRED") return {scene:"funding",state:"blocked",reason,requiredAction:"deposit",evidence};
+  if (reason === "AUTONOMY_TASK_BUDGET_REQUIRED"||reason === "HOSTED_GOAL_BUDGET_REQUIRED") return {scene:"funding",state:"blocked",reason,requiredAction:"configure",evidence};
+  if (reason === "HOSTED_GOAL_NEEDS_INPUT") return {scene:"decision",state:"blocked",reason,requiredAction:"provide-input",evidence};
+  if (reason === "INFERENCE_FUNDING_REQUIRED") return {scene:"funding",state:"blocked",reason,requiredAction:run.action === "reward-task"?"play-game":"deposit",evidence};
+  if (["CASH_REQUIRED","HOSTED_AGENT_FUNDS_REQUIRED"].includes(reason??"")) return {scene:"funding",state:"blocked",reason,requiredAction:"deposit",evidence};
+  if (["UNDERWRITER_REQUIRED","AUTHORIZATION_REJECTED","AUTHORIZATION_MISMATCH"].includes(reason??"")) return {scene:"credit",state:"blocked",reason,evidence};
+  if (["ALLOWANCE_PRICE_LIMIT","HOSTED_TASK_BUDGET_INVALID","HOSTED_TASK_BUDGET_EXCEEDED"].includes(reason??"")) return {scene:"funding",state:"blocked",reason,requiredAction:"configure",evidence};
+  if (reason === "HOSTED_WALLET_GAS_REQUIRED") return {scene:"funding",state:"blocked",reason,requiredAction:"fund-gas",evidence};
+  if (!result.terminal) return { scene: "interruption", state: /RECONCIL|UNCERTAIN|UNKNOWN|UNCONFIRMED|INTERRUPTED|PENDING/.test(reason ?? "") ? "reconciling" : "paused", ...(reason ? { reason } : {}), evidence };
+  if (result.settlement) { const s=result.settlement; return {scene:"settlement",state:"confirmed",evidence:{...evidence,txHash:s.txHash,blockNumber:s.block.number,blockHash:s.block.hash,passed:s.passed,repaidRaw:s.repaidRaw,slashedRaw:s.slashedRaw,residualRaw:s.residualRaw}}; }
+  if (run.action === "provision" && result.success) return {scene:"onboarding",state:result.binding?"confirmed":"completed",...(result.binding?{evidence:{...evidence,chainId:result.binding.chainId,agentId:result.binding.agentId}}:{evidence})};
+  if (run.action === "deposit" && result.success) return {scene:"funding",state:"confirmed",evidence:{...evidence,...(run.amountRaw?{amountRaw:run.amountRaw}:{}),...(result.cashRaw?{cashRaw:result.cashRaw}:{})}};
+  if (run.action === "game" && result.success) {
+    const rewarded=BigInt(result.rewardRaw??"0")>0n||Number(result.creditsGranted??0)>0;
+    const outcome=run.activities?.slice().reverse().find(event=>event.scene==="game"&&event.evidence?.matchId===result.matchId&&event.evidence?.outcome!==undefined&&event.evidence?.outcome!=="no-reward")?.evidence?.outcome;
+    return {scene:rewarded?"settlement":"game",state:rewarded?"confirmed":"completed",evidence:{...evidence,...(result.rewardRaw!==undefined?{rewardRaw:result.rewardRaw}:{}),...(result.creditsGranted!==undefined?{creditsGranted:result.creditsGranted}:{}),...(outcome?{outcome}:!rewarded?{outcome:"no-reward" as const}:{})}};
+  }
+  if (run.action === "credits") return {scene:"model",state:result.success?"completed":"failed",...(reason?{reason}:{}),evidence:{...evidence,...(result.creditsUsed!==undefined?{creditsUsed:result.creditsUsed}:{})}};
+  if (reason === "HOSTED_GOAL_REVIEW_FAILED") return {scene:"review",state:"failed",reason,evidence:{...evidence,passed:false}};
+  return { scene: result.phase === "Cancelled" || /CANCELLED|PAYMENT_VOIDED/.test(reason ?? "") ? "interruption" : "delivery",
+    state: result.success ? "completed" : result.phase === "Cancelled" || reason === "HOSTED_GOAL_CANCELLED" ? "cancelled" : result.phase === "Refunded" ? "refunded" : "failed", ...(reason ? { reason } : {}), evidence };
+}
 function fail(code: string, status = 400): never { throw new HostedError(code, status); }
 function object(v: unknown, fields: string[]): asserts v is Record<string, any> {
   if (!v || typeof v !== "object" || Array.isArray(v) || Object.keys(v).some(k => !fields.includes(k))) fail("HOSTED_INPUT_INVALID");
@@ -22,7 +57,7 @@ interface Challenge { id: string; wallet: string; message: string; expiresAt: nu
 interface Session { digest: string; owner: string; expiresAt: number }
 interface Creation { owner: string; requestId: string; agentId: string; digest: string }
 interface State { version: 1; configBinding: string; challenges: Challenge[]; sessions: Session[]; agents: HostedAgent[]; runs: HostedRun[]; creations: Creation[]; sponsoredOwners: Record<string, number>; sponsoredTotal: number }
-export interface HostedCommand { action: "provision" | "deposit" | "task" | "game" | "credits" | "reward-task" | "metered-task" | "autonomous"; requestId: string; rewardKind?: "usdc" | "llm-credits"; amountRaw?: string }
+export interface HostedCommand { action: "provision" | "deposit" | "task" | "game" | "credits" | "reward-task" | "metered-task" | "autonomous" | "goal"; goal?: string; requestId: string; rewardKind?: "usdc" | "llm-credits"; amountRaw?: string }
 
 export function validateHostedConfig(value: unknown): HostedConfig {
   object(value, ["directory", "origin", "chainId", "models", "maxAgentsPerOwner", "maxTotalBudgetRaw", "maxPerRunBudgetRaw"]);
@@ -53,7 +88,7 @@ export class HostedService {
       const binding = hash(JSON.stringify({ origin: config.origin, chainId: config.chainId }));
       const state = await store.read() ?? { version: 1, configBinding: binding, challenges: [], sessions: [], agents: [], runs: [], creations: [], sponsoredOwners: {}, sponsoredTotal: 0 };
       if (state.version !== 1 || state.configBinding !== binding) fail("HOSTED_CONFIG_BINDING_CHANGED", 503);
-      for (const run of state.runs) if (["Queued", "Running"].includes(run.status)) { run.status = "Paused"; run.recoverable = true; run.reason = "HOSTED_PROCESS_INTERRUPTED"; run.updatedAt = now(); }
+      for (const run of state.runs) if (["Queued", "Running"].includes(run.status)) { run.status = "Paused"; run.recoverable = true; run.reason = "HOSTED_PROCESS_INTERRUPTED"; run.updatedAt = now(); appendActivity(run, { scene: "interruption", state: "reconciling", reason: "HOSTED_PROCESS_INTERRUPTED", requiredAction: "reconcile" }); }
       await store.write(state);
       return new HostedService(structuredClone(config), executor, store, state);
     } catch (e) { await store.close(); throw e; }
@@ -124,10 +159,16 @@ export class HostedService {
     const runs = ownedRuns.filter(({ run }, index) => index < 100 || activeRequestIds.has(run.requestId) || !["Succeeded", "Failed"].includes(run.status)).map(({ run }) => run);
     return structuredClone({ agents, runs, models: this.config.models, ...(this.executor.capabilities ? { capabilities: this.executor.capabilities } : {}) });
   }); }
-  async create(who: string, input: AgentSettings & { requestId: string }) {
+  async create(who: string, input: AgentCreation & { requestId: string }) {
     const agent = await this.serial(async () => {
       object(input, ["requestId", "name", "modelId", "strategy", "perRunBudgetRaw", "totalBudgetRaw", "allowCredit"]); id(input.requestId);
-      const { requestId, ...rest } = input, settings = this.settings(rest), address = owner(who), digest = hash(JSON.stringify(settings));
+      const { requestId, ...rest } = input;
+      const deferred = Object.keys(rest).length === 1 && "name" in rest;
+      if (deferred && (typeof rest.name !== "string" || !rest.name.trim() || rest.name.length > 80 || /[\x00-\x1f\x7f]/.test(rest.name))) fail("HOSTED_SETTINGS_INVALID");
+      const settings: AgentSettings = deferred
+        ? { name: rest.name.trim(), modelId: "", strategy: "balanced", perRunBudgetRaw: "0", totalBudgetRaw: "0", allowCredit: false }
+        : this.settings(rest);
+      const address = owner(who), digest = hash(JSON.stringify(deferred ? { name: settings.name } : settings));
       const previous = this.state.creations.find(c => c.owner === address && c.requestId === requestId);
       if (previous) { if (previous.digest !== digest) fail("HOSTED_REQUEST_CONFLICT", 409); return structuredClone(this.agent(address, previous.agentId)); }
       if (this.state.creations.some(c => c.requestId === requestId) || this.state.runs.some(r => r.requestId === requestId)) fail("HOSTED_REQUEST_CONFLICT", 409);
@@ -135,7 +176,7 @@ export class HostedService {
       const agentId = randomUUID(), directory = join(this.config.directory, "agents", agentId); await taskPrivateDirectory(directory);
       const wallet = Wallet.createRandom(); const file = await open(join(directory, "wallet.key"), "wx", 0o600);
       try { await file.writeFile(wallet.privateKey + "\n"); await file.sync(); } finally { await file.close(); }
-      const created: HostedAgent = { ...settings, id: agentId, owner: address, wallet: wallet.address, createdAt: now(), updatedAt: now(), status: "Pending", spentRaw: "0", reservedRaw: "0" };
+      const created: HostedAgent = { ...settings, ...(deferred ? { configurationRequired: true } : {}), id: agentId, owner: address, wallet: wallet.address, createdAt: now(), updatedAt: now(), status: "Pending", spentRaw: "0", reservedRaw: "0" };
       this.state.agents.push(created); this.state.creations.push({ owner: address, requestId, agentId, digest }); await this.save(); return structuredClone(created);
     });
     // A retry of creation addresses the same provisioning request; it never regenerates a wallet.
@@ -146,21 +187,25 @@ export class HostedService {
     const a = this.agent(who, agentId), settings = this.settings(input);
     if (a.activeRequestId) fail("HOSTED_RECOVER_ORIGINAL_REQUIRED", 409);
     if (BigInt(settings.totalBudgetRaw) < BigInt(a.spentRaw)) fail("HOSTED_BUDGET_BELOW_SPENT", 409);
-    Object.assign(a, settings, { updatedAt: now() }); await this.save(); return structuredClone(a);
+    Object.assign(a, settings, { updatedAt: now() }, a.configurationRequired ? { configurationRequired: false } : {}); await this.save(); return structuredClone(a);
   }); }
   pause(who: string, agentId: string, paused: boolean) { return this.serial(async () => {
     if (typeof paused !== "boolean") fail("HOSTED_INPUT_INVALID"); const a = this.agent(who, agentId);
-    a.status = paused ? "Paused" : a.binding ? "Ready" : "Pending"; a.updatedAt = now(); await this.save(); return structuredClone(a);
+    a.status = paused ? "Paused" : a.binding ? "Ready" : "Pending"; a.updatedAt = now();
+    const active = this.state.runs.find(run => run.requestId === a.activeRequestId && run.agentId === a.id);
+    if (active && paused) appendActivity(active, { scene: "interruption", state: "stopping", reason: "HOSTED_AGENT_PAUSED" });
+    await this.save(); return structuredClone(a);
   }); }
   command(who: string, agentId: string, input: HostedCommand) { return this.serial(async () => {
-    object(input, ["action", "requestId", "rewardKind", "amountRaw"]); id(input.requestId);
-    if (!["provision", "deposit", "task", "game", "credits", "reward-task", "metered-task", "autonomous"].includes(input.action) || (input.action === "game" ? !["usdc", "llm-credits"].includes(input.rewardKind as string) : input.rewardKind !== undefined)) fail("HOSTED_COMMAND_INVALID");
+    object(input, ["action", "requestId", "rewardKind", "amountRaw", "goal"]); id(input.requestId);
+    if (!["provision", "deposit", "task", "game", "credits", "reward-task", "metered-task", "autonomous", "goal"].includes(input.action) || (input.action === "game" ? !["usdc", "llm-credits"].includes(input.rewardKind as string) : input.rewardKind !== undefined)) fail("HOSTED_COMMAND_INVALID");
     if (input.action === "deposit" ? !amount(input.amountRaw) || BigInt(input.amountRaw) < 1n || BigInt(input.amountRaw) > BigInt(this.config.maxTotalBudgetRaw) : input.amountRaw !== undefined) fail("HOSTED_DEPOSIT_AMOUNT_INVALID");
+    if (input.action === "goal" ? !validGoal(input.goal) : input.goal !== undefined) fail("HOSTED_GOAL_INVALID");
     const a = this.agent(who, agentId), creation = this.state.creations.find(c => c.requestId === input.requestId);
     if (creation && (creation.agentId !== a.id || input.action !== "provision")) fail("HOSTED_REQUEST_CONFLICT", 409);
     const previous = this.state.runs.find(r => r.requestId === input.requestId);
     if (previous) {
-      if (previous.agentId !== a.id || previous.action !== input.action || previous.rewardKind !== input.rewardKind || previous.amountRaw !== input.amountRaw) fail("HOSTED_REQUEST_CONFLICT", 409);
+      if (previous.agentId !== a.id || previous.action !== input.action || previous.rewardKind !== input.rewardKind || previous.amountRaw !== input.amountRaw || previous.goal !== input.goal) fail("HOSTED_REQUEST_CONFLICT", 409);
       if (previous.status === "Failed" && previous.action === "autonomous" && previous.reason === "AUTONOMY_INVALID_DECISION") {
         if (previous.terminalRecovery || !previous.result?.terminal || previous.result.success || previous.result.reason !== previous.reason
           || previous.result.chargedRaw !== previous.chargedRaw || previous.result.autonomousTasks !== 0 || BigInt(previous.chargedRaw) <= 0n
@@ -179,17 +224,19 @@ export class HostedService {
           for (const key of Object.keys(a)) delete (a as any)[key]; Object.assign(a, beforeAgent);
           for (const key of Object.keys(previous)) delete (previous as any)[key]; Object.assign(previous, beforeRun); throw error;
         }
+        appendActivity(previous, { scene: "idle", state: "queued", reason: "HOSTED_CACHED_DECISION_RECOVERY" }); await this.save();
         this.launch(a, previous, true); return structuredClone(previous);
       }
       if (previous.status !== "Paused") return structuredClone(previous);
       if (a.activeRequestId !== previous.requestId) fail("HOSTED_RECOVER_ORIGINAL_REQUIRED", 409);
-      previous.status = "Queued"; previous.recoverable = false; delete previous.reason; previous.updatedAt = now(); await this.save();
+      previous.status = "Queued"; previous.recoverable = false; delete previous.reason; previous.updatedAt = now(); appendActivity(previous, { scene: "idle", state: "queued", reason: "HOSTED_RECOVERY_QUEUED" }); await this.save();
       this.launch(a, previous, true); return structuredClone(previous);
     }
+    if (a.configurationRequired && !["provision", "deposit"].includes(input.action)) fail("HOSTED_CONFIGURATION_REQUIRED", 409);
     const awaiting = this.state.runs.find(r => r.requestId === a.activeRequestId);
     const fundingFor = awaiting?.status === "Paused" && awaiting.reason === "INFERENCE_FUNDING_REQUIRED"
       && (input.action === "game" && input.rewardKind === "llm-credits" && awaiting.action === "reward-task"
-        || input.action === "deposit" && ["metered-task", "autonomous"].includes(awaiting.action)) ? awaiting.requestId : undefined;
+        || input.action === "deposit" && ["metered-task", "autonomous", "goal"].includes(awaiting.action)) ? awaiting.requestId : undefined;
     if (a.activeRequestId && !fundingFor) fail("HOSTED_RECOVER_ORIGINAL_REQUIRED", 409);
     if (input.action === "reward-task" && a.modelId !== "kimi-k2.6") fail("HOSTED_REWARD_MODEL_UNSUPPORTED", 409);
     if (a.status === "Paused") fail("HOSTED_AGENT_PAUSED", 409);
@@ -197,7 +244,8 @@ export class HostedService {
     if (this.state.runs.length >= 10000) fail("HOSTED_RUN_LIMIT", 503);
     if (input.action === "metered-task" && !this.executor.capabilities?.inference) fail("HOSTED_METERED_NOT_CONFIGURED", 409);
     if (input.action === "autonomous" && !this.executor.capabilities?.autonomy) fail("HOSTED_AUTONOMY_NOT_CONFIGURED", 409);
-    const reserve = input.action === "autonomous" ? String(BigInt(a.totalBudgetRaw) - BigInt(a.spentRaw)) : ["task", "metered-task"].includes(input.action) ? a.perRunBudgetRaw : "0";
+    if (input.action === "goal" && !this.executor.capabilities?.goals) fail("HOSTED_GOAL_NOT_CONFIGURED", 409);
+    const reserve = input.action === "autonomous" ? String(BigInt(a.totalBudgetRaw) - BigInt(a.spentRaw)) : ["task", "metered-task", "goal"].includes(input.action) ? a.perRunBudgetRaw : "0";
     if (BigInt(a.spentRaw) + BigInt(reserve) > BigInt(a.totalBudgetRaw)) fail("HOSTED_BUDGET_EXHAUSTED", 409);
     // Bounded free sponsorship, independent of how many agents an owner creates. Unknown games retain the slot.
     if (input.action === "game") {
@@ -205,10 +253,11 @@ export class HostedService {
       this.state.sponsoredOwners[a.owner] = (this.state.sponsoredOwners[a.owner] ?? 0) + 1; this.state.sponsoredTotal++;
     }
     const run: HostedRun = { ...input, ...(fundingFor ? { fundingFor } : {}), agentId: a.id, status: "Queued", createdAt: now(), updatedAt: now(), reservedRaw: reserve, chargedRaw: "0", recoverable: false };
+    appendActivity(run, { scene: "idle", state: "queued" });
     a.reservedRaw = fundingFor ? awaiting!.reservedRaw : reserve; a.activeRequestId = run.requestId; a.updatedAt = now(); this.state.runs.push(run); await this.save(); this.launch(a, run, false); return structuredClone(run);
   }); }
   private result(value: HostedResult, a: HostedAgent, run: HostedRun) {
-    object(value, ["phase", "terminal", "success", "chargedRaw", "reason", "binding", "taskId", "paymentId", "txHash", "matchId", "cashRaw", "principalRaw", "feeRaw", "rewardRaw", "creditsGranted", "creditsUsed", "chainId", "acceptTxHash", "paymentTxHash", "fromCashRaw", "fromCreditRaw", "refundedRaw", "settlement", "autonomousTasks"]);
+    object(value, ["phase", "terminal", "success", "chargedRaw", "reason", "binding", "taskId", "paymentId", "txHash", "matchId", "cashRaw", "principalRaw", "feeRaw", "rewardRaw", "creditsGranted", "creditsUsed", "chainId", "acceptTxHash", "paymentTxHash", "fromCashRaw", "fromCreditRaw", "refundedRaw", "settlement", "autonomousTasks", "mission"]);
     if (typeof value.phase !== "string" || !/^[A-Za-z][A-Za-z0-9_]{0,80}$/.test(value.phase) || typeof value.terminal !== "boolean" || typeof value.success !== "boolean" ||
       !amount(value.chargedRaw) || BigInt(value.chargedRaw) > BigInt(run.reservedRaw) || (value.success && !value.terminal)) fail("HOSTED_RESULT_INVALID", 503);
     if (value.reason !== undefined && !/^[A-Z][A-Z0-9_]{0,100}$/.test(value.reason)) fail("HOSTED_RESULT_INVALID", 503);
@@ -221,6 +270,7 @@ export class HostedService {
         ![s.block.number, s.block.timestamp].every(v => Number.isSafeInteger(v) && v >= 0) || typeof s.passed !== "boolean" || s.passed !== value.success ||
         !["0", "2", "3", "4"].includes(s.loanStatus) || ![s.repaidRaw, s.slashedRaw, s.residualRaw].every(amount)) fail("HOSTED_RESULT_INVALID", 503);
     }
+    if (value.mission) { if (run.action !== "goal") fail("HOSTED_RESULT_INVALID", 503); value.mission = validateGoalView(value.mission); }
     if (value.matchId !== undefined && !/^[a-zA-Z0-9_-]{1,100}$/.test(value.matchId)) fail("HOSTED_RESULT_INVALID", 503);
     for (const f of ["creditsGranted", "creditsUsed", "autonomousTasks"] as const) if (value[f] !== undefined && (!Number.isSafeInteger(value[f]) || value[f]! < 0)) fail("HOSTED_RESULT_INVALID", 503);
     if (value.binding) {
@@ -233,10 +283,14 @@ export class HostedService {
   private launch(a: HostedAgent, run: HostedRun, recover: boolean) {
     const snapshot = structuredClone(a), original = structuredClone(run);
     const job = (async () => {
-      await this.serial(async () => { run.status = "Running"; run.updatedAt = now(); await this.save(); });
+      await this.serial(async () => { run.status = "Running"; run.updatedAt = now(); appendActivity(run, { scene: run.action === "provision" ? "onboarding" : run.action === "deposit" ? "funding" : run.action === "game" ? "game" : run.action === "credits" ? "model" : run.action === "autonomous" ? "decision" : run.action === "goal" ? "decision" : "task", state: "started" }); await this.save(); });
       try {
         const directory = join(this.config.directory, "agents", a.id, "runs", run.requestId); await taskPrivateDirectory(directory);
-        const result = await this.executor.execute({ agent: snapshot, run: original, directory, keyFile: join(this.config.directory, "agents", a.id, "wallet.key"), recover });
+        const execution:HostedExecution={ agent: snapshot, run: original, directory, keyFile: join(this.config.directory, "agents", a.id, "wallet.key"), recover,
+          ...(run.action === "goal" ? { progress: (view: import("./goal-types.js").GoalView) => this.serial(async () => { run.mission = validateGoalView(view); run.updatedAt = now(); await this.save(); }) } : {}) };
+        // Keep legacy whole-input snapshots cloneable; callbacks never belong in durable custody state.
+        Object.defineProperty(execution,"activity",{value:(event:HostedActivityInput)=>this.serial(async()=>{if(["Succeeded","Failed"].includes(run.status))return;appendActivity(run,event);run.updatedAt=now();await this.save();}),enumerable:false});
+        const result = await this.executor.execute(execution);
         await this.serial(async () => {
           const safe = this.result(result, a, run); run.result = safe; run.updatedAt = now();
           if (safe.terminal) {
@@ -249,12 +303,26 @@ export class HostedService {
             } else { a.reservedRaw = "0"; delete a.activeRequestId; }
             if (safe.binding) { a.binding = safe.binding; if (a.status !== "Paused") a.status = "Ready"; }
           } else { run.status = "Paused"; run.recoverable = true; }
-          if (safe.reason) run.reason = safe.reason; await this.save();
+          if (safe.reason) run.reason = safe.reason; else delete run.reason;
+          appendActivity(run, runOutcomeActivity(run, safe)); await this.save();
         });
-      } catch (e) { await this.serial(async () => { run.status = "Paused"; run.reason = safeCode(e); run.recoverable = true; run.updatedAt = now(); await this.save(); }); }
+      } catch (e) { await this.serial(async () => { run.status = "Paused"; run.reason = safeCode(e); run.recoverable = true; run.updatedAt = now(); appendActivity(run, { scene: "interruption", state: "reconciling", reason: run.reason, requiredAction: "reconcile" }); await this.save(); }); }
     })();
     this.jobs.add(job); void job.finally(() => this.jobs.delete(job)).catch(() => undefined);
   }
+  goalControl(agentId: string, requestId: string) { return this.serial(async () => {
+    const agent = this.state.agents.find(a=>a.id===agentId), run = this.state.runs.find(r=>r.agentId===agentId&&r.requestId===requestId);
+    return { paused: agent?.status === "Paused", cancelled: !!run?.stopRequested };
+  }); }
+  cancelGoal(who: string, agentId: string, requestId: string) { return this.serial(async () => {
+    const agent=this.agent(who,agentId), run=this.state.runs.find(r=>r.agentId===agent.id&&r.requestId===requestId);
+    if (!run || run.action!=="goal") fail("HOSTED_GOAL_NOT_FOUND",404);
+    if (["Succeeded","Failed"].includes(run.status)) return structuredClone(run);
+    if (agent.activeRequestId !== requestId) fail("HOSTED_RECOVER_ORIGINAL_REQUIRED",409);
+    run.stopRequested=true; appendActivity(run, { scene: "interruption", state: "stopping", reason: "HOSTED_GOAL_CANCELLED" }); await this.save();
+    if(run.status==="Paused"){run.status="Queued";run.recoverable=false;await this.save();this.launch(agent,run,true);}
+    return structuredClone(run);
+  }); }
   async waitUntilIdle() {
     for (;;) {
       const observed = this.queue; await observed;

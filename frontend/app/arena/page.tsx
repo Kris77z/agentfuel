@@ -7,7 +7,7 @@ import "./holdem/holdem.css";
 import "./arena-play.css";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "GameFi · AgentFuel", description: "真实模型德州对局、USDC 赞助奖励与推理消费证据，以及四种游戏的免费练习。" };
+export const metadata: Metadata = { title: "GameFi · Tabby", description: "真实模型德州对局、USDC 赞助奖励与推理消费证据，以及四种游戏的免费练习。" };
 export default async function ArenaPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const [params, holdem] = await Promise.all([searchParams, loadHoldemSnapshot()]);
   const value = (key: string) => typeof params[key] === "string" ? params[key] as string : "";

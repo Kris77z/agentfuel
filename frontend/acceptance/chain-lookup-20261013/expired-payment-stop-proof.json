@@ -1,0 +1,22 @@
+{
+  "requestId": "1dc6ba66-603b-4ab0-b9cb-b6683ea31ae5",
+  "agentId": "a9d65266-634d-4ce3-b5e3-eed8235771df",
+  "chainId": "10143",
+  "paymentId": "0x8345fce63e378c2c4b2162b136779639a1089607af8b1c40364d2f96fbb546ed",
+  "expiredPaymentTxHash": "0xe37f6cef3d94e616bf55f9809385de98879d4077831fcf74d1dad95266b4133d",
+  "voidTxHash": "0x7f2887e82baeaf087bab286f02745b5dc690d3e2fcd36b9cfded20d989cd05dd",
+  "nonce": 36,
+  "blockNumber": 70656084,
+  "blockHash": "0xa7fa1391182d5dce29c8ad668f49398c7601deae69a11a72c184bc50958f8d20",
+  "status": 1,
+  "oldPaymentRaw": "0",
+  "sameNonce": true,
+  "selfTransferValue": "0",
+  "terminalPhase": "Cancelled",
+  "retainedChargesRaw": "20000",
+  "replay": {
+    "sameSnapshot": true,
+    "noNewPayments": true,
+    "noNewModelCalls": true
+  }
+}

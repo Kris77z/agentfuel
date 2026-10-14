@@ -82,3 +82,16 @@ npm run typecheck:all
 ```
 
 这些自动化测试使用真实本地 Anvil 合约、SDK、Pi、独立 Docker Arena/settler；模型响应受控。网关单元测试另覆盖并发预留、费率差异、来源幂等、usage 越界、未知冻结、重启恢复。另有[真实双模型本地记录](local-real-acceptance-20261012.md)和[本地启动器](local-hosted-testing.md)；Monad 核心业务及链上独立核验已完成；真实扩展钱包与公网联合部署仍需另验收。
+
+
+## 2026-10-13：个人目标工作空间
+
+工作台默认输入自由目标，单独的 `goal` 执行器复用 Agora Commander 的阶段编排方式，并接入本项目持久化支付与 Magpie 双模型 Relay。个人目标 task 0 仅用 cash；目录接单继续沿用原有 Pi/Arena/escrow/借贷/信誉主闭环。支持范围与停止、恢复、费用证据见 [Hosted 接口](hosted-agents.md#自然语言目标2026-10-13) 与 [本轮验收](dashboard-goal-workspace-20261013.md)。
+
+runtime 新增 goalCheap/goalStrong 监听端口。旧 Monad 父 runtime 必须停止后使用相同目录/bootstrap 的 `start ... --recover` 启动，才能创建新 relay；只给旧进程 `SIGUSR2` 仅能重载 hosted daemon。原暂停请求不自动运行，恢复沿用原 UUID。
+
+2026-10-13 本机恢复使用 `AGENTFUEL_RPC_RETRY_READ_503=1` 启用已有的 RPC 读取重试，再运行 `node --import tsx scripts/monad-hosted-runtime.ts start demo-output/monad-hosted-20261012/runtime demo-output/monad-hosted-20261012/bootstrap.json --recover`。旧 catalog 的逻辑 ID `cheap/strong` 保留原样，只在新 goal 配置映射为公开模型 ID；不改原顺序、digest 或已持久化的付款路由。
+
+## 五项专用专家（2026-10-13）
+
+个人 `goal` 入口新增 monad-rebel 的 ABI Reader、Gas Optimizer、Token Risk Scanner、Transaction Decoder、Yield Strategy Finder，使用原服务 ID、任务别名、prompt/config 与结构化输出规则。与三个通用执行角色共用现金付款、Magpie 路由、阶段恢复、一次修订及独立复核。评审收到与执行器相同的输出格式约定；非法 JSON/字段会停止任务并保留已经支付的费用。新专家已接入受限的 Monad 只读 RPC/Sourcify 自动查链，不扩展到自动发布悬赏、外部专家钱包或任意网页访问，不改变原借贷边界。验收记录见 [Dashboard 专家接入](dashboard-goal-workspace-20261013.md)。

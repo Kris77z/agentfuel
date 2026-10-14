@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { hostedRequest, HostedClientError, hostedError, signedLogin, injectedWallet, readPending, savePending, replayInput,
-  type HostedSnapshot, type HostedAgent, type HostedRun, type AgentSettings, type PendingCommand, type RunInput } from "./hosted-client";
+  type HostedSnapshot, type HostedAgent, type HostedRun, type AgentCreation, type AgentSettings, type PendingCommand, type RunInput } from "./hosted-client";
 import { useHostedFinance } from "./use-hosted-finance";
 
 // Mounted once in HostedAgentsProvider so auth queues and transport leases survive
@@ -14,6 +14,7 @@ export function useHostedAgentsController(enabled: boolean) {
   const [access, setAccess] = useState<"loading" | "signed-out" | "authenticated" | "unavailable">("loading");
   const [owner, setOwner] = useState<string | null>(null), [selectedId, setSelectedId] = useState("");
   const [error, setError] = useState(""), [notice, setNotice] = useState("");
+  const [snapshotStale, setSnapshotStale] = useState(false);
   const [busy, setBusy] = useState(false), [refreshing, setRefreshing] = useState(false);
   const [pending, setPending] = useState<PendingCommand | null>(null);
   const readInFlight = useRef(false), mutationInFlight = useRef(false), sessionEpoch = useRef(0), requireLogin = useRef(false);
@@ -56,13 +57,13 @@ export function useHostedAgentsController(enabled: boolean) {
     try {
       const next = await hostedRequest<HostedSnapshot>("/agents");
       if (epoch !== sessionEpoch.current) return;
-      sessionActive.current = true; setSnapshot(next); setAccess("authenticated"); setError("");
+      sessionActive.current = true; setSnapshot(next); setAccess("authenticated"); setSnapshotStale(false); setError("");
       if (next.agents[0]) setOwner(next.agents[0].owner);
       setSelectedId(id => next.agents.some(agent => agent.id === id) ? id : next.agents[0]?.id ?? "");
     } catch (cause) {
       if (epoch !== sessionEpoch.current) return;
       if (cause instanceof HostedClientError && cause.status === 401) invalidate();
-      else { setAccess(current => current === "authenticated" ? current : "unavailable"); setError(hostedError(cause)); }
+      else { setSnapshotStale(true); setAccess(current => current === "authenticated" ? current : "unavailable"); setError(hostedError(cause)); }
     } finally { readInFlight.current = false; readCompletion.current = null; completeRead(); setRefreshing(false); }
   }, [invalidate]);
   useEffect(() => { if (enabled) void refresh(); }, [enabled, refresh]);
@@ -157,7 +158,7 @@ export function useHostedAgentsController(enabled: boolean) {
       return false;
     } finally { finishMutation(lease); }
   }
-  async function create(settings: AgentSettings) {
+  async function create(settings: AgentCreation) {
     if (!owner || pending) return false;
     return command({ owner, kind: "create", input: { requestId: crypto.randomUUID(), ...settings } });
   }
@@ -169,6 +170,14 @@ export function useHostedAgentsController(enabled: boolean) {
     const agent = snapshot?.agents.find(item => item.id === run.agentId);
     if (!agent || pending) return false;
     return command({ owner: agent.owner, kind: "run", agentId: run.agentId, input: replayInput(run) });
+  }
+  async function cancelGoal(agent: HostedAgent, requestId: string) {
+    if (mutationInFlight.current || pending) return false;
+    const lease=beginMutation(), epoch=sessionEpoch.current;
+    try { await hostedRequest(`/agents/${encodeURIComponent(agent.id)}/cancel`, "POST", {requestId});
+      if(epoch!==sessionEpoch.current)return false; setNotice("已请求停止后续执行，正在确认已发生调用。"); await refresh(); return epoch===sessionEpoch.current;
+    } catch(cause){if(epoch===sessionEpoch.current){setError(hostedError(cause));if(cause instanceof HostedClientError&&cause.status===401)invalidate();}return false;}
+    finally{finishMutation(lease);}
   }
   async function update(agent: HostedAgent, settings: AgentSettings) {
     return mutateAgent(agent, "PATCH", settings, "Agent 设置已保存。");
@@ -192,6 +201,6 @@ export function useHostedAgentsController(enabled: boolean) {
   const financeRevision = snapshot?.runs.filter(run => run.agentId === selectedId && !["Queued", "Running"].includes(run.status))
     .map(run => `${run.requestId}:${run.status}:${run.updatedAt}`).join("|") ?? "";
   const finance = useHostedFinance(selected, enabled && access === "authenticated", financeRevision, invalidate);
-  return { snapshot, selected, selectedId, select: setSelectedId, access, owner, error, notice, busy, refreshing, pending,
-    finance, refresh, login, logout, create, run, recover, update, pause, retryPending: () => pending ? command(pending) : Promise.resolve(false) };
+  return { snapshot, snapshotStale, selected, selectedId, select: setSelectedId, access, owner, error, notice, busy, refreshing, pending,
+    finance, refresh, login, logout, create, run, recover, update, pause, cancelGoal, retryPending: () => pending ? command(pending) : Promise.resolve(false) };
 }

@@ -73,7 +73,7 @@ test("fixed paths use only cookie bearer and public projections; upstream errors
 });
 test("JSON input/output is bounded and redirects are refused without retries", async () => {
   let calls = 0;
-  const fetcher = (async (_url, options) => { calls++; assert.equal(options?.redirect, "error"); assert.ok(options?.signal); return new Response("x".repeat(1048577)); }) as typeof fetch;
+  const fetcher = (async (_url, options) => { calls++; assert.equal(options?.redirect, "error"); assert.ok(options?.signal); const chunk = new Uint8Array(1024 * 1024); let count = 0; return new Response(new ReadableStream({ pull(controller) { if (count++ < 65) controller.enqueue(chunk); else controller.close(); } })); }) as typeof fetch;
   const large = await hostedAgentsRequest(request("/agents", "POST", { ...settings, name: "x".repeat(8192) }), { ...config, fetcher });
   assert.equal(large.status, 413); assert.equal(calls, 0);
   const output = await hostedAgentsRequest(request("/agents"), { ...config, fetcher }); assert.equal(output.status, 413); assert.equal(calls, 1);
@@ -152,4 +152,40 @@ test("Next loopback URL normalization preserves exact browser Host and Origin ch
     assert.equal(response.status, 403, JSON.stringify({ url, headers }));
   }
   assert.equal(calls, 1);
+});
+
+test("goal snapshots project nested artifacts and cancellation flags without private executor data", async () => {
+  const mission = { stage: "completed", phases: [{ name: "Write", taskType: "writer", goal: "Write the plan", output: "A useful plan.", keyFile: "PRIVATE_SENTINEL" }], answer: "A useful plan.",
+    review: { passed: true, summary: "Requirements checked", checks: ["Three concrete steps"], modelKey: "PRIVATE_SENTINEL" },
+    calls: [{ stage: "phase-0", model: "kimi-k2.6", chargedRaw: "10000", promptTokens: 50, completionTokens: 20, rawTransaction: "PRIVATE_SENTINEL" }], privateKey: "PRIVATE_SENTINEL" };
+  const run = { requestId: "run-1", agentId: "agent-1", action: "goal", goal: "帮我完成一个计划", stopRequested: true, mission, result: { mission, chargedRaw: "10000", phase: "Completed", walletKey: "PRIVATE_SENTINEL" } };
+  const response = await hostedAgentsRequest(request("/agents"), { ...config, fetcher: (async () => Response.json({ agents: [{ id: "agent-1", configurationRequired: true }], runs: [run], models: [],
+    capabilities: { goals: { maxPhases: 3, models: [{ id: "kimi-k2.6", pricePerCallRaw: "10000", relayUrl: "PRIVATE_SENTINEL" }], provider: "PRIVATE_SENTINEL" } } })) as typeof fetch });
+  assert.equal(response.status, 200); const text = await response.text(), body = JSON.parse(text);
+  assert.doesNotMatch(text, /PRIVATE_SENTINEL|rawTransaction|privateKey|keyFile|relayUrl|walletKey|modelKey/);
+  assert.equal(body.agents[0].configurationRequired, true); assert.equal(body.runs[0].goal, run.goal); assert.equal(body.runs[0].stopRequested, true);
+  assert.equal(body.runs[0].mission.phases[0].output, "A useful plan."); assert.equal(body.runs[0].result.mission.review.passed, true);
+  assert.deepEqual(body.capabilities.goals, { maxPhases: 3, models: [{ id: "kimi-k2.6", pricePerCallRaw: "10000" }] });
+  const cancelled = await hostedAgentsRequest(request("/agents/agent-1/cancel", "POST", { requestId: "run-1" }), { ...config, fetcher: (async (url, init) => {
+    assert.equal(String(url), `${upstreamUrl}/agents/agent-1/cancel`); assert.deepEqual(JSON.parse(init!.body as string), { requestId: "run-1" });
+    assert.equal(new Headers(init?.headers).get("authorization"), `Bearer ${token}`); return Response.json(run, { status: 202 });
+  }) as typeof fetch });
+  assert.equal(cancelled.status, 202); const cancelledBody = await cancelled.json(); assert.equal(cancelledBody.stopRequested, true); assert.equal(cancelledBody.goal, run.goal);
+});
+
+test("goal history larger than one MiB remains readable within the bounded artifact window", async () => {
+  const mission = { stage: "completed", phases: [{ name: "draft", taskType: "writer", goal: "Write a report", output: "文".repeat(20000) }], answer: "文".repeat(20000), calls: [] };
+  const runs = Array.from({length: 12}, (_, i) => ({requestId: `goal-${i}`, agentId: "agent-1", action: "goal", goal: "Write a report", mission }));
+  const response = await hostedAgentsRequest(request("/agents"), { ...config, fetcher: (async () => Response.json({ agents: [], models: [], runs })) as typeof fetch });
+  assert.equal(response.status, 200); assert.equal((await response.json()).runs.length, 12);
+});
+
+test("scene activities preserve ordered public facts and reject private or malformed event envelopes", async () => {
+  const activity = { seq: 4, at: "2026-10-14T03:00:00.000Z", scene: "specialists", state: "selected", phaseId: "phase-0", subject: { id: "writer", name: "Writing Specialist", kind: "specialist" }, evidence: { candidateIds: ["writer", "analyst"], priceRaw: "10000" } };
+  const snapshot = async (activities: unknown) => hostedAgentsRequest(request("/agents"), { ...config, fetcher: (async () => Response.json({ agents: [], models: [], runs: [{ requestId: "scene-run", activities, privateJournal: "PRIVATE_SENTINEL" }] })) as typeof fetch });
+  const good = await snapshot([activity, {...activity,seq:5,state:"confirmed"}]);
+  assert.equal(good.status,200); const text = await good.text(); assert.doesNotMatch(text,/PRIVATE_SENTINEL|privateJournal/); assert.deepEqual(JSON.parse(text).runs[0].activities.map((event:{seq:number})=>event.seq),[4,5]);
+  for (const invalid of [[activity,{...activity,seq:4}],[{...activity,seq:0}],[{...activity,at:"invalid"}],[{...activity,keyFile:"PRIVATE_SENTINEL"}],[{...activity,evidence:{...activity.evidence,providerUrl:"PRIVATE_SENTINEL"}}],Array.from({length:257},(_,i)=>({...activity,seq:i+1}))]) {
+    const rejected=await snapshot(invalid);assert.equal(rejected.status,503);assert.deepEqual(await rejected.json(),{error:"HOSTED_UNAVAILABLE"});
+  }
 });

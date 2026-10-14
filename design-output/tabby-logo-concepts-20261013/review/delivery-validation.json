@@ -1,0 +1,327 @@
+{
+  "candidate_count": 6,
+  "independent_pngs_validated": 12,
+  "png_requirement": "1024x1024; <2 MB; true alpha for transparent",
+  "html_card_count": 6,
+  "local_links_valid": true,
+  "themes_tested": [
+    "mono",
+    "orange",
+    "reverse"
+  ],
+  "mobile_390_no_overflow": true,
+  "results": [
+    {
+      "id": "A1",
+      "pngs": [
+        {
+          "path": "group-a-logo-generator/a1-square-1024.png",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 15164,
+          "mode": "RGB",
+          "alpha": [
+            255,
+            255
+          ]
+        },
+        {
+          "path": "group-a-logo-generator/a1-symbol-transparent-1024.png",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 16935,
+          "mode": "RGBA",
+          "alpha": [
+            0,
+            255
+          ]
+        }
+      ],
+      "svg": [
+        {
+          "path": "group-a-logo-generator/a1-symbol.svg",
+          "bytes": 527,
+          "tags": [
+            "g",
+            "path",
+            "svg",
+            "title"
+          ]
+        },
+        {
+          "path": "group-a-logo-generator/a1-black.svg",
+          "bytes": 527,
+          "tags": [
+            "g",
+            "path",
+            "svg",
+            "title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A2",
+      "pngs": [
+        {
+          "path": "group-a-logo-generator/a2-square-1024.png",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 9664,
+          "mode": "RGB",
+          "alpha": [
+            255,
+            255
+          ]
+        },
+        {
+          "path": "group-a-logo-generator/a2-symbol-transparent-1024.png",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 10395,
+          "mode": "RGBA",
+          "alpha": [
+            0,
+            255
+          ]
+        }
+      ],
+      "svg": [
+        {
+          "path": "group-a-logo-generator/a2-symbol.svg",
+          "bytes": 544,
+          "tags": [
+            "g",
+            "rect",
+            "svg",
+            "title"
+          ]
+        },
+        {
+          "path": "group-a-logo-generator/a2-black.svg",
+          "bytes": 544,
+          "tags": [
+            "g",
+            "rect",
+            "svg",
+            "title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A3",
+      "pngs": [
+        {
+          "path": "group-a-logo-generator/a3-square-1024.png",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 6040,
+          "mode": "RGB",
+          "alpha": [
+            255,
+            255
+          ]
+        },
+        {
+          "path": "group-a-logo-generator/a3-symbol-transparent-1024.png",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 7104,
+          "mode": "RGBA",
+          "alpha": [
+            0,
+            255
+          ]
+        }
+      ],
+      "svg": [
+        {
+          "path": "group-a-logo-generator/a3-symbol.svg",
+          "bytes": 389,
+          "tags": [
+            "g",
+            "path",
+            "svg",
+            "title"
+          ]
+        },
+        {
+          "path": "group-a-logo-generator/a3-black.svg",
+          "bytes": 389,
+          "tags": [
+            "g",
+            "path",
+            "svg",
+            "title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B1",
+      "pngs": [
+        {
+          "path": "group-b-logo-design/b1-square.png",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 19220,
+          "mode": "RGB",
+          "alpha": [
+            255,
+            255
+          ]
+        },
+        {
+          "path": "group-b-logo-design/b1-transparent.png",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 18345,
+          "mode": "RGBA",
+          "alpha": [
+            0,
+            255
+          ]
+        }
+      ],
+      "svg": [
+        {
+          "path": "group-b-logo-design/b1-symbol.svg",
+          "bytes": 415,
+          "tags": [
+            "path",
+            "svg",
+            "title"
+          ]
+        },
+        {
+          "path": "group-b-logo-design/b1-black.svg",
+          "bytes": 415,
+          "tags": [
+            "path",
+            "svg",
+            "title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B2",
+      "pngs": [
+        {
+          "path": "group-b-logo-design/b2-square.png",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 10251,
+          "mode": "RGB",
+          "alpha": [
+            255,
+            255
+          ]
+        },
+        {
+          "path": "group-b-logo-design/b2-transparent.png",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 10395,
+          "mode": "RGBA",
+          "alpha": [
+            0,
+            255
+          ]
+        }
+      ],
+      "svg": [
+        {
+          "path": "group-b-logo-design/b2-symbol.svg",
+          "bytes": 375,
+          "tags": [
+            "path",
+            "svg",
+            "title"
+          ]
+        },
+        {
+          "path": "group-b-logo-design/b2-black.svg",
+          "bytes": 375,
+          "tags": [
+            "path",
+            "svg",
+            "title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B3",
+      "pngs": [
+        {
+          "path": "group-b-logo-design/b3-square.png",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 17237,
+          "mode": "RGB",
+          "alpha": [
+            255,
+            255
+          ]
+        },
+        {
+          "path": "group-b-logo-design/b3-transparent.png",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 16358,
+          "mode": "RGBA",
+          "alpha": [
+            0,
+            255
+          ]
+        }
+      ],
+      "svg": [
+        {
+          "path": "group-b-logo-design/b3-symbol.svg",
+          "bytes": 399,
+          "tags": [
+            "path",
+            "svg",
+            "title"
+          ]
+        },
+        {
+          "path": "group-b-logo-design/b3-black.svg",
+          "bytes": 399,
+          "tags": [
+            "path",
+            "svg",
+            "title"
+          ]
+        }
+      ]
+    }
+  ]
+}

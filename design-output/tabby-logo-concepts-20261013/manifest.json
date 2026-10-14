@@ -1,0 +1,173 @@
+{
+  "brand": "Tabby",
+  "date": "2026-10-13",
+  "recommended": "B3",
+  "alternative": "B2",
+  "candidates": [
+    {
+      "id": "A1",
+      "name": "虎斑信号",
+      "idea": "用三道虎斑负形识别 Tabby，让猫的轮廓保留工业印记的克制。",
+      "pattern": "Geometric shape + negative-space line system",
+      "construction": "100单位画布；64单位宽猫形、45°耳尖，三道圆端负形条纹；不画眼睛或胡须。",
+      "minimum": "建议24px；16px保留耳尖与整体轮廓。",
+      "risk": "最直接的猫语义，16px时虎斑细节弱于外轮廓。",
+      "files": {
+        "symbol": "a1-symbol.svg",
+        "black": "a1-black.svg",
+        "transparent": "a1-symbol-transparent-1024.png",
+        "square": "a1-square-1024.png"
+      },
+      "group": "group-a-logo-generator",
+      "english": "STRIPE SIGNAL",
+      "paths": {
+        "symbol": "group-a-logo-generator/a1-symbol.svg",
+        "black": "group-a-logo-generator/a1-black.svg",
+        "transparent": "group-a-logo-generator/a1-symbol-transparent-1024.png",
+        "square": "group-a-logo-generator/a1-square-1024.png"
+      }
+    },
+    {
+      "id": "A2",
+      "name": "队列 T",
+      "idea": "六个模块构成 T，末端向右续接，像完成一单后进入下一单的任务队列。",
+      "pattern": "Rounded rectangle dot matrix + letter abstraction",
+      "construction": "100单位画布；16×16模块、6单位间隙、2单位圆角；三块横梁、两块竖干与一个右向续接模块。",
+      "minimum": "16px保留T骨架；22px可看清分块。",
+      "risk": "比猫方向更抽象，需要Tabby字标一起建立识别。",
+      "files": {
+        "symbol": "a2-symbol.svg",
+        "black": "a2-black.svg",
+        "transparent": "a2-symbol-transparent-1024.png",
+        "square": "a2-square-1024.png"
+      },
+      "group": "group-a-logo-generator",
+      "english": "QUEUE T",
+      "paths": {
+        "symbol": "group-a-logo-generator/a2-symbol.svg",
+        "black": "group-a-logo-generator/a2-black.svg",
+        "transparent": "group-a-logo-generator/a2-symbol-transparent-1024.png",
+        "square": "group-a-logo-generator/a2-square-1024.png"
+      }
+    },
+    {
+      "id": "A3",
+      "name": "工作回环",
+      "idea": "将工作闭环做成升一格的回环，每次交付都为下一次工作留下信誉。",
+      "pattern": "Geometric letter abstraction + stepped cycle",
+      "construction": "100单位画布；一体实心台阶轮廓，内部单一圆角台阶负形；14单位主体厚度。",
+      "minimum": "16px可读闭环与台阶；22px更清楚。",
+      "risk": "业务意味强，Tabby猫的联想较弱。",
+      "files": {
+        "symbol": "a3-symbol.svg",
+        "black": "a3-black.svg",
+        "transparent": "a3-symbol-transparent-1024.png",
+        "square": "a3-square-1024.png"
+      },
+      "group": "group-a-logo-generator",
+      "english": "WORK LOOP",
+      "paths": {
+        "symbol": "group-a-logo-generator/a3-symbol.svg",
+        "black": "group-a-logo-generator/a3-black.svg",
+        "transparent": "group-a-logo-generator/a3-symbol-transparent-1024.png",
+        "square": "group-a-logo-generator/a3-square-1024.png"
+      }
+    },
+    {
+      "id": "B1",
+      "name": "方腔 b",
+      "idea": "将 Tabby 的 b 画成竖尾，方形内腔像一张工作标签。",
+      "shape": "letterform",
+      "construction": "38-unit stem; custom squared counter and curved bowl; one evenodd filled path, viewBox 256",
+      "recommendation": "最中性简洁，适合低调工具品牌。",
+      "minimum": {
+        "symbol_px": 16,
+        "recommended_ui_px": 24
+      },
+      "files": {
+        "symbol": "b1-symbol.svg",
+        "black": "b1-black.svg",
+        "transparent": "b1-transparent.png",
+        "square": "b1-square.png",
+        "black_transparent": "b1-black-transparent.png"
+      },
+      "risk": "更像通用 b，需要 Tabby 字标建立品牌。",
+      "group": "group-b-logo-design",
+      "english": "TABBED B",
+      "paths": {
+        "symbol": "group-b-logo-design/b1-symbol.svg",
+        "black": "group-b-logo-design/b1-black.svg",
+        "transparent": "group-b-logo-design/b1-transparent.png",
+        "square": "group-b-logo-design/b1-square.png",
+        "black_transparent": "group-b-logo-design/b1-black-transparent.png"
+      }
+    },
+    {
+      "id": "B2",
+      "name": "信誉印签",
+      "idea": "一个验收后的任务印签，负形 t 把信誉留在记录里。",
+      "shape": "emblem + letterform",
+      "construction": "200-square silhouette; 45-degree 40-unit corner cut; negative lowercase t; one evenodd path",
+      "recommendation": "如果更看重可信执行与信誉，选这款。",
+      "minimum": {
+        "symbol_px": 16,
+        "recommended_ui_px": 24
+      },
+      "files": {
+        "symbol": "b2-symbol.svg",
+        "black": "b2-black.svg",
+        "transparent": "b2-transparent.png",
+        "square": "b2-square.png",
+        "black_transparent": "b2-black-transparent.png"
+      },
+      "risk": "章形语气较正式，猫的亲切感较少。",
+      "group": "group-b-logo-design",
+      "english": "CREDIT STAMP",
+      "paths": {
+        "symbol": "group-b-logo-design/b2-symbol.svg",
+        "black": "group-b-logo-design/b2-black.svg",
+        "transparent": "group-b-logo-design/b2-transparent.png",
+        "square": "group-b-logo-design/b2-square.png",
+        "black_transparent": "group-b-logo-design/b2-black-transparent.png"
+      }
+    },
+    {
+      "id": "B3",
+      "name": "待命猫",
+      "idea": "侧身坐猫和竖尾，表达有边界、随时准备接下一单的 Agent。",
+      "shape": "pictorial",
+      "construction": "45-degree ear, 30-degree nose, cubic body, 32-unit upright tail; solid single silhouette",
+      "recommendation": "B 组推荐；与 Tabby 名字最直接，能为工业页面增加适量角色感。",
+      "minimum": {
+        "symbol_px": 16,
+        "recommended_ui_px": 24
+      },
+      "files": {
+        "symbol": "b3-symbol.svg",
+        "black": "b3-black.svg",
+        "transparent": "b3-transparent.png",
+        "square": "b3-square.png",
+        "black_transparent": "b3-black-transparent.png"
+      },
+      "risk": "16 px 以整体轮廓识别为主，24–32 px 更容易直接读成猫。",
+      "group": "group-b-logo-design",
+      "english": "READY CAT",
+      "paths": {
+        "symbol": "group-b-logo-design/b3-symbol.svg",
+        "black": "group-b-logo-design/b3-black.svg",
+        "transparent": "group-b-logo-design/b3-transparent.png",
+        "square": "group-b-logo-design/b3-square.png",
+        "black_transparent": "group-b-logo-design/b3-black-transparent.png"
+      }
+    }
+  ],
+  "skill_sources": {
+    "A": "https://github.com/op7418/logo-generator-skill",
+    "B": "https://github.com/kaankiziltug/logo-design-skill"
+  },
+  "palette": {
+    "paper": "#f1f0ee",
+    "ink": "#202020",
+    "orange": "#ff5900"
+  }
+}

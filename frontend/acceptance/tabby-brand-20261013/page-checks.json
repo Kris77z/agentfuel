@@ -1,0 +1,321 @@
+{
+  "pages": [
+    {
+      "path": "/?lang=en",
+      "width": 1440,
+      "brandImages": 4,
+      "loaded": true,
+      "noOverflow": true,
+      "links": [
+        {
+          "rel": "manifest",
+          "href": "/manifest.webmanifest",
+          "sizes": null,
+          "type": null
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon-32.png",
+          "sizes": "32x32",
+          "type": "image/png"
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon-16.png",
+          "sizes": "16x16",
+          "type": "image/png"
+        },
+        {
+          "rel": "apple-touch-icon",
+          "href": "/brand/tabby/apple-touch-icon.png",
+          "sizes": "180x180",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "path": "/?lang=zh",
+      "width": 1440,
+      "brandImages": 4,
+      "loaded": true,
+      "noOverflow": true,
+      "links": [
+        {
+          "rel": "manifest",
+          "href": "/manifest.webmanifest",
+          "sizes": null,
+          "type": null
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon-32.png",
+          "sizes": "32x32",
+          "type": "image/png"
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon-16.png",
+          "sizes": "16x16",
+          "type": "image/png"
+        },
+        {
+          "rel": "apple-touch-icon",
+          "href": "/brand/tabby/apple-touch-icon.png",
+          "sizes": "180x180",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "path": "/?lang=en",
+      "width": 390,
+      "brandImages": 4,
+      "loaded": true,
+      "noOverflow": true,
+      "links": [
+        {
+          "rel": "manifest",
+          "href": "/manifest.webmanifest",
+          "sizes": null,
+          "type": null
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon-32.png",
+          "sizes": "32x32",
+          "type": "image/png"
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon-16.png",
+          "sizes": "16x16",
+          "type": "image/png"
+        },
+        {
+          "rel": "apple-touch-icon",
+          "href": "/brand/tabby/apple-touch-icon.png",
+          "sizes": "180x180",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "path": "/?lang=zh",
+      "width": 390,
+      "brandImages": 4,
+      "loaded": true,
+      "noOverflow": true,
+      "links": [
+        {
+          "rel": "manifest",
+          "href": "/manifest.webmanifest",
+          "sizes": null,
+          "type": null
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon-32.png",
+          "sizes": "32x32",
+          "type": "image/png"
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon-16.png",
+          "sizes": "16x16",
+          "type": "image/png"
+        },
+        {
+          "rel": "apple-touch-icon",
+          "href": "/brand/tabby/apple-touch-icon.png",
+          "sizes": "180x180",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "path": "/?lang=en",
+      "width": 320,
+      "brandImages": 4,
+      "loaded": true,
+      "noOverflow": true,
+      "links": [
+        {
+          "rel": "manifest",
+          "href": "/manifest.webmanifest",
+          "sizes": null,
+          "type": null
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon-32.png",
+          "sizes": "32x32",
+          "type": "image/png"
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon-16.png",
+          "sizes": "16x16",
+          "type": "image/png"
+        },
+        {
+          "rel": "apple-touch-icon",
+          "href": "/brand/tabby/apple-touch-icon.png",
+          "sizes": "180x180",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "path": "/?lang=zh",
+      "width": 320,
+      "brandImages": 4,
+      "loaded": true,
+      "noOverflow": true,
+      "links": [
+        {
+          "rel": "manifest",
+          "href": "/manifest.webmanifest",
+          "sizes": null,
+          "type": null
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon-32.png",
+          "sizes": "32x32",
+          "type": "image/png"
+        },
+        {
+          "rel": "icon",
+          "href": "/brand/tabby/favicon-16.png",
+          "sizes": "16x16",
+          "type": "image/png"
+        },
+        {
+          "rel": "apple-touch-icon",
+          "href": "/brand/tabby/apple-touch-icon.png",
+          "sizes": "180x180",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "icons": [
+    {
+      "path": "/brand/tabby/favicon.svg",
+      "status": 200,
+      "contentType": "image/svg+xml"
+    },
+    {
+      "path": "/brand/tabby/favicon-16.png",
+      "status": 200,
+      "contentType": "image/png"
+    },
+    {
+      "path": "/brand/tabby/favicon-32.png",
+      "status": 200,
+      "contentType": "image/png"
+    },
+    {
+      "path": "/brand/tabby/favicon.ico",
+      "status": 200,
+      "contentType": "image/x-icon"
+    },
+    {
+      "path": "/brand/tabby/apple-touch-icon.png",
+      "status": 200,
+      "contentType": "image/png"
+    },
+    {
+      "path": "/brand/tabby/app-icon-192.png",
+      "status": 200,
+      "contentType": "image/png"
+    },
+    {
+      "path": "/brand/tabby/app-icon-512.png",
+      "status": 200,
+      "contentType": "image/png"
+    },
+    {
+      "path": "/brand/tabby/app-icon-512.svg",
+      "status": 200,
+      "contentType": "image/svg+xml"
+    },
+    {
+      "path": "/brand/tabby/maskable-512.png",
+      "status": 200,
+      "contentType": "image/png"
+    }
+  ],
+  "errors": [],
+  "manifest": {
+    "name": "Tabby",
+    "short_name": "Tabby",
+    "description": "Reputation you can spend. Hosted Agents that keep working within your budget.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#f1f0ee",
+    "theme_color": "#f1f0ee",
+    "icons": [
+      {
+        "src": "/brand/tabby/app-icon-192.png",
+        "sizes": "192x192",
+        "type": "image/png",
+        "purpose": "any"
+      },
+      {
+        "src": "/brand/tabby/app-icon-512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "any"
+      },
+      {
+        "src": "/brand/tabby/app-icon-512.svg",
+        "sizes": "any",
+        "type": "image/svg+xml",
+        "purpose": "any"
+      },
+      {
+        "src": "/brand/tabby/maskable-512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "maskable"
+      }
+    ]
+  }
+}

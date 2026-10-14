@@ -3,10 +3,32 @@ import test from "node:test";
 import { mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {validateHostedActivity,type HostedActivityInput} from "../src/scene-types.js";
 import { Transaction, Wallet } from "ethers";
 import { HostedTaskExecutor, loadHostedTaskExecutorConfig, validateHostedTaskExecutorConfig } from "../src/task-executor.js";
 import { createHostedTaskFixture } from "./task-fixture.js";
 import { key, read, tx } from "../../underwriter/test/fixture.js";
+
+test("unconfigured Agent provisions and deposits with zero spending/debt policy and no model calls", { timeout: 90000 }, async () => {
+  const directory = await realpath(await mkdtemp(join(tmpdir(), "af-hosted-unconfigured-"))), fx = await createHostedTaskFixture(directory);
+  try {
+    const actor = await fx.actor(20);
+    Object.assign(actor.agent, { configurationRequired: true, modelId: "", perRunBudgetRaw: "0", totalBudgetRaw: "0", allowCredit: false });
+    const executor = new HostedTaskExecutor({ ...fx.config, initialCashRaw: "0" }, { provider: fx.fx.f.provider });
+    const provision = actor.input("provision"), result = await executor.execute(provision);
+    assert.equal(result.phase, "Ready", JSON.stringify(result)); assert.ok(result.binding);
+    actor.agent.binding = result.binding;
+    assert.deepEqual(await executor.execute({ ...provision, recover: true }), result);
+    const policy = await read(fx.fx.f.account, "getPolicy", [result.binding!.agentId]);
+    assert.equal(policy.maxCashPerTx, 0n); assert.equal(policy.maxDebtPerTx, 0n); assert.equal(policy.maxDebtPerDay, 0n);
+    const deposit = actor.input("deposit"); deposit.run.amountRaw = "40000";
+    const deposited = await executor.execute(deposit);
+    assert.equal(deposited.success, true, JSON.stringify(deposited));
+    assert.equal(await read(fx.fx.f.account, "cash", [result.binding!.agentId]), 40000n);
+    await assert.rejects(executor.execute(actor.input("task")), /HOSTED_CONFIGURATION_REQUIRED/);
+    assert.equal(fx.fx.calls.length, 0);
+  } finally { await fx.close(); await rm(directory, { recursive: true, force: true }); }
+});
 
 test("two hosted agents register/enroll independent wallets and run the real fixed B workflow under independent budgets/models", { timeout: 120000 }, async () => {
   const directory = await realpath(await mkdtemp(join(tmpdir(), "af-hosted-task-"))), fx = await createHostedTaskFixture(directory);
@@ -27,7 +49,9 @@ test("two hosted agents register/enroll independent wallets and run the real fix
     assert.equal(fx.fx.calls.length, 0); assert.equal(await fx.fx.f.providerBalance(), 0n);
     assert.equal((await read(fx.fx.f.account, "getPolicy", ["3"])).maxDebtPerTx, 119999n);
     fx.fx.queue(fx.GOOD_CODE["sum-integers"]);
-    const task = cheap.input("task"), delivered = await fx.executor.execute(task);
+    const task = cheap.input("task"),activities:HostedActivityInput[]=[];task.activity=async e=>{activities.push(validateHostedActivity(e));};
+    const delivered = await fx.executor.execute(task);
+    assert.ok(activities.some(e=>e.scene==="task"&&e.state==="selected"));assert.ok(activities.some(e=>e.scene==="task"&&e.state==="waiting"&&e.evidence?.acceptTxHash));assert.ok(activities.some(e=>e.scene==="credit"&&e.state==="confirmed"&&e.evidence?.fromCreditRaw==="80000"));assert.ok(activities.some(e=>e.scene==="review"&&e.state==="waiting"));assert.ok(activities.some(e=>e.scene==="settlement"&&e.state==="confirmed"&&e.evidence?.txHash===delivered.settlement?.txHash));
     assert.equal(delivered.phase, "Succeeded", JSON.stringify(delivered)); assert.equal(delivered.terminal, true); assert.equal(delivered.chargedRaw, "120000"); assert.equal(delivered.principalRaw, "0"); assert.equal(delivered.feeRaw, "0");
     assert.equal(fx.fx.calls.length, 1); assert.equal(fx.fx.calls[0].model, "controlled-cheap");
     assert.equal((await read(fx.fx.f.manager, "getLoan", [delivered.taskId!])).status, 2n);

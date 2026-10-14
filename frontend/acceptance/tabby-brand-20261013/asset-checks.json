@@ -1,0 +1,12 @@
+{
+  "svg": 22,
+  "png": 22,
+  "paired": true,
+  "max_png_bytes": 48550,
+  "svg_live_text_or_raster": false,
+  "ico_sizes": [
+    16,
+    32,
+    48
+  ]
+}

@@ -1,18 +1,28 @@
-# AgentFuel frontend
+# Tabby frontend
+
+2026-10-13 工作台以 `monad-rebel` 原版 Dashboard 为布局基准：左侧 Hunter 身份、信誉与折叠资金设置；右侧实际内置执行角色；中间 mission.log、阶段卡片与底部指挥模式输入框。历史位于顶部抽屉，运行时显示 Magpie。组件 dropdown 支持键盘与移动端。自由目标连接真实规划、分阶段产出与独立模型复核，能力与验收见 [交付清单](../docs/dashboard-goal-workspace-20261013.md)。
+
+品牌采用已选定 A2「队列 T」。正式 [PNG/SVG 与图标资产](public/brand/tabby/README.md) 位于 `public/brand/tabby/`，网站接入与维护见 [Tabby 品牌说明](../docs/tabby-brand.md)。
 
 2026-10-11 最新结果见 [上线测试前验收](../docs/frontend-release-acceptance-20261011.md)：Oberon 落地页、个人金融信息与恢复入口已完成，首轮本地浏览器覆盖 93 个用例；后续补齐首次进入动效与独立终端创建，相关 92 项补验通过。下文 2026-10-10 数字保留为历史记录。
 
-Next.js 16 / React 19。首页 `/` 是 Oberon 风格的产品落地页；“创建你的 AGENT”进入 `/onboarding` 终端创建页，“进入工作台”进入 `/dashboard`。落地页来源、字体许可和适配见 [Oberon 说明](../docs/frontend-oberon-landing.md)。托管工作台保留 Agora Mesh 的浅灰紫色主题、Geist Mono、紧凑标题栏、固定视口三栏、身份面板、请求时间线和底部操作区；手机使用 Agent / 请求 / 资源面板切换。来源与适配记录见 [迁移说明](../docs/frontend-agora-migration.md)。
+Next.js 16 / React 19。首页 `/` 是 Oberon 风格的产品落地页；“创建你的 AGENT”进入 `/onboarding` 终端创建页，“进入工作台”进入 `/dashboard`。落地页来源、字体许可和适配见 [Oberon 说明](../docs/frontend-oberon-landing.md)。托管工作台保留 Agora Mesh 的浅灰紫色主题、Geist Mono、紧凑标题栏、固定视口三栏、身份面板、请求时间线和底部操作区；手机使用 agent.sys / mission.log / mesh.net 面板切换。来源与适配记录见 [迁移说明](../docs/frontend-agora-migration.md)。
 
-`/onboarding` 使用源 Agora 暖白棕色与 Geist Mono，依次显示启动文本、钱包登录、六项配置和确认；创建成功选中新 Agent 并进入工作台。创建与工作台共享会话、请求锁和原 UUID 恢复记录，离开这两个页面停止读取及轮询。
+`/onboarding` 使用琥珀色 CRT 终端，依次显示启动文本、钱包登录、命名与确认；模型/预算/借贷在创建后的运行设置中配置。创建成功选中新 Agent 并进入工作台。创建、工作台、游戏大厅与资金页共享会话、所选 Agent、请求锁和原 UUID 恢复记录，离开这些页面停止读取及轮询。
 
 `/dashboard` 通过同源 `/api/hosted/*` 连接钱包个人消息签名登录、创建/设置/暂停 Agent、任务、免费德州、USDC 入账和奖励额度驱动的 Pi 任务、独立验收与补额后恢复。服务未配置时显示服务不可用，不生成示例 Agent。模型目录来自当前登录用户的服务端快照，Agent 的独立钱包私钥仅由平台保管；浏览器只用 Next 管理的 HttpOnly 会话。
 
-托管服务启动与环境变量见 [hosted-agents](../docs/hosted-agents.md)。未知 POST 保存原 UUID 与公开参数，刷新后以同一钱包身份继续确认；可恢复的服务端记录使用原 requestId、rewardKind、amountRaw。该恢复提示保存在 localStorage 中，不保存 token、私钥或模型原文。
+托管服务启动与环境变量见 [hosted-agents](../docs/hosted-agents.md)。未知 POST 保存原 UUID 与公开参数，刷新后以同一钱包身份继续确认；可恢复的服务端记录使用原 requestId、rewardKind、amountRaw。该恢复提示保存在 localStorage 中，不保存 token、私钥或模型输出；自由目标原文作为原请求参数保存，未提交草稿在 sessionStorage 按 owner 与 Agent 隔离。
 
-原 Agent Financial Identity 档案页与固定 Agent 演示面板保留在 `/advanced`，从页面导航“高级协议”进入。该入口继续按 `FRONTEND_MODE=chain` / `fixture` 运行，至少 3 个运营 Agent 可切换，现金、Tier、债务与协议回执来自原服务和合约。未配置真实清单时不会补上示例余额。
+右侧为八个可执行专家加 Independent Reviewer，新增 ABI / Gas / Token / Transaction / Yield 角色使用 monad-rebel 原定义；根据服务端 capabilities 显示可用状态。执行后角色卡随实际阶段变化，信息卡按角色过滤付款交易、serviceId、提示词摘要与请求摘要。具体复用范围和验收见 [专家接入记录](../docs/dashboard-goal-workspace-20261013.md)。
 
-`/arena`、四种练习界面、`/arena/holdem` 与 `/advanced` 同样使用源 Dashboard 的浅灰/白色方角面板、紫色强调、Geist Mono 和紧凑终端页头。手机按内容改为单列。德州历史只读报告入口收在高级协议的“历史演示与证据”，不放在主导航，也不是创建或个人参赛必经页。棋盘材质、黑白棋子、牌桌及红黑花色保留原辨识与操作。游戏大厅明确区分固定运营演示、免费虚拟筹码练习与个人托管参赛；用户托管 Agent 的参赛控件位于 `/dashboard` 的“竞技场”。
+主导航为 Dashboard、游戏大厅，品牌仅显示 Tabby。Dashboard 中栏使用任务 / 游戏 / 资金与借贷三个页签；旧 `/finance` 重定向到 `/dashboard?panel=finance`。资金区复用当前 Agent 的金融快照、授权设置、USDC 入账与原请求恢复。借贷绑定托管报酬任务，自由目标与游戏不借贷。
+
+中栏游戏复用 ArenaPlay 棋盘与练习 API，选游戏、开局、落子均不离开 Dashboard；页签切换保留已打开对局。奖励德州通过原托管请求运行，当前 API 提供结果与凭证，未提供可操纵的奖励比赛实时棋盘。左侧 Agent 与右侧角色可打开信息卡，按实际归属查看交易哈希与调用记录；未独立注册的角色不显示虚构钱包或链上信誉。
+
+原 Agent Financial Identity 档案页与固定 Agent 面板保留在 `/advanced`，仅直接访问，不占主导航；固定运营比赛与额度工具折叠收在该页。该入口继续按 `FRONTEND_MODE=chain` / `fixture` 运行，至少 3 个运营 Agent 可切换，现金、Tier、债务与协议回执来自原服务和合约。未配置真实清单时不会补上示例余额。
+
+`/arena`、四种练习界面、`/arena/holdem` 与 `/advanced` 同样使用源 Dashboard 的浅灰/白色方角面板、紫色强调、Geist Mono 和紧凑终端页头。手机按内容改为单列。德州历史只读报告入口收在高级协议的“历史演示与证据”，不放在主导航，也不是创建或个人参赛必经页。棋盘材质、黑白棋子、牌桌及红黑花色保留原辨识与操作。游戏大厅先显示四张游戏卡，同一卡内选择策略或邀请练习，随后显示个人托管 Agent 奖励参赛入口；历史与 API 契约默认折叠。奖励入口跳转 `/dashboard?operation=game`，保留选中 Agent 并选好游戏操作，不自动发起请求。
 
 个人金融快照通过独立 `GET /api/hosted/agents/:id/finance` 读取。服务端先核验归属，再按 Underwriter 的同一链上区块读取 cash、policy 和完整任务债务；评分与 Tier 沿用 Underwriter。普通列表轮询不扫描金融账本；切换 Agent、请求状态变化或手动刷新才读取，失败保留并标记旧快照，首次失败不显示虚构的零余额。任务分别展示接单、付款与核验后的 `TaskSettled` 交易；“结算入账”不等于扣除所有成本后的利润。
 
@@ -145,3 +155,22 @@ npm run test:browser --workspace @agentfuel/frontend
 Node 测试覆盖整数资产格式 / cap / 错误解码，以及 USDC-6、native-18 的真实读取与 BrowserProvider 交易。Chrome 测试覆盖桌面/手机的 Agent 切换、证据展开、错误展示、页面宽度，并完成浏览器钱包 → 真实任务 → SDK / Relay / Underwriter / Anvil 支付 → 钱包签名 Python 提交 → Docker 验收 → 独立 settler 原子清算。仅推理返回文本使用本地受控上游，其余步骤实际执行。合成钱包密钥只在测试 Node 进程使用，不发送给页面。
 
 Playwright 默认使用本机 `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`，可用 `CHROME_BIN` 替换。视觉测试服务器端口为 `3010`，测试自建服务的 CORS 同步使用该 origin。未部署真实测试网、未调用付费模型时，不把本地验证描述为测试网 live。
+
+
+Dashboard 身份区与导航（2026-10-13）：Agent 名称直接承载切换组件，钱包地址与复制图标位于下一行；顶栏提供首页、Agent、游戏大厅和协议入口。开户请求归左侧身份区，保留原请求恢复及凭证。右栏专家为紧凑卡片，动画随实际执行、规划、暂停状态变化；内置角色没有独立链上评分；按用户授权，右栏展示 monad-rebel 本地 Registry 的演示信誉快照，明确标为“参考信誉”，Reviewer 无对应记录仍未评级，不计算虚构 REP。详见 `docs/dashboard-goal-workspace-20261013.md` 的精修验收记录。
+
+### 地址与交易分析（2026-10-13）
+
+Dashboard chatbox 可直接输入 Monad 测试网合约地址或交易哈希；daemon 公告 `capabilities.goals.chainLookup` 后自动启用。任务结果与个人信息卡提供折叠的“查链来源与凭证”：固定区块、地址/交易浏览器链接、Sourcify 字节码匹配状态、原始读取结果、快照摘要，以及合并模型付款记录的 JSON 下载。RPC 凭据仅留在服务端。无源码时展示已有链上事实及未知项，不把部分源码验证当作完整审计。见 [实现与验收](../docs/chain-lookup-acceptance-20261013.md)。
+
+Magpie 任务条已对照 monad-rebel 的 `PipelineSnake`/`snake-engine` 改为 Canvas 网格飞行：追踪真实阶段节点、产出后增长羽迹，失败/暂停停驻；支持手动暂停、减少动态效果与后台停止。运行帧由 ref + requestAnimationFrame 驱动，不通过 React 逐帧刷新。逻辑测试位于 `test/magpie-flight.test.ts`。
+
+### Tabby 场景预览
+
+在仓库根目录运行 `node scripts/preview-tabby-scenes.mjs`（Node 22+），打开 `http://localhost:3032/`。该独立页面复用工作台猫咪与专家组件，提供全链路场景样例和自动轮播，不连接模型或发送交易。源码在 `frontend/preview/tabby-scenes/`；状态契约见 `docs/tabby-agent-scenes-20261014.md`，验收见 `frontend/acceptance/tabby-scenes-20261014/README.md`。
+
+### 完整 Dashboard 视觉验收
+
+`node scripts/preview-dashboard.mjs` 启动 `http://localhost:3033/`。直接复用正式 `HostedApp`、三栏布局、动画、专家卡、chatbox、结果与资金组件；独立打包时将会话控制器替换为内存样例，正式入口不受影响。无需钱包或托管服务。顶部切换七个阶段，或播放完整流程；默认展示交付结果。使用桌面宽度画布适配视口，三栏始终可见。账户/金额/调用为验收样例，网络调用由独立页面 CSP 禁止。业务按钮不执行实际操作。重建静态资源可用 `node scripts/preview-dashboard.mjs --build-only`。
+
+2026-10-14 样式收敛：任务、游戏、资金与借贷共用中间面板外框；chatbox 位于任务面板底部，嵌入游戏使用平铺内容与必要分隔。左侧短地址紧随 Agent 名称，“信息与凭证”复用其他操作的文字按钮样式，替代上文旧版第二行地址排版。验收页也加载实际游戏封面，使用空的离线对局目录；创建对局返回明确的样式验收提示，不连接真实游戏服务。

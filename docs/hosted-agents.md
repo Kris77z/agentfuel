@@ -1,6 +1,6 @@
 # 平台托管 Agent 服务
 
-用户用自己的钱包签名登录，然后创建平台托管的钱包并设置名称、模型、策略、每次预算、总预算和是否允许信用。用户钱包只用于认证；新 Agent 的私钥由平台在私有目录生成和保存，浏览器不能指定私钥、RPC、provider 地址或奖励收款人。登录是带 origin、nonce、过期时间的个人消息签名，不称为 SIWE，也不发送链上交易。
+用户用自己的钱包签名登录，先命名创建平台托管的钱包，模型、策略、每次预算、总预算和是否允许信用在创建后的运行设置中调整。用户钱包只用于认证；新 Agent 的私钥由平台在私有目录生成和保存，浏览器不能指定私钥、RPC、provider 地址或奖励收款人。登录是带 origin、nonce、过期时间的个人消息签名，不称为 SIWE，也不发送链上交易。
 
 ## 启动
 
@@ -60,12 +60,14 @@ HOSTED_FRONTEND_ORIGIN=http://127.0.0.1:3000
 | POST | `/auth/logout` | `{}` → `{authenticated:false}`，同时清除 cookie |
 | GET | `/agents` | 当前用户 `{agents,runs,models}` |
 | GET | `/agents/:id/finance` | 当前用户所选 Agent 的只读金融快照；`confirmed` 或明确 `unavailable` |
-| POST | `/agents` | `{requestId,name,modelId,strategy,perRunBudgetRaw,totalBudgetRaw,allowCredit}` → Agent，202；自动异步 provision |
+| POST | `/agents` | `{requestId,name}` → Agent，202；自动异步 provision；`configurationRequired:true`，执行配置待设置。旧完整参数仍接受精确重放 |
 | PATCH | `/agents/:id` | 上述六项设置（无 requestId）→ Agent |
 | POST | `/agents/:id/pause` | `{paused:boolean}` → Agent |
-| POST | `/agents/:id/runs` | `{requestId,action,rewardKind?,amountRaw?}` → Run，202 |
+| POST | `/agents/:id/runs` | `{requestId,action,rewardKind?,amountRaw?,goal?}` → Run，202 |
 
-时间 `expiresAt` 为 Unix 毫秒。`strategy` 是 `conservative` / `balanced` / `aggressive`；action 是 `provision` / `deposit` / `task` / `reward-task` / `game` / `credits`；只有 game 要求 rewardKind 为 `usdc` 或 `llm-credits`。只有 deposit 要求 `amountRaw` 为正整数字符串，且不超过平台 `maxTotalBudgetRaw`；其它 action 不接受此字段。金额是 token 最小单位的十进制字符串；USDC6 的 `120000` 是 0.12 USDC。每个操作使用 UUID requestId，原 ID 重复提交返回原操作，不增加消费；同 ID 改参数会拒绝。
+新增 `POST /agents/:id/cancel`，参数 `{requestId}`，仅用于停止本人目标任务的后续调用；未知付款先对账，不立即释放预留预算。
+
+时间 `expiresAt` 为 Unix 毫秒。`strategy` 是 `conservative` / `balanced` / `aggressive`；action 是 `provision` / `deposit` / `task` / `reward-task` / `metered-task` / `autonomous` / `goal` / `game` / `credits`；只有 game 要求 rewardKind 为 `usdc` 或 `llm-credits`。只有 deposit 要求 `amountRaw` 为正整数字符串，且不超过平台 `maxTotalBudgetRaw`；其它 action 不接受此字段。金额是 token 最小单位的十进制字符串；USDC6 的 `120000` 是 0.12 USDC。每个操作使用 UUID requestId，原 ID 重复提交返回原操作，不增加消费；同 ID 改参数会拒绝。
 
 `finance` 先验证用户归属，再复用固定 Underwriter 的评分、Tier、真实还款与声誉镜像。托管身份、协议接线、USDC6 精度、cash、policy 和全部任务债务均在该 Underwriter 的同一区块核验，返回 `observedAt` 与区块编号/hash/时间。债务包括本人所有 Active loan 的剩余本金与 fee，与请求记录保留窗口无关；沿用 P0 完整账本最多 200 项的读取上限，超限或无法核验时返回 `unavailable`，不返回伪零余额或评分。Tier 本金上限不等于即时可借金额，每笔仍由任务 escrow、policy 和协议限额约束。
 
@@ -111,3 +113,19 @@ Pi 在每轮持久化供应商请求前核验可用额度。不足时返回 `Pau
 新增 `metered-task` 与 `autonomous`：任务报酬担保购买不可转移的推理额度包，包内双模型按输入/输出 usage 差异扣费；奖励不足时可在同一 Pi 任务补额，独立验收后按合约还款/清算。有界 LLM 决策选择下一单、模型与现金/信用，宿主限制预算、任务数与截止时间。游戏不借贷、无 gas 赞助。包价与供应商账单分开，未用包额度绑定原任务；规划费现金支付。
 
 本节替代上文这三项“尚未实现”的当前判断；历史外部验收范围保持原样。详细配置、边界与复现见 [核心运行说明](core-runtime.md)。
+
+## 自然语言目标（2026-10-13）
+
+`goal` 单独接受 1–12000 字符的 `goal` 原文，保持 owner、Agent、UUID 与目标绑定。请求正文最多 65536 字节（其它操作仍 8192）；同 UUID 改目标拒绝。默认模式是完成个人目标，其余接单、游戏、入账在同一操作下拉框中。原请求未结束时不能改变模型或预算；恢复沿用原路由、价格、付款 handle 和截止时间。
+
+daemon 可配置 `goals:{durationMs,models:[{id,relayUrl,provider,priceRaw,service,model,physicalModel,responseModel}]}`，模型集合必须与 hosted 目录相同。本地和 Monad runtime 提供 `tabby/mission` 两条 Relay，经 Magpie 转至 K2.6/K3，每次固定价分别 10000/20000 raw USDC；这是协议调用价，不等于上游供应商账单。所有个人目标用 task 0 的 cash 支付，无 escrow 时不能虚构信用、报酬或信誉。
+
+复用 Agora Commander 的逐阶段专家编排：原目标 → 1–3 阶段 → 累积上阶段产出 → 单独模型复核。支持写作、基于提供资料的分析、代码生成与审阅，以及复用 monad-rebel 的 ABI 解读、Gas 优化、Token 风险扫描、交易解码、收益策略比较五项专用定义；共八个执行角色加独立 Reviewer。启用 `goals.chainLookup` 后，合约地址/交易哈希会自动读取当前 Monad 测试网 RPC 与 Sourcify 验证资料；未接入任意网页、外部账户、宿主文件/命令或代码执行工具。缺能力/必要信息时明确返回 `needs-input`。这不是将 Agora 的 BNB x402、外部专家网络整体原样搬入；付款与身份使用本项目 SDK、现金账户与私有 journal。代码是否能运行仍需执行测试，模型复核不能充当运行证明。
+
+公开 Run 的 `mission` 只含阶段、产出、复核与调用费用/usage/凭证；key、raw transaction、provider endpoint 等留在私有 journal。已知交付异常仍计入已确认费用；未知调用保持暂停与预算预留，恢复只核对原付款。操作详情和逐次凭证在界面折叠展示，最终结果可下载 Markdown。新增范围、证据与边界见 [Dashboard 交付清单](dashboard-goal-workspace-20261013.md)。
+
+五项定义保存在 `services/hosted-agents/src/specialists/monad-rebel`，原 `config.json` / `prompt.md` 按文件 SHA-256 留存来源。`catalog.ts` 统一规划路由、前端角色和 daemon 公告；`execution.ts` 复用原按任务类型选提示词及 JSON 正规化，额外校验 Gas/Token 报告结构。模型请求沿用 Magpie 和持久化 cash 付款链，错误输出仍记已付费用，恢复沿用原请求与提示词。公开调用记录增加 `serviceId`、有效提示词 `promptDigest`、付款请求 `requestDigest`；链上付款证明绑定请求摘要，不把模型分析当作链上事实证明。地址/哈希的自动读取由本项目新增 `chain-lookup.ts` 提供；monad-rebel 专家负责分析。读取快照与模型付款记录一起公开，详见 [自动查链与验收](chain-lookup-acceptance-20261013.md)。
+
+### 过期目标付款
+
+目标调用恢复时，已签名但未付款的过期报价通过 `voidExpiredGoalPayment` 对账。只有规范链证明旧 nonce 已被使用且原 payment 为零才终止；必要时由 Agent 钱包发送同 nonce 的零金额自转账，签名先落盘，恢复重用。未签名过期报价可在零付款确认后结束。旧付款若先上链，继续原付款对账，不能当作未消费。Gas 由 Agent 自付；余额不足仍保留待处理状态。原目标的已交付费用与产出始终保留，具体链上验收见 `chain-lookup-acceptance-20261013.md`。

@@ -1,0 +1,5 @@
+.panel{position:relative;flex-shrink:0;margin:0 0 10px;border:1px solid var(--color-line,#dedbe6);background:var(--color-bg,#fafafd);font-family:var(--font-geist-mono),monospace;color:var(--color-muted,#91879e);cursor:default}
+.canvas{display:block;width:100%;height:184px;pointer-events:none}
+.caption{padding:0 10px 8px;min-height:23px;font-size:10px;color:#73599c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.panel[data-state=blocked] .caption,.panel[data-state=failed] .caption,.panel[data-state=reconciling] .caption{color:#a0774e}
+@media(max-width:767px){.caption{font-size:9px}}

@@ -1,0 +1,22 @@
+
+=== a1-black.svg  (527 bytes)
+viewBox 0 0 100 100 · aspect 1.0 (square)
+colours 1: #000000 · gradients 0 · anchors 26
+margins L18.0 R18.0 T20.0 B20.0 · bbox fill 0.384
+✔ no issues found
+production-readiness score: 100/100 (heuristic)
+
+=== a2-black.svg  (544 bytes)
+viewBox 0 0 100 100 · aspect 1.0 (square)
+colours 1: #000000 · gradients 0 · anchors 54
+margins L20.0 R20.0 T20.0 B20.0 · bbox fill 0.36
+✔ no issues found
+production-readiness score: 100/100 (heuristic)
+
+=== a3-black.svg  (389 bytes)
+viewBox 0 0 100 100 · aspect 1.0 (square)
+colours 1: #000000 · gradients 0 · anchors 18
+margins L19.0 R19.0 T24.0 B20.0 · bbox fill 0.347
+· INFO [off-centre-y] Vertical margins differ (top 24.0, bottom 20.0). Remember the optical centre sits slightly above the geometric centre.
+· INFO [small-in-canvas] The mark occupies little of its square canvas; tighten the viewBox or scale up.
+production-readiness score: 98/100 (heuristic)

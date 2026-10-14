@@ -139,16 +139,16 @@ export async function syntheticHosted(page: Page, options: HarnessOptions = {}) 
       const previous = creations.get(String(body.requestId));
       if (previous) return fulfill(route, previous, 202);
       const { requestId, ...publicSettings } = body;
-      const agent = makeAgent({ ...publicSettings, owner: authenticatedOwner } as unknown as Partial<HostedAgent>);
+      const agent = makeAgent({ ...publicSettings, owner: authenticatedOwner, ...(!("modelId" in publicSettings) ? { configurationRequired: true, modelId: "", perRunBudgetRaw: "0", totalBudgetRaw: "0", spentRaw: "0", allowCredit: false } : {}) } as unknown as Partial<HostedAgent>);
       creations.set(String(requestId), agent);
       agents = options.createAtEnd ? [...agents, agent] : [agent, ...agents];
       if (options.firstCreateFailure) return fulfill(route, { error: "HOSTED_UNAVAILABLE" }, 503);
       return fulfill(route, agent, 202);
     }
-    const targetMatch = /^\/api\/hosted\/agents\/([a-zA-Z0-9_-]+)(?:\/(pause|runs))?$/.exec(path);
+    const targetMatch = /^\/api\/hosted\/agents\/([a-zA-Z0-9_-]+)(?:\/(pause|runs|cancel))?$/.exec(path);
     const target = agents.find(agent => agent.id === targetMatch?.[1]);
     if (target && !targetMatch?.[2] && method === "PATCH") {
-      const agent = makeAgent({ ...target, ...body });
+      const agent = makeAgent({ ...target, ...body, ...(target.configurationRequired ? { configurationRequired: false } : {}) });
       agents = agents.map(value => value.id === target.id ? agent : value);
       return fulfill(route, agent);
     }
@@ -157,14 +157,25 @@ export async function syntheticHosted(page: Page, options: HarnessOptions = {}) 
       agents = agents.map(value => value.id === target.id ? agent : value);
       return fulfill(route, agent);
     }
+    if (target && targetMatch?.[2] === "cancel" && method === "POST") {
+      const index = runs.findIndex(run => run.agentId === target.id && run.requestId === body.requestId && run.action === "goal");
+      if (index < 0) return fulfill(route, { error: "HOSTED_GOAL_NOT_FOUND" }, 404);
+      const current = runs[index], mission = { ...(current.mission ?? { phases: [], calls: [] }), stage: "cancelled" as const };
+      const run: HostedRun = { ...current, stopRequested: true, status: "Failed", recoverable: false, reason: "HOSTED_GOAL_CANCELLED", mission,
+        result: { phase: "Cancelled", terminal: true, success: false, chargedRaw: current.chargedRaw, mission } };
+      runs[index] = run; agents = agents.map(agent => agent.id === target.id ? { ...agent, activeRequestId: undefined, reservedRaw: "0" } : agent);
+      return fulfill(route, run, 202);
+    }
     if (target && targetMatch?.[2] === "runs" && method === "POST") {
       runAttempts++;
       if (runAttempts === 1 && options.firstRunFailure === "abort") return route.abort("failed");
       if (runAttempts === 1 && options.firstRunFailure === "503") return fulfill(route, { error: "HOSTED_UNAVAILABLE" }, 503);
       const previous = runs.find(run => run.requestId === body.requestId);
       const chargedRaw = ["game", "deposit", "credits"].includes(String(body.action)) ? "0" : "25000";
-      const run = makeRun({ ...previous, ...body, agentId: target.id, status: "Succeeded", recoverable: false, chargedRaw,
-        result: { phase: "Complete", terminal: true, success: true, chargedRaw,
+      const mission = body.action === "goal" ? { stage: "completed" as const, phases: [{ name: "合成测试阶段", taskType: "writer", goal: String(body.goal), output: "Synthetic test artifact — no real inference." }],
+        answer: "Synthetic test artifact — no real inference.", review: { passed: true, summary: "Synthetic review", checks: ["Fixture only"] }, calls: [] } : undefined;
+      const run = makeRun({ ...previous, ...body, agentId: target.id, status: "Succeeded", recoverable: false, chargedRaw, reason: undefined, ...(mission ? { mission } : {}),
+        result: { phase: "Complete", terminal: true, success: true, chargedRaw, ...(mission ? { mission } : {}),
           ...(body.action === "task" ? { taskId: `synthetic-task-${target.id}` } : {}),
           ...(body.action === "game" ? { matchId: `synthetic-match-${target.id}`, ...(body.rewardKind === "llm-credits" ? { creditsGranted: 4096 } : { rewardRaw: "50000" }) } : {}),
           ...(body.action === "credits" ? { creditsUsed: 512 } : {}),

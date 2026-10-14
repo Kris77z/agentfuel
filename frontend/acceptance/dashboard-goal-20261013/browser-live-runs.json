@@ -1,0 +1,139 @@
+[
+  {
+    "requestId": "66c02c64-de9a-47d9-b5c8-accc50aa4d3e",
+    "goal": "为一个读书社群写一份七天活动计划，每天包含主题、讨论问题和一个可完成的小任务。",
+    "status": "Failed",
+    "reason": "HOSTED_GOAL_CANCELLED",
+    "chargedRaw": "10000",
+    "stopRequested": true,
+    "stage": "cancelled",
+    "calls": [
+      {
+        "stage": "plan",
+        "model": "kimi-k2.6",
+        "chargedRaw": "10000",
+        "promptTokens": 254,
+        "completionTokens": 184,
+        "paymentId": "0x42052e34ec91bd962bac11f846fdb7ea527d09faf3624bd47415f9ec73ee1be1",
+        "txHash": "0xe75aea01bda9b8cad4588a72084daa0bd09fc9b36408b42e757b796f4213c4f9"
+      }
+    ],
+    "review": null
+  },
+  {
+    "requestId": "7a6c3966-babc-4a88-acc7-bb4fee53b04f",
+    "goal": "将这句话翻译成简洁自然的英文，只输出译文：我们已经修好了问题，明天再一起检查一次。",
+    "status": "Succeeded",
+    "chargedRaw": "30000",
+    "stage": "completed",
+    "calls": [
+      {
+        "stage": "plan",
+        "model": "kimi-k2.6",
+        "chargedRaw": "10000",
+        "promptTokens": 255,
+        "completionTokens": 100,
+        "paymentId": "0x9147bf4c467c93fc028a1946582b6aa3943ecb3c66de6b3f8c700e71506f87b5",
+        "txHash": "0x12c8f27395806d4fa36cfdbac6fab2a38c4df9a10da89a89e7ca1724514dad51"
+      },
+      {
+        "stage": "phase-0",
+        "model": "kimi-k2.6",
+        "chargedRaw": "10000",
+        "promptTokens": 337,
+        "completionTokens": 14,
+        "paymentId": "0xe70e68bf3917983fa5475072f1308a81f1c01c1145f7a9bcf7de536e8197ebe7",
+        "txHash": "0x7bfa9b1a38dcb913734fb50f181d0285d9c4154875dbc123503666f6adf2f976"
+      },
+      {
+        "stage": "review",
+        "model": "kimi-k2.6",
+        "chargedRaw": "10000",
+        "promptTokens": 384,
+        "completionTokens": 206,
+        "paymentId": "0x3398707ff9bb6cc4dd3d3cdebc0d36d3a8b5e158f6f7289445fbfdd53c08c96e",
+        "txHash": "0xd78cba37699f6f396d7c2035b58c020f879558d7fd28a3d871052e836aab8d7d"
+      }
+    ],
+    "review": {
+      "passed": true,
+      "summary": "译文准确传达了原意，语言简洁自然，符合英语母语者表达习惯，且仅输出译文无额外内容。",
+      "checks": [
+        "准确传达原意（问题已修复，明天共同复查）：'We've fixed the issue.' 对应'我们已经修好了问题'，'Let's review it together tomorrow.' 对应'明天再一起检查一次'，语义完整准确",
+        "语言简洁自然，符合英语母语者表达习惯：使用'We've fixed'而非'We have repaired'，'review it together'而非直译的'check together again'，表达地道",
+        "只输出译文，不添加解释、引号或额外内容：artifact仅为两句英文，无引号、无解释、无额外内容，完全符合要求",
+        "字数/词数检查：measuredLengths显示49字符/9词，简洁合理，无异常"
+      ]
+    }
+  },
+  {
+    "requestId": "b548c7b3-19c2-4af0-8fb5-86938fcdbae6",
+    "goal": "请为一个三人创业团队制定一周的产品用户访谈计划，包含五个访谈问题和三条避免诱导受访者的原则。",
+    "status": "Failed",
+    "reason": "HOSTED_GOAL_REVIEW_FAILED",
+    "chargedRaw": "50000",
+    "stage": "completed",
+    "calls": [
+      {
+        "stage": "plan",
+        "model": "kimi-k2.6",
+        "chargedRaw": "10000",
+        "promptTokens": 256,
+        "completionTokens": 107,
+        "paymentId": "0xd0d48a61d9ff9e573a2135ac971ecc5627f9e7c419ec3cec9f7afc2610df0111",
+        "txHash": "0x3c55777b691557a0bfb9ff56799371897f1d53045c25fa14bc218e039c03b8b5"
+      },
+      {
+        "stage": "phase-0",
+        "model": "kimi-k2.6",
+        "chargedRaw": "10000",
+        "promptTokens": 345,
+        "completionTokens": 2048,
+        "paymentId": "0x4fed01f1eb5120b84d3a2e99a40fb27866601aa3e10848820c3036ce872e9e85",
+        "txHash": "0x1899d1484e6065c2fa898aa4cc2fa86a72f531741caacdfcc371314252f86e21"
+      },
+      {
+        "stage": "review",
+        "model": "kimi-k2.6",
+        "chargedRaw": "10000",
+        "promptTokens": 2634,
+        "completionTokens": 553,
+        "paymentId": "0xef41ce9a2c9294ab16399686afcebbc8fd5af311c918dda16e4bbc6cbfb58a79",
+        "txHash": "0xc1c46c39fead3b2d5d357e4e960a0e50c3d30f951e6b7944394727d7c16ff6f3"
+      },
+      {
+        "stage": "revision",
+        "model": "kimi-k2.6",
+        "chargedRaw": "10000",
+        "promptTokens": 3083,
+        "completionTokens": 2048,
+        "paymentId": "0xcb1d3bd4c3d524391372728764f9e8312ccd3d431dfd37f634d459dc9a77fa6f",
+        "txHash": "0x3d11db44cde28ac0461bb9d5001b888553ed71af204d5e9517a3d45e43c2f7d2"
+      },
+      {
+        "stage": "revision-review",
+        "model": "kimi-k2.6",
+        "chargedRaw": "10000",
+        "promptTokens": 2639,
+        "completionTokens": 498,
+        "paymentId": "0xece59da8153c387cf96caaa4aa97a6c9bb330e1572ca6aaa091f8fc47450b113",
+        "txHash": "0xd848638a2234f50fc758d2a232138b639737600887ad0b3049ee5e4e8e192b22"
+      }
+    ],
+    "review": {
+      "passed": false,
+      "summary": "交付物在五个访谈问题和三条原则上基本完整，但存在关键缺陷：① 输出被截断，检查清单和周末汇总部分未完成；② 周三安排包含未经用户请求的\"情境模拟\"和\"线下咖啡馆/工作场所\"形式，超出原始要求范围；③ 部分日期相关安排（如\"周末任务\"）缺乏具体日期支撑；④ 团队分工中的角色假设（产品/增长、产品/技术、运营/综合）为推断设定，非用户原始输入。",
+      "checks": [
+        "原始目标要求'一周的产品用户访谈计划'——交付物包含周一至周五安排，但周末汇总任务及检查清单被截断，输出不完整",
+        "原始目标要求'五个访谈问题'——已提供五个问题，分别覆盖用户需求、痛点、使用场景、竞品对比和付费意愿，符合要求",
+        "原始目标要求'三条避免诱导受访者的原则'——已提供三条原则（禁用二元确认、隐藏偏好假设、先行为后态度），每条含示例说明，符合要求",
+        "原始目标要求'三人创业团队'分工——交付物自行假设了A/B/C的具体角色背景（产品/增长、产品/技术、运营/综合），用户未提供此信息，属于未经支撑的推断",
+        "周三安排包含'情境模拟'和'线下咖啡馆/用户实际工作场所'——超出原始目标要求的'访谈形式'范畴，添加了用户未请求的额外复杂度",
+        "周四'团队内部竞品功能速览'和周五'具体数值锚定技术'——原始目标未要求竞品功能速览或特定价格探测技术，属于自行扩展",
+        "检查清单在'访谈后（A/B/C协作，24小时内）'处被截断，'——'后无内容，输出不完整，无法验证是否为'可直接执行的完整方案'",
+        "周五标注'周末任务'但仅写'C牵头，三人封闭汇总'，未提供具体日期（如次周周一），在'禁止编造信息'约束下该时间安排仍属未支撑",
+        "问题五标注'修正说明：此版本删除原稿中……'——暗示存在迭代过程，但用户未提供'原稿'，此说明对当前交付无意义且引入未经验证的历史信息"
+      ]
+    }
+  }
+]

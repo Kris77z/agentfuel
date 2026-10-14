@@ -1,0 +1,47 @@
+[
+  {
+    "id": "A1",
+    "name": "Stripe Signal · 虎斑信号",
+    "idea": "用三道虎斑负形识别 Tabby，让猫的轮廓保留工业印记的克制。",
+    "pattern": "Geometric shape + negative-space line system",
+    "construction": "100单位画布；64单位宽猫形、45°耳尖，三道圆端负形条纹；不画眼睛或胡须。",
+    "minimum": "建议24px；16px保留耳尖与整体轮廓。",
+    "risk": "最直接的猫语义，16px时虎斑细节弱于外轮廓。",
+    "files": {
+      "symbol": "a1-symbol.svg",
+      "black": "a1-black.svg",
+      "transparent": "a1-symbol-transparent-1024.png",
+      "square": "a1-square-1024.png"
+    }
+  },
+  {
+    "id": "A2",
+    "name": "Queue T · 队列 T",
+    "idea": "六个模块构成 T，末端向右续接，像完成一单后进入下一单的任务队列。",
+    "pattern": "Rounded rectangle dot matrix + letter abstraction",
+    "construction": "100单位画布；16×16模块、6单位间隙、2单位圆角；三块横梁、两块竖干与一个右向续接模块。",
+    "minimum": "16px保留T骨架；22px可看清分块。",
+    "risk": "比猫方向更抽象，需要Tabby字标一起建立识别。",
+    "files": {
+      "symbol": "a2-symbol.svg",
+      "black": "a2-black.svg",
+      "transparent": "a2-symbol-transparent-1024.png",
+      "square": "a2-square-1024.png"
+    }
+  },
+  {
+    "id": "A3",
+    "name": "Work Loop · 工作回环",
+    "idea": "将工作闭环做成升一格的回环，每次交付都为下一次工作留下信誉。",
+    "pattern": "Geometric letter abstraction + stepped cycle",
+    "construction": "100单位画布；一体实心台阶轮廓，内部单一圆角台阶负形；14单位主体厚度。",
+    "minimum": "16px可读闭环与台阶；22px更清楚。",
+    "risk": "业务意味强，Tabby猫的联想较弱。",
+    "files": {
+      "symbol": "a3-symbol.svg",
+      "black": "a3-black.svg",
+      "transparent": "a3-symbol-transparent-1024.png",
+      "square": "a3-square-1024.png"
+    }
+  }
+]

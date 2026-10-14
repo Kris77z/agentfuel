@@ -1,0 +1,119 @@
+[
+  {
+    "file": "b1-transparent.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "mode": "RGBA",
+    "alpha_extrema_after_rgba_conversion": [
+      0,
+      255
+    ],
+    "bytes": 18345
+  },
+  {
+    "file": "b1-square.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "mode": "RGB",
+    "alpha_extrema_after_rgba_conversion": [
+      255,
+      255
+    ],
+    "bytes": 19220
+  },
+  {
+    "file": "b1-black-transparent.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "mode": "RGBA",
+    "alpha_extrema_after_rgba_conversion": [
+      0,
+      255
+    ],
+    "bytes": 16860
+  },
+  {
+    "file": "b2-transparent.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "mode": "RGBA",
+    "alpha_extrema_after_rgba_conversion": [
+      0,
+      255
+    ],
+    "bytes": 10395
+  },
+  {
+    "file": "b2-square.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "mode": "RGB",
+    "alpha_extrema_after_rgba_conversion": [
+      255,
+      255
+    ],
+    "bytes": 10251
+  },
+  {
+    "file": "b2-black-transparent.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "mode": "RGBA",
+    "alpha_extrema_after_rgba_conversion": [
+      0,
+      255
+    ],
+    "bytes": 10175
+  },
+  {
+    "file": "b3-transparent.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "mode": "RGBA",
+    "alpha_extrema_after_rgba_conversion": [
+      0,
+      255
+    ],
+    "bytes": 16358
+  },
+  {
+    "file": "b3-square.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "mode": "RGB",
+    "alpha_extrema_after_rgba_conversion": [
+      255,
+      255
+    ],
+    "bytes": 17237
+  },
+  {
+    "file": "b3-black-transparent.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "mode": "RGBA",
+    "alpha_extrema_after_rgba_conversion": [
+      0,
+      255
+    ],
+    "bytes": 15989
+  }
+]

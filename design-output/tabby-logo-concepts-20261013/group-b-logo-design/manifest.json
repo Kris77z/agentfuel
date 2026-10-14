@@ -1,0 +1,71 @@
+{
+  "skill": "kaankiziltug/logo-design-skill",
+  "skill_path": "/Users/jungle/.codex/skills/logo-design/SKILL.md",
+  "recommend": "B3",
+  "candidates": [
+    {
+      "id": "B1",
+      "name": "方腔 b",
+      "idea": "将 Tabby 的 b 画成竖尾，方形内腔像一张工作标签。",
+      "shape": "letterform",
+      "construction": "38-unit stem; custom squared counter and curved bowl; one evenodd filled path, viewBox 256",
+      "recommendation": "最中性简洁，适合低调工具品牌。",
+      "minimum": {
+        "symbol_px": 16,
+        "recommended_ui_px": 24
+      },
+      "files": {
+        "symbol": "b1-symbol.svg",
+        "black": "b1-black.svg",
+        "transparent": "b1-transparent.png",
+        "square": "b1-square.png",
+        "black_transparent": "b1-black-transparent.png"
+      },
+      "risk": "更像通用 b，需要 Tabby 字标建立品牌。"
+    },
+    {
+      "id": "B2",
+      "name": "信誉印签",
+      "idea": "一个验收后的任务印签，负形 t 把信誉留在记录里。",
+      "shape": "emblem + letterform",
+      "construction": "200-square silhouette; 45-degree 40-unit corner cut; negative lowercase t; one evenodd path",
+      "recommendation": "如果更看重可信执行与信誉，选这款。",
+      "minimum": {
+        "symbol_px": 16,
+        "recommended_ui_px": 24
+      },
+      "files": {
+        "symbol": "b2-symbol.svg",
+        "black": "b2-black.svg",
+        "transparent": "b2-transparent.png",
+        "square": "b2-square.png",
+        "black_transparent": "b2-black-transparent.png"
+      },
+      "risk": "章形语气较正式，猫的亲切感较少。"
+    },
+    {
+      "id": "B3",
+      "name": "待命猫",
+      "idea": "侧身坐猫和竖尾，表达有边界、随时准备接下一单的 Agent。",
+      "shape": "pictorial",
+      "construction": "45-degree ear, 30-degree nose, cubic body, 32-unit upright tail; solid single silhouette",
+      "recommendation": "B 组推荐；与 Tabby 名字最直接，能为工业页面增加适量角色感。",
+      "minimum": {
+        "symbol_px": 16,
+        "recommended_ui_px": 24
+      },
+      "files": {
+        "symbol": "b3-symbol.svg",
+        "black": "b3-black.svg",
+        "transparent": "b3-transparent.png",
+        "square": "b3-square.png",
+        "black_transparent": "b3-black-transparent.png"
+      },
+      "risk": "16 px 以整体轮廓识别为主，24–32 px 更容易直接读成猫。"
+    }
+  ],
+  "overview": "concepts-greyscale.png",
+  "size_proof": "small-size-proof.png",
+  "audit": "audit-final.txt",
+  "preview": "preview.html"
+}

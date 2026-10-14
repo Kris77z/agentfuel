@@ -112,7 +112,7 @@ test("primary CTA opens onboarding and workbench keeps its own route", async ({ 
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByTestId("hosted-terminal-shell")).toBeVisible();
   await expect(page.getByRole("button", { name: "签名登录", exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "返回 AgentFuel 产品首页", exact: true }).click();
+  await page.getByRole("link", { name: "返回 Tabby 产品首页", exact: true }).click();
   await expect(page).toHaveURL(/:3024\/$/);
   await expect(page.getByTestId("oberon-landing")).toBeVisible();
   await noOverflow(page);
