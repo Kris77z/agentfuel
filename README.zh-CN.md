@@ -6,7 +6,7 @@
 
 **项目短片 · 49 秒** · [在 YouTube 观看](https://youtu.be/pOUE6yWpGg4)
 
-https://github.com/user-attachments/assets/b0afe721-2167-4ff1-8598-5e879f10d540
+https://github.com/user-attachments/assets/da18320d-eea4-45c6-9d01-be43866f0041
 
 **[技术演示 · 1 分 51 秒](https://youtu.be/Hgs1R7LrMZU)** · [视频展厅](https://monad.tabbyai.xyz/watch?lang=zh) · [原提交概览 · 35 秒](https://youtu.be/9Xxnqi52Kvo)
 
