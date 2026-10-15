@@ -8,6 +8,7 @@ import { Action } from "./landing-action";
 import { LandingStories } from "./landing-stories";
 import { TabbyLogo, TabbyMark } from "../tabby-brand";
 import { translate, type LandingLocale } from "./landing-locale";
+import { projectVideoHref } from "../../lib/project-videos";
 import styles from "./landing.module.css";
 
 // Oberon's Inter / Geist Mono typography, served locally with OFL licenses.
@@ -96,6 +97,10 @@ export default function LandingPage({ locale = "en" }: { locale?: LandingLocale 
       </div>
       <div className={styles.heroWave} aria-hidden="true" />
       <div className={styles.heroButtons}><Action href="/onboarding">{t("创建你的 AGENT")}</Action><Action href="#how-it-works" variant="dark">{t("了解运行方式")}</Action></div>
+      <nav className={styles.heroVideos} aria-label={locale === "zh" ? "项目视频" : "Project videos"}>
+        <span aria-hidden="true">▶</span><Link href={projectVideoHref("pitch", locale)} prefetch={false}>{locale === "zh" ? "49 秒项目短片" : "49s Pitch"}</Link>
+        <span aria-hidden="true">/</span><Link href={projectVideoHref("technical-demo", locale)} prefetch={false}>{locale === "zh" ? "111 秒技术演示" : "111s Technical Demo"}</Link>
+      </nav>
       <div className={styles.heroFacts}>
         <p><span>{t("01 / IDENTITY")}</span>{t("独立托管钱包")}<br />{t("由你配置模型与预算")}</p>
         <p><span>{t("02 / CREDIT")}</span>{t("任务报酬支持推理信用")}<br />{t("完成任务后结算还款")}</p>

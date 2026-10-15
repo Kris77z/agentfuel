@@ -72,6 +72,7 @@
 .heroWave,.footerWave{position:absolute;left:0;right:0;height:290px;background-image:url('/landing/pixel-wave.svg');background-repeat:repeat-x;background-position:center;background-size:1440px 290px;opacity:.66;pointer-events:none;animation:waveDrift 48s linear infinite}
 .heroWave{top:425px;z-index:0;mask-image:linear-gradient(transparent,black 30%,black 75%,transparent)}
 .heroButtons{display:grid;grid-template-columns:1fr 1fr;margin-left:33.333333%;margin-top:66px;position:relative;z-index:4}
+.heroVideos{display:flex;align-items:center;flex-wrap:wrap;gap:10px 16px;margin:20px 0 0 33.333333%;position:relative;z-index:4;font-family:var(--landing-mono),"PingFang SC",monospace;font-size:12px}.heroVideos>span:first-child{color:var(--orange);font-size:11px}.heroVideos>span:nth-of-type(2){color:#9d968d}.heroVideos>a{border-bottom:1px solid #b9b3a9}.heroVideos>a:hover{color:var(--orange);border-color:var(--orange)}
 .action{--action-fill:#ed4f00;min-height:57px;display:flex;justify-content:center;align-items:center;position:relative;font-family:var(--landing-mono),"PingFang SC",monospace;font-size:15px;font-weight:500;line-height:1.35;text-align:center;overflow:hidden;min-width:0;letter-spacing:-.04em;isolation:isolate}
 .action:before{content:"";position:absolute;inset:0;background:var(--action-fill);transform:translateX(-101%);transition:transform .35s cubic-bezier(.22,1,.36,1);z-index:-1}
 .action .actionLabel{display:inline-flex;align-items:center;justify-content:center;position:relative;max-width:100%;transition:color .2s}
@@ -316,6 +317,7 @@
 .circuitLine{left:-250px;width:330px}
 .heroWave{top:346px;height:280px;background-size:1000px 240px;opacity:.4}
 .heroButtons{margin-left:0;margin-top:83px}
+.heroVideos{margin-left:0;font-size:11px;gap:8px 12px}
 .action{font-size:14px;min-height:57px}
 .landing .action{padding:18px 12px}
 
