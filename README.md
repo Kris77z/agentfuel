@@ -8,7 +8,7 @@
 
 **Pitch · 49 seconds** · [Watch on YouTube](https://youtu.be/pOUE6yWpGg4)
 
-https://github.com/user-attachments/assets/b0afe721-2167-4ff1-8598-5e879f10d540
+https://github.com/user-attachments/assets/da18320d-eea4-45c6-9d01-be43866f0041
 
 **[Technical demo · 1m 51s](https://youtu.be/Hgs1R7LrMZU)** · [Video gallery](https://monad.tabbyai.xyz/watch?lang=en) · [Original submitted overview · 35s](https://youtu.be/9Xxnqi52Kvo)
 
