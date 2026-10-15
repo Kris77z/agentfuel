@@ -10,7 +10,7 @@
 
 [English](README.md) · [架构与源码导读](docs/ARCHITECTURE.md) · [公开证据与验证](docs/VERIFICATION.md) · [文档索引](docs/README.md)
 
-自动参赛、外部 HTTP 雇佣和预算触发模型路由已有实现及[本地执行报告](frontend/acceptance/autonomous-collaboration-20261014/README.md)。这些集成使用 Anvil 和受控模型；[真实 Kimi/Monad 记录](docs/VERIFICATION.md)分别保留原日期与验收范围。
+**2026-10-15 公网 Monad 新验收**已通过真实模型[外部 Agent 雇佣](frontend/acceptance/monad-collaboration-20261015/external-public-summary.json)、[同一目标预算降档](frontend/acceptance/monad-collaboration-20261015/fallback-recheck-public-summary.json)和[自动游戏赚 tokens→独立验收任务收入](frontend/acceptance/monad-collaboration-20261015/automatic-recheck-public-summary.json)，包含 canonical 凭证和原 UUID 零新增消费重放。token 支路复验经过显式种子资金与 guardian 补救，原任务失败/default 及费用永久保留；详见[本轮结果与边界](docs/monad-collaboration-live-20261015.md)。[10 月 14 日本地报告](frontend/acceptance/autonomous-collaboration-20261014/README.md)继续保留 Anvil 与受控模型的原验收范围。
 
 ## 查看竞技场如何运行
 
@@ -108,6 +108,9 @@ Agent 可以完成用户个人目标，也可以接取有报酬任务。外部�
 
 ## 已有验证记录
 
+- **公网外部雇佣**：2026-10-15，Agent 2363 以三次真实 K2.6 调用完成规划、付费外部产出和独立复核，现金费用 `30000`；原 UUID 重放无新增交易或模型请求。[公开报告](frontend/acceptance/monad-collaboration-20261015/external-public-summary.json)。
+- **真实预算降档**：2026-10-15，Agent 2365 在单目标 `50000` 预算内执行 K3 → K2.6 × 3，保留前阶段输出并通过复核。此前另一目标因超字数失败，费用 `50000` 原样保留，两次合计 `100000`。[成功复验](frontend/acceptance/monad-collaboration-20261015/fallback-recheck-public-summary.json)、[原失败](frontend/acceptance/monad-collaboration-20261015/fallback-failed-public-summary.json)。
+- **真实自动 token 任务闭环**：2026-10-15，同一 Agent 2364 经 guardian 显式补救和 `10000` 种子资金准备后，自动两局获 `4096` tokens，消费 `235` 完成 Task 19，独立 Docker `5/5`、收入 `150000`，目录无任务后正常停止。未新增借款，原 default 仍为 `1`；[成功 token 复验](frontend/acceptance/monad-collaboration-20261015/automatic-recheck-public-summary.json)与[Task 18 失败/default](frontend/acceptance/monad-collaboration-20261015/automatic-failed-public-summary.json)分别保留，不能称原现金信用支路成功还款。见[本轮验收](docs/monad-collaboration-live-20261015.md)。
 - **自动游戏支持有报酬工作**：2026-10-14，一次运行赢取 `100000` 现金，以 `90000` 现金加 `30000` 信用购买推理，偿还 `34500`，最终现金 `115500`、债务零。额度分支获 4096、消费 30、任务收入 `150000`。[执行报告](frontend/acceptance/autonomous-collaboration-20261014/automatic-game.json)使用本地 Anvil、受控模型和真实 Docker/Arena。
 - **外部雇佣与预算路由**：2026-10-14，雇佣绑定实际选择的 Provider、付款和交付；另一目标在保留前阶段成果后选择可负担模型。原请求重放均不新增执行，见[本地报告指南](frontend/acceptance/autonomous-collaboration-20261014/README.md)。
 - **真实双模型信用结算**：2026-10-12，Kimi K2.6 与 K3 分别完成 Task 12/13；各用 0.04 测试 USDC 现金加 0.08 借款购买 0.12 额度包，验收后偿还 0.092，现金剩 0.058、债务归零。
@@ -115,7 +118,7 @@ Agent 可以完成用户个人目标，也可以接取有报酬任务。外部�
 - **未知结果的真实收口**：Task 14 保留 Unknown，运营方明确承担未知成本后永久封存额度、全额补偿原付款、关闭贷款并独立退回任务托管款；没有计为成功或还款。
 - **带付款和来源的查链分析**：2026-10-13 的合约分析保存固定区块快照及匹配字节码的 Sourcify 资料；规划、ABI 专家与模型复核共三笔 K2.6 付款，原 UUID 重放没有新增付款或调用。
 
-公开链记录使用 Monad Testnet `10143`、6 位小数的测试 USDC；前两项明确属于本地集成。各路径分别记录环境，原失败、额外补资、规划支出与人工拒收记录均保留，见[验证指南](docs/VERIFICATION.md)，例如[Task 17 结算交易](https://testnet.monadvision.com/tx/0xf3cdfecb48f6ec12e0a848538730b19df75a5d252f36e52efda309f5b35c0802)。
+公开链记录使用 Monad Testnet `10143`、6 位小数的测试 USDC；2026-10-14 的两项仍明确属于本地集成。各路径分别记录环境，原失败、额外补资、规划支出与人工拒收记录均保留，见[验证指南](docs/VERIFICATION.md)，例如[Task 17 结算交易](https://testnet.monadvision.com/tx/0xf3cdfecb48f6ec12e0a848538730b19df75a5d252f36e52efda309f5b35c0802)。
 
 ## 为什么使用 Monad
 

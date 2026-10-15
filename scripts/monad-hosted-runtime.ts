@@ -7,6 +7,7 @@ import { mkdtemp, readFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Contract, Wallet, getAddress, ZeroAddress } from "ethers";
+import { canonical, type Json } from "../packages/sdk/src/protocol.js";
 import { SessionStore } from "../packages/pi-loop/src/session.js";
 import { taskPrivateFile } from "../packages/pi-loop/src/task-runner/config.js";
 import type { WorkflowConfig } from "../packages/pi-loop/src/workflow.js";
@@ -56,6 +57,12 @@ export interface RuntimeJournal {
   effectiveBinding?: string; migrations?: CatalogMigration[];
   publicOriginMigration?: { version: 1; id: string; fromOrigin: string; toOrigin: string; fromRpcTransport: RpcTransport; toRpcTransport: "direct";
     previousBinding: string; publicBinding: string; auditFile: string };
+}
+/** New request templates may use an appended task's deadline. Never advance the
+ * saved journal deadline or derive a fresh wall-clock window during recovery;
+ * each existing request keeps its own frozen workflow snapshot. */
+export function monadTaskTemplateDeadline(state: Pick<RuntimeJournal, "templateDeadlineMs">, tasks: WorkflowConfig["tasks"]): number {
+  return tasks.reduce((deadline, task) => Math.max(deadline, task.deadlineMs), state.templateDeadlineMs);
 }
 interface GatewayReady { url: string; endpoint: string; keyFile: string; models: GatewayModel[] }
 const fail = (code: string): never => { throw new Error(code); };
@@ -235,6 +242,42 @@ export function appendTaskCatalog(original: WorkflowConfig["tasks"], additional:
   }
   return [...structuredClone(original), ...structuredClone(additional)];
 }
+
+/** Same unsigned, zero-charge provisioning boundary as the public-origin
+ * migration. Kept offline: this never reads keys, resumes runs or sends commands. */
+export async function guardMonadCatalogAppendState(directory: string) {
+  const databaseFile = join(absolute(directory), "hosted", "database", "session.json");
+  const databaseRaw = await taskPrivateFile(databaseFile), database = JSON.parse(databaseRaw);
+  const guards = [{ path: databaseFile, digest: hash(databaseRaw) }];
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+  if (database.version !== 1 || !Array.isArray(database.runs) || !Array.isArray(database.agents)
+    || database.runs.some((run: any) => !["Succeeded", "Failed", "Paused"].includes(run.status)
+      || run.status !== "Paused" && (run.recoverable !== false || run.result?.terminal !== true))
+    || database.agents.some((agent: any) => agent.reservedRaw !== "0" || agent.binding && agent.binding.chainId !== "10143"
+      || agent.activeRequestId && !database.runs.some((run: any) => run.agentId === agent.id && run.requestId === agent.activeRequestId && run.status === "Paused"))) fail("MONAD_TERMINAL_RUNS_REQUIRED");
+  const paused = database.runs.filter((run: any) => run.status === "Paused");
+  for (const run of paused) {
+    if (!uuid.test(run.agentId) || !uuid.test(run.requestId)) fail("MONAD_PAUSED_PROVISION_REQUIRED");
+    const file = join(directory, "hosted", "agents", run.agentId, "runs", run.requestId, "task-executor", "session.json");
+    const raw = await taskPrivateFile(file), state = JSON.parse(raw), snapshot = state.snapshot;
+    const agent = database.agents.find((value: any) => value.id === run.agentId);
+    if (!agent || agent.activeRequestId !== run.requestId || agent.reservedRaw !== "0" || agent.spentRaw !== "0" || agent.binding
+      || run.action !== "provision" || run.reservedRaw !== "0" || run.chargedRaw !== "0" || run.recoverable !== true
+      || run.result?.terminal !== false || run.result.phase !== "Paused" || run.result.chargedRaw !== "0"
+      || [run.reason, run.result.reason, state.result?.reason].some(reason => typeof reason === "string" && /UNKNOWN|UNCERTAIN|UNCONFIRMED/.test(reason))
+      || state.version !== 1 || !snapshot || snapshot.action !== "provision" || snapshot.request !== run.requestId || snapshot.agent !== agent.id
+      || snapshot.wallet !== agent.wallet || snapshot.owner !== agent.owner || snapshot.reservedRaw !== "0"
+      || snapshot.config?.rpcTransport !== "direct" || snapshot.workflow?.chainId !== "10143"
+      || state.binding !== createHash("sha256").update(canonical(snapshot as Json)).digest("hex")
+      || !state.transactions || typeof state.transactions !== "object" || Array.isArray(state.transactions) || Object.keys(state.transactions).length
+      || Object.keys(state).some(key => !["version", "binding", "snapshot", "transactions", "result"].includes(key))
+      || state.result?.terminal !== false || state.result.phase !== "Paused" || state.result.chargedRaw !== "0") fail("MONAD_PAUSED_PROVISION_REQUIRED");
+    guards.push({ path: file, digest: hash(raw) });
+  }
+  return { pausedProvisions: paused.length, checkUnchanged: async () => {
+    for (const guard of guards) if (hash(await taskPrivateFile(guard.path)) !== guard.digest) fail("MONAD_CATALOG_SOURCE_CHANGED");
+  } };
+}
 async function portListening(port: number) {
   return new Promise<boolean>(done => {
     const socket = createConnection({ host: "127.0.0.1", port });
@@ -248,7 +291,7 @@ export async function appendMonadHostedTasks(directory: string, bootstrapFile: s
   directory = absolute(directory); bootstrapFile = absolute(bootstrapFile); additionalFile = absolute(additionalFile);
   const additional = JSON.parse(await readFile(additionalFile, "utf8")) as WorkflowConfig["tasks"];
   const store = new SessionStore<RuntimeJournal>(join(directory, "runtime-journal")); await store.start(true);
-  const hostedLock = new SessionStore<{ runs: { status: string }[] }>(join(directory, "hosted", "database")); let hostedHeld = false;
+  const hostedLock = new SessionStore<unknown>(join(directory, "hosted", "database")); let hostedHeld = false;
   let connection: Awaited<ReturnType<typeof monadProvider>> | undefined;
   try {
     const state = await store.read() ?? fail("MONAD_RUNTIME_JOURNAL_REQUIRED");
@@ -260,8 +303,7 @@ export async function appendMonadHostedTasks(directory: string, bootstrapFile: s
       catch (error) { if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error; }
     } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
     await hostedLock.start(true); hostedHeld = true;
-    const hosted = await hostedLock.read();
-    if (!hosted || hosted.runs.some(run => !["Succeeded", "Failed"].includes(run.status))) fail("MONAD_TERMINAL_RUNS_REQUIRED");
+    const hostedGuard = await guardMonadCatalogAppendState(directory);
     const { bootstrap: current, gateway, catalog } = await loadMonadHostedBootstrap(bootstrapFile);
     await validateMonadPublicMigration(directory, state, current, gateway, catalog);
     const currentBinding = runtimeBinding(current, gateway, catalog), id = hash(additional);
@@ -273,6 +315,7 @@ export async function appendMonadHostedTasks(directory: string, bootstrapFile: s
       || runtimeBinding({ ...migration.before, tasks: [...migration.before.tasks, ...migration.appended] }, gateway, catalog) !== migration.afterBinding)) fail("MONAD_MIGRATION_SNAPSHOT_INVALID");
     if (migration?.status === "Applied") {
       if (currentBinding !== state.effectiveBinding) fail("MONAD_RUNTIME_BINDING_CHANGED");
+      await hostedGuard.checkUnchanged();
       return { applied: true, cached: true, migrationId: id, taskIds: migration.appended.map(task => task.taskId), chainWrites: 0 };
     }
     if (state.migrations?.some(entry => entry.status === "Intent" && entry.id !== id)) fail("MONAD_ORIGINAL_MIGRATION_REQUIRED");
@@ -298,6 +341,7 @@ export async function appendMonadHostedTasks(directory: string, bootstrapFile: s
     state.originalBootstrap ??= structuredClone(migration.before);
     state.originalCatalog ??= structuredClone(migration.before.tasks);
     if (!state.migrations?.some(entry => entry.id === id)) (state.migrations ??= []).push(migration);
+    await hostedGuard.checkUnchanged();
     await store.write(state); // Original binding plus complete before/after snapshots precede the first config write.
     await atomicJson(bootstrapFile, { ...migration.after, dashboardAgents: current.dashboardAgents });
     migration.status = "Applied"; migration.appliedAt = new Date().toISOString(); state.effectiveBinding = migration.afterBinding;
@@ -387,7 +431,7 @@ export async function startMonadHostedRuntime(directory: string, bootstrapFile: 
     const walletDirectory = join(directory, "wallets"), models = ["kimi-k2.6", "kimi-k3"];
     const taskModels = models.map((id, index) => {
       const workflow: WorkflowConfig = { agentId: "1", chainId: "10143", account: b.contracts.account, asset: b.asset.address, escrowAddress: b.contracts.escrow,
-        tasks: b.tasks, allowCredit: true, maxPrice: "120000", deadlineMs: journal.templateDeadlineMs, minRemainingMs: 60000, maxCompletionTokens: 1024,
+        tasks: b.tasks, allowCredit: true, maxPrice: "120000", deadlineMs: monadTaskTemplateDeadline(journal, b.tasks), minRemainingMs: 60000, maxCompletionTokens: 1024,
         providers: [{ id: "trusted-fixed", payTo: b.payTo, relayUrl: `${url("fixed")}/v1/chat`, service: FIXED_SOLVE_SERVICE, model: FIXED_SOLVE_MODEL,
           routes: [{ tier: index ? "strong" : "cheap", price: "120000", capabilities: ["python3-json-stdio", "sum-integers", "unique-sorted", "balanced-brackets", "word-frequency"],
             solve: { version: 1, tiers: index ? ["strong", "strong"] : ["cheap", "strong"], maxRounds: 2, maxToolCalls: 4, maxCompletionTokens: 1024 } }] }] };

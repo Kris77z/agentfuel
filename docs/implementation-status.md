@@ -1,7 +1,8 @@
 # Implementation status
 
+> **2026-10-15 公网 Monad 三项核心新验收通过（保留失败与显式补救）**：外部雇佣真实三次 K2.6 调用、现金费用 `30000`；同目标预算降档复验 K3 → K2.6 × 3、费用 `50000`，均完成独立复核及原 UUID 零新增交易/模型重放。原降档失败 `50000` 保留，两次合计 `100000`。自动 token 支路复验在同 Agent 2364 上两局获 `4096`、消费 `235` 完成 Task 19，独立 Docker `5/5`、任务收入 `150000`，无可执行目录任务后正常停止，重放无新增交易/模型或游戏额度。此前 Task 18 权限缺陷失败/default/清算 `34500` 永久保留；新支路经过 guardian 显式解冻、`10000` 种子和累计预算 `130000→140000`，禁止新增借贷，最终现金 `160000` 含种子、债务 `0`、default仍`1`且信用仍不可借。不能称自动自愈或原现金信用支路还款成功。见 [本轮实际结果](monad-collaboration-live-20261015.md) 与 [公开凭证](../frontend/acceptance/monad-collaboration-20261015/README.md)。
 
-> **2026-10-14 自主资源与协作已接通**：自动比赛补给、运营方批准的独立外部服务 HTTP 发现/402 雇佣与交付、同任务预算降价模型均通过本地 Anvil、真实 HTTP/签名交易和受控模型验收。新增 Monad 记录仅证明外部 Provider Agent 1999 的身份与白名单准入；三项完整集成的新增 Monad/真实供应商执行仍需另验收。具体配置、复现与公开记录见 [本轮验收](autonomous-collaboration-20261014.md)。
+> **2026-10-14 自主资源与协作已接通（当日范围）**：自动比赛补给、运营方批准的独立外部服务 HTTP 发现/402 雇佣与交付、同任务预算降价模型均通过本地 Anvil、真实 HTTP/签名交易和受控模型验收。当日新增 Monad 记录仅证明外部 Provider Agent 1999 的身份与白名单准入；后续新增公网 Monad/真实供应商验收状态见上方 10-15 记录。具体配置、本地复现与当日公开记录见 [本地验收](autonomous-collaboration-20261014.md)。
 
 > **Public review entry (2026-10-14):** [overview](../README.md), [architecture](ARCHITECTURE.md), and [verification](VERIFICATION.md). This is the chronological development ledger. Local `demo-output/` links are private operator archives and are not available in a fresh clone; use the verification guide for published evidence.
 
@@ -15,9 +16,9 @@
 
 > **最新扩展：平台托管 Agent**。用户归属、独立钱包、开户/入金、任务/免费德州和奖励消费后端已接入；root 实际本地链 HTTP 闭环通过。原预设 Agent 证据仍按原范围保留；托管 UI 已完成本地受控浏览器验收，真实扩展钱包与公开部署联合验收仍未完成。见 [托管验收](hosted-acceptance.md) 与 [10-11 前端验收](frontend-release-acceptance-20261011.md)。
 
-当前能力概览更新：2026-10-14；下表各后端/链上证据保留原验收日期。完成判据保持 ENGINEERING v5.3 §9 原范围；本地 mocks/受控模型输出不等于 Monad 部署或真实 Kimi。下表分别标明主 Agent 独立复跑与仅审代码/报告的范围。
+当前能力概览更新：2026-10-15；下表各后端/链上证据保留原验收日期。完成判据保持 ENGINEERING v5.3 §9 原范围；本地 mocks/受控模型输出不等于 Monad 部署或真实 Kimi。下表分别标明主 Agent 独立复跑与仅审代码/报告的范围。
 
-当前产品按 [六项核心能力与角色定义](../AGENT_CREDIT_ARCHITECTURE.md#当前产品主线2026-10-11-确认) 统一：信誉、借贷、游戏奖励、统一模型网关、执行/独立验收和 Pi 自主执行。平台托管 Agent 是入口，发布/接单是任务内角色。固定价求解信用、任务绑定额度包借贷、补额续跑与有界连续运行均已实现；当前还支持可选自动参赛、批准的外部 Agent HTTP 雇佣及同任务/目标新调用按剩余资源降价模型。两模型经托管入口与 Magpie 的本地联合运行、2026-10-12 Monad 核心业务与独立链上核验保留原范围；公开托管另验收。
+当前产品按 [六项核心能力与角色定义](../AGENT_CREDIT_ARCHITECTURE.md#当前产品主线2026-10-11-确认) 统一：信誉、借贷、游戏奖励、统一模型网关、执行/独立验收和 Pi 自主执行。平台托管 Agent 是入口，发布/接单是任务内角色。固定价求解信用、任务绑定额度包借贷、补额续跑与有界连续运行均已实现；当前还支持可选自动参赛、批准的外部 Agent HTTP 雇佣及同任务/目标新调用按剩余资源降价模型。两模型经托管入口与 Magpie 的本地联合运行、2026-10-12 Monad 核心业务与独立链上核验保留原范围；[10-14 公网部署](monad-vps-20261014.md)与[10-15 新业务验收](monad-collaboration-live-20261015.md)分别记录部署及实际执行结果。
 
 `autonomy.games` 可配置游戏数、每场预算、奖励种类与最低任务 tokens；本地/Monad 启动器对新请求设置最多 2 场游戏、6 次决策。无资源 bootstrap 是宿主边界策略，付费规划仍只用现金。游戏奖励额度已接入托管 Pi 目录任务，支持不足暂停、自动或用户参赛补额后恢复原请求；奖励模型仍限 Kimi K2.6。外部发现只访问运营方批准的 HTTP 目录/端点，启动器使用独立注册且进入白名单的 Provider。旧请求保留原配置权限，已签名、已付款与 Unknown 调用保留原 handle；模型降价不重派未知调用。产品不提供 gas 赞助。配置与三项本地复现见 [核心运行说明](core-runtime.md) 和 [协作验收指南](autonomous-collaboration-20261014.md)。
 

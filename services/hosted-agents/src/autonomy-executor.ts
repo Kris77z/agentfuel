@@ -2,15 +2,15 @@ import { isDeepStrictEqual } from "node:util";
 import { join } from "node:path";
 import { readFile } from "node:fs/promises";
 import { getAddress, Wallet, JsonRpcProvider, Contract, keccak256, toUtf8Bytes } from "ethers";
-import { InferCredit, ACCOUNT_ABI, accountInterface, managerInterface, requestDigest, paymentId, canonical, type Inference, type Json, type PaymentHandle } from "@agentfuel/sdk";
+import { InferCredit, ACCOUNT_ABI, MANAGER_ABI, accountInterface, managerInterface, requestDigest, paymentId, canonical, type Inference, type Json, type PaymentHandle } from "@agentfuel/sdk";
 import { SessionStore } from "@agentfuel/pi-loop/session";
 import { confirmPaidDelivery } from "@agentfuel/pi-loop/fixed-task";
 import { createAutonomyDecisionPrompt, parseAutonomyDecision, runAutonomy, type AutonomyState, type AutonomyConfig, type AutonomyContext, type AutonomyLimits, type AutonomyDecisionRecovery } from "../../../packages/pi-loop/src/autonomy.js";
 import { taskLoopbackUrl, taskPrivateFile } from "../../../packages/pi-loop/src/task-runner/config.js";
 import { monadProvider, type RpcTransport } from "../../../scripts/demo-rpc.js";
-import type { HostedTaskExecutor } from "./task-executor.js";
+import type { HostedTaskExecutor, HostedTaskExecutorConfig } from "./task-executor.js";
 import type { HostedGameExecutor } from "./game-executor.js";
-import { HostedError, type HostedExecution, type HostedExecutor, type HostedResult } from "./types.js";
+import { HostedError, type HostedExecution, type HostedExecutor, type HostedResult, type HostedFinance } from "./types.js";
 
 export interface HostedAutonomyConfig {
   maxTasks: number; maxDecisions: number; durationMs: number;
@@ -71,6 +71,40 @@ export async function openHostedPlannerConnection(rpcUrl: string, chainId: strin
   }
   if (chainId === "10143") return monadProvider(rpcUrl, transport);
   return invalid("HOSTED_PLANNER_NETWORK_INVALID");
+}
+
+/** Count executable catalog entries at the finance reader's canonical block.
+ * A failed or inconsistent read throws; it can never establish an empty queue. */
+export async function readHostedAvailableTasks(config: HostedTaskExecutorConfig, input: HostedExecution, finance: Extract<HostedFinance, { status: "confirmed" }>,
+  provider: JsonRpcProvider, deadlineMs: number, nowMs: number): Promise<number> {
+  const binding = input.agent.binding, plans = config.models.map(model => model.templates[input.agent.strategy]), first = plans[0];
+  if (!binding || !first || finance.chainId !== binding.chainId || finance.agentId !== binding.agentId
+    || getAddress(finance.wallet) !== getAddress(binding.wallet) || getAddress(input.agent.wallet) !== getAddress(binding.wallet)
+    || plans.some(plan => plan.chainId !== binding.chainId || getAddress(plan.account) !== getAddress(first.account)
+      || getAddress(plan.escrowAddress) !== getAddress(first.escrowAddress))) invalid("HOSTED_AUTONOMY_TASK_CATALOG_UNCONFIRMED");
+  const block = await provider.getBlock(finance.block.number);
+  if (BigInt(await provider.send("eth_chainId", [])) !== BigInt(binding.chainId) || block?.hash !== finance.block.hash
+    || block.timestamp !== finance.block.timestamp) invalid("HOSTED_AUTONOMY_TASK_CATALOG_UNCONFIRMED");
+  const at = (contract: Contract, method: string, args: unknown[] = []) => contract.getFunction(method).staticCall(...args, { blockTag: block!.number });
+  const account = new Contract(first.account, ACCOUNT_ABI, provider);
+  const manager = new Contract(await at(account, "creditManager"), [...MANAGER_ABI, "function taskEscrow() view returns(address)"], provider);
+  if (getAddress(await at(manager, "agentAccount")) !== getAddress(first.account)
+    || getAddress(await at(manager, "taskEscrow")) !== getAddress(first.escrowAddress)) invalid("HOSTED_AUTONOMY_TASK_CATALOG_UNCONFIRMED");
+  const escrow = new Contract(first.escrowAddress, ["function getTask(uint256) view returns(tuple(address poster,uint256 reward,uint256 escrowBalance,uint256 agentId,uint256 deadline,uint16 protocolFeeBps,uint8 status))"], provider);
+  const ids = [...new Set(plans.flatMap(plan => plan.tasks.map(task => task.taskId)))];
+  let available = 0;
+  for (const id of ids) {
+    const [task, loan] = await Promise.all([at(escrow, "getTask", [id]), at(manager, "getLoan", [id])]);
+    const entries = plans.flatMap(plan => plan.tasks.filter(entry => entry.taskId === id).map(entry => ({ plan, entry })));
+    if (task.status < 0n || task.status > 5n || loan.status < 0n || loan.status > 4n
+      || loan.status !== 0n && loan.agentId !== task.agentId || entries.some(({ entry }) => BigInt(entry.deadlineMs) !== task.deadline * 1000n)) invalid("HOSTED_AUTONOMY_TASK_CATALOG_UNCONFIRMED");
+    const assigned = task.status === 1n && task.agentId === 0n || task.status === 2n && task.agentId === BigInt(binding.agentId);
+    if (assigned && loan.status === 0n && task.reward > 0n && task.escrowBalance > 0n
+      && entries.some(({ plan, entry }) => Math.min(entry.deadlineMs, plan.deadlineMs, deadlineMs) > Math.max(nowMs, block!.timestamp * 1000) + plan.minRemainingMs
+        && plan.providers.some(provider => provider.routes.some(route => route.capabilities.includes("python3-json-stdio") && route.capabilities.includes(entry.problemId))))) available++;
+  }
+  if ((await provider.getBlock(block!.number))?.hash !== block!.hash || BigInt(await provider.send("eth_chainId", [])) !== BigInt(binding.chainId)) invalid("HOSTED_AUTONOMY_TASK_CATALOG_UNCONFIRMED");
+  return available;
 }
 
 /** Read-only: canonical payment/refund evidence plus an explicit operator acceptance of unknown vendor cost.
@@ -231,12 +265,14 @@ export class HostedAutonomyExecutor implements HostedExecutor {
         const result = await adapter.execute({ ...structuredClone(child), recover, activity:input.activity });
         return { terminal: result.terminal, success: result.success, chargedRaw: result.chargedRaw, ...(result.refundedRaw !== undefined ? { refundedRaw: result.refundedRaw } : {}), ...(result.reason ? { reason: result.reason } : {}) };
       };
+      let observedFinance: Extract<HostedFinance, { status: "confirmed" }> | undefined;
       const result = await runAutonomy(join(input.directory, "autonomy-loop"), state.controller, {
         now: this.deps.now,
         onProgress:async progress=>{const decision=progress.decision;await input.activity?.({scene:progress.phase==="Paused"?"interruption":decision?.action==="run-game"?"game":"decision",state:progress.phase==="Deciding"?"started":progress.phase==="Executing"?"selected":progress.phase==="Paused"?/UNKNOWN|UNCERTAIN|UNCONFIRMED/.test(progress.reason??"")?"reconciling":"paused":progress.phase==="Stopped"||progress.phase==="Completed"?"completed":"waiting",...(progress.decisionId?{phaseId:progress.decisionId}:{}),...(decision&&decision.action!=="stop"?{subject:{id:decision.modelId,name:decision.modelId,kind:"model" as const}}:{}),...(progress.reason&&/^[A-Z][A-Z0-9_]{0,100}$/.test(progress.reason)?{reason:progress.reason}:{}),evidence:{chargedRaw:progress.chargedRaw,completedTasks:progress.completedTasks}});},
         observe: async () => {
           await input.activity?.({scene:"funding",state:"started"});
           const finance = await this.task.finance(parent.agent); if (finance.status !== "confirmed") throw new Error(finance.reason);
+          observedFinance = finance;
           await input.activity?.({scene:"funding",state:"confirmed",evidence:{cashRaw:finance.cashRaw,debtRaw:finance.debtRaw,chainId:finance.chainId,blockNumber:finance.block.number,blockHash:finance.block.hash}});
           const credit = finance.credit.eligible && !finance.policy.ownerFrozen
             ? min(BigInt(finance.credit.tierCapRaw), BigInt(finance.policy.maxDebtPerTxRaw), BigInt(finance.policy.maxDebtPerDayRaw)) : 0n;
@@ -255,6 +291,12 @@ export class HostedAutonomyExecutor implements HostedExecutor {
         ...(this.config.games ? {
           runtimeDecision: async (context: AutonomyContext) => {
             if (this.deps.shouldContinue && !await this.deps.shouldContinue(parent.agent.id)) return { action: "stop" as const, reason: "HOSTED_AGENT_PAUSED" };
+            if (context.completedTasks > 0 && !context.pendingTask) {
+              if (!observedFinance) invalid("HOSTED_AUTONOMY_TASK_CATALOG_UNCONFIRMED");
+              const provider = this.deps.provider ?? (ownedTransport ??= await openHostedPlannerConnection((await taskPrivateFile(this.task.config.rpcUrlFile)).trim(), parent.agent.binding!.chainId, this.task.config.rpcTransport)).provider;
+              context.observation.availableTasks = await readHostedAvailableTasks(this.task.config, parent, observedFinance, provider, context.deadlineMs, (this.deps.now ?? Date.now)());
+              if (context.observation.availableTasks === 0) return { action: "stop" as const, reason: "AUTONOMY_NO_AVAILABLE_TASKS" };
+            }
             const rewards = context.observation.rewardTokens;
             const rewardReady = rewards && !rewards.blocked && context.models.includes(rewards.modelId) && context.funding.includes("reward-tokens")
               && BigInt(rewards.availableTokens) >= BigInt(rewards.minTaskTokens);

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-15T09:46:53.035341+00:00",
+  "origin": "https://monad.tabbyai.xyz",
+  "chainId": "10143",
+  "units": {
+    "tabby-monad-gateway": "active",
+    "tabby-monad-runtime": "active",
+    "tabby-monad-frontend": "active",
+    "tabby-tempo-gateway": "active",
+    "tabby-tempo-runtime": "active",
+    "tabby-tempo-frontend": "active"
+  },
+  "publicPages": {
+    "/": 200,
+    "/dashboard": 200,
+    "/onboarding": 200
+  },
+  "anonymousHostedStatus": 401,
+  "anonymousHostedError": "HOSTED_AUTH_REQUIRED",
+  "wrongOriginStatus": 403,
+  "gatewayAcceptedRequests": 123,
+  "originalHistory": {
+    "agents": 6,
+    "runs": 36,
+    "recordsUnchanged": true,
+    "unchangedFiles": 86,
+    "pausedProvisions": 3
+  },
+  "sourceSha256": {
+    "scripts/monad-hosted-runtime.ts": "f701905ceec363af6698ad96edb93d210ce9bf60c0afb9b8ab6a0dae1d5dfaab",
+    "services/arena/src/docker.ts": "dd915d0fa799bc9ebd24ca396b23e6723ae932c47bea419dc10c7a8a0abed59e",
+    "services/hosted-agents/src/autonomy-executor.ts": "11b083e942f442e11fea4794602a0822c04191daf3949b7b4afc673972ee1926"
+  },
+  "catalogAppends": [
+    {
+      "taskId": "18",
+      "migrationId": "2f679c67f2d33f63b662a280b2f86c356bb12d65dd58c8b9033d7baad13b37b4",
+      "applied": true,
+      "appliedAt": "2026-10-15T09:09:46.914Z"
+    },
+    {
+      "taskId": "19",
+      "migrationId": "a6b5bc636c13ec909df1dc32dbf0c0a0f63be8f291d8ba75846184750d1d763d",
+      "applied": true,
+      "appliedAt": "2026-10-15T09:39:26.341Z"
+    }
+  ],
+  "frontendDistDir": ".next-monad-vps-rpcfix",
+  "frontendRebuiltThisRun": false,
+  "scope": "Read-only final deployment checks; no Agent creation, model call or blockchain write"
+}

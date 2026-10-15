@@ -6,7 +6,7 @@ import { mkdtemp, readFile, rm, writeFile, mkdir, realpath } from "node:fs/promi
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HostedAutonomyExecutor, validateHostedAutonomyConfig, openHostedPlannerConnection, createHostedPlannerRequest, reconcileHostedPlannerPayment, type HostedAutonomyConfig } from "../src/autonomy-executor.js";
-import { keccak256, toUtf8Bytes, Wallet, type JsonRpcProvider } from "ethers";
+import { Interface, keccak256, toUtf8Bytes, Wallet, type JsonRpcProvider } from "ethers";
 import { accountInterface, managerInterface, EMPTY_AUTH, requestDigest, paymentId, canonical, type PaymentHandle, type Json } from "@agentfuel/sdk";
 import {validateHostedActivity as importedValidate} from "../src/scene-types.js";
 import type { AutonomyContext } from "../../../packages/pi-loop/src/autonomy.js";
@@ -39,6 +39,83 @@ function rewardAdapter(execute: HostedTaskExecutor["execute"], read: () => Promi
 }
 const rewardView = (availableTokens: number) => ({ modelId: "kimi-k2.6", availableTokens, blocked: false });
 const noCredit = (cashRaw: string): HostedFinance => ({ ...structuredClone(finance), cashRaw, debtRaw: "0", credit: { ...finance.credit, eligible: false } });
+
+function catalogObservation(adapter: HostedTaskExecutor, count = 1) {
+  const account = `0x${"2".repeat(40)}`, escrow = `0x${"3".repeat(40)}`, manager = `0x${"4".repeat(40)}`;
+  const deadline = Math.floor(Date.now() / 1000) + 600, block = { number: 5, hash: `0x${"ab".repeat(32)}`, timestamp: Math.floor(Date.now() / 1000) };
+  for (const model of adapter.config.models) Object.assign(model.templates.balanced, { chainId: "31337", account, escrowAddress: escrow,
+    deadlineMs: deadline * 1000, minRemainingMs: 100, tasks: Array.from({ length: count }, (_, index) => ({ taskId: String(index + 1), problemId: "sum-integers", deadlineMs: deadline * 1000, creditLimit: "200" })),
+    providers: [{ routes: [{ capabilities: ["python3-json-stdio", "sum-integers"], solve: { tiers: ["cheap"] } }] }] });
+  const escrowInterface = new Interface(["function getTask(uint256) view returns(tuple(address poster,uint256 reward,uint256 escrowBalance,uint256 agentId,uint256 deadline,uint16 protocolFeeBps,uint8 status))"]);
+  const managerAbi = new Interface(["function agentAccount() view returns(address)", "function taskEscrow() view returns(address)",
+    "function getLoan(uint256) view returns(tuple(uint256 agentId,uint256 principal,uint256 fee,uint256 loanDueAt,uint8 status))"]);
+  const state = { fail: false, reorg: false, chainId: "0x7a69", taskReads: 0, statuses: Array.from({ length: count }, () => 1n) };
+  const provider = { send: async () => state.chainId, getBlock: async () => ({ ...block, hash: state.reorg ? `0x${"ff".repeat(32)}` : block.hash }),
+    call: async ({ to, data, blockTag }: { to: string; data: string; blockTag: number }) => {
+      assert.equal(blockTag, block.number);
+      if (state.fail) throw new Error("controlled RPC read unavailable");
+      if (to.toLowerCase() === account.toLowerCase()) return accountInterface.encodeFunctionResult("creditManager", [manager]);
+      if (to.toLowerCase() === manager.toLowerCase()) {
+        const method = managerAbi.parseTransaction({ data })!.name;
+        return managerAbi.encodeFunctionResult(method, method === "agentAccount" ? [account] : method === "taskEscrow" ? [escrow] : [[0, 0, 0, 0, 0]]);
+      }
+      assert.equal(to.toLowerCase(), escrow.toLowerCase()); state.taskReads++;
+      const id = Number(escrowInterface.decodeFunctionData("getTask", data)[0]);
+      return escrowInterface.encodeFunctionResult("getTask", [[config.plannerProvider, 150, state.statuses[id - 1] === 1n ? 150 : 0, 0, deadline, 0, state.statuses[id - 1]]]);
+    },
+  } as unknown as JsonRpcProvider;
+  return { state, provider, finance: (cashRaw = "500"): HostedFinance => ({ ...noCredit(cashRaw) as Extract<HostedFinance, { status: "confirmed" }>, block }) };
+}
+
+test("after one completed task, a confirmed exhausted catalog stops successfully without another paid plan or child", async () => fixture(async directory => {
+  let tasks = 0, plans = 0, games = 0;
+  const adapter = task(async () => { tasks++; chain.state.statuses[0] = 3n; return { phase: "Succeeded", terminal: true, success: true, chargedRaw: "80" }; }, async () => chain.finance());
+  const chain = catalogObservation(adapter);
+  const executor = new HostedAutonomyExecutor(adapter, { ...config, games: automaticGames }, { provider: chain.provider,
+    games: { rewardBalance: async () => rewardView(4096), execute: async () => { games++; throw new Error("no game after work queue is exhausted"); } },
+    planner: async () => { plans++; return { decision: { action: "run-task", modelId: "cheap", funding: "cash" }, chargedRaw: "10" }; } });
+  const parent = input(directory), result = await executor.execute(parent);
+  assert.equal(result.phase, "Stopped"); assert.equal(result.success, true); assert.equal(result.terminal, true);
+  assert.equal(result.reason, "AUTONOMY_NO_AVAILABLE_TASKS"); assert.equal(result.autonomousTasks, 1); assert.equal(result.chargedRaw, "90");
+  assert.equal(tasks, 1); assert.equal(plans, 1); assert.equal(games, 0); assert.equal(chain.state.taskReads, 1);
+  const host = JSON.parse(await readFile(join(directory, "autonomy-host", "session.json"), "utf8")); assert.equal(Object.keys(host.children).length, 1);
+  const loop = JSON.parse(await readFile(join(directory, "autonomy-loop", "session.json"), "utf8"));
+  assert.equal(loop.steps.at(-1).context.observation.availableTasks, 0); assert.equal(loop.steps.at(-1).decisionChargedRaw, "0");
+  assert.deepEqual(await executor.execute({ ...parent, recover: true }), result); assert.equal(chain.state.taskReads, 1); assert.equal(plans, 1);
+}));
+
+test("an open catalog continues work; unavailable or noncanonical reads pause instead of claiming an empty queue", async t => {
+  for (const scenario of ["open", "read-failure", "reorg", "wrong-chain"]) await t.test(scenario, async () => fixture(async directory => {
+    let tasks = 0, plans = 0;
+    const adapter = task(async () => { tasks++;
+      if (tasks === 1) { chain.state.fail = scenario === "read-failure"; chain.state.reorg = scenario === "reorg"; if (scenario === "wrong-chain") chain.state.chainId = "0x1"; }
+      return { phase: "Succeeded", terminal: true, success: true, chargedRaw: "80" }; }, async () => chain.finance());
+    const chain = catalogObservation(adapter);
+    const executor = new HostedAutonomyExecutor(adapter, { ...config, games: automaticGames }, { provider: chain.provider,
+      games: { rewardBalance: async () => rewardView(0), execute: async () => { throw new Error("cash is sufficient"); } },
+      planner: async () => { plans++; return { decision: { action: "run-task", modelId: "cheap", funding: "cash" }, chargedRaw: "10" }; } });
+    const result = await executor.execute(input(directory));
+    if (scenario === "open") { assert.equal(result.phase, "Completed"); assert.equal(result.success, true); assert.equal(tasks, 2); assert.equal(plans, 2); }
+    else { assert.equal(result.phase, "Paused"); assert.equal(result.terminal, false); assert.equal(result.reason, "AUTONOMY_OBSERVATION_UNAVAILABLE"); assert.equal(tasks, 1); assert.equal(plans, 1); }
+  }));
+});
+
+test("an accepted pending task resumes its original ID even after an earlier task completed and catalog reads become unavailable", async () => fixture(async directory => {
+  let tokens = 150, tasks = 0, games = 0, pendingId = "";
+  const adapter = rewardAdapter(async child => {
+    if (child.recover) { assert.equal(child.run.requestId, pendingId); return { phase: "Succeeded", terminal: true, success: true, chargedRaw: "0" }; }
+    tasks++; if (tasks === 1) { chain.state.statuses[0] = 3n; return { phase: "Succeeded", terminal: true, success: true, chargedRaw: "0" }; }
+    pendingId = child.run.requestId; tokens = 20; return { phase: "Paused", terminal: false, success: false, chargedRaw: "0", reason: "INFERENCE_FUNDING_REQUIRED" };
+  }, async () => chain.finance("20"));
+  const chain = catalogObservation(adapter, 2);
+  const executor = new HostedAutonomyExecutor(adapter, { ...config, maxDecisions: 5, games: automaticGames }, { provider: chain.provider,
+    games: { rewardBalance: async () => rewardView(tokens), execute: async child => {
+      games++; assert.equal(child.run.fundingFor, pendingId); tokens = 4096; chain.state.fail = true;
+      return { phase: "Succeeded", terminal: true, success: true, chargedRaw: "0", creditsGranted: 4096 };
+    } }, planner: async () => { throw new Error("reward tasks require no paid plan"); } });
+  const result = await executor.execute(input(directory)); assert.equal(result.phase, "Completed"); assert.equal(result.success, true);
+  assert.equal(result.autonomousTasks, 2); assert.equal(tasks, 2); assert.equal(games, 1); assert.equal(chain.state.taskReads, 2);
+}));
 
 test("automatic zero-cash participation observes settled reward cash before the paid planner and task", async () => fixture(async directory => {
   let cash = "0", games = 0, plans = 0, tasks = 0;

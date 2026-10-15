@@ -180,6 +180,35 @@ for (const rewardKind of ["usdc", "llm-credits"] as const) test(`automatic ${rew
   } finally { await t.close(); }
 });
 
+test("one actual settled task exhausts the configured catalog and closes a two-task parent without another game, plan or child", { timeout: 240000 }, async () => {
+  const t = await fixture();
+  try {
+    for (const model of t.tasks.config.models) for (const workflow of Object.values(model.templates)) workflow.tasks = workflow.tasks.slice(0, 1);
+    const actor = await t.f.actor(5, "kimi-k2.6", 0n); actor.agent.totalBudgetRaw = "130000";
+    const ready = await t.tasks.execute(actor.input("provision")); assert.equal(ready.success, true); actor.agent.binding = ready.binding;
+    const parent = actor.input("task"); parent.run.action = "autonomous"; parent.run.reservedRaw = "130000";
+    const executor = new HostedAutonomyExecutor(t.tasks, { ...t.autonomous(["llm-credits"]).config, maxTasks: 2 }, { provider: t.f.fx.f.provider, games: t.games });
+    const result = await executor.execute(parent);
+    assert.equal(result.phase, "Stopped", JSON.stringify(result)); assert.equal(result.reason, "AUTONOMY_NO_AVAILABLE_TASKS");
+    assert.equal(result.terminal, true); assert.equal(result.success, true); assert.equal(result.autonomousTasks, 1); assert.equal(result.autonomousGames, 1);
+    const host = JSON.parse(await readFile(join(parent.directory, "autonomy-host", "session.json"), "utf8"));
+    const children = Object.values(host.children) as any[]; assert.equal(children.length, 2);
+    assert.equal(children.filter(child => child.run.action === "game").length, 1);
+    const child = children.find(child => child.run.action === "reward-task"); assert.ok(child);
+    const settled = JSON.parse(await readFile(join(child.directory, "task-executor", "session.json"), "utf8")).result;
+    assert.equal(settled.phase, "Succeeded"); assert.equal(settled.settlement.passed, true);
+    const receipt = (await t.f.fx.f.provider.getTransactionReceipt(settled.settlement.txHash))!;
+    assert.equal(receipt.status, 1); assert.equal((await t.f.fx.f.provider.getBlock(receipt.blockNumber))!.hash, receipt.blockHash);
+    assert.equal(t.requests.filter(request => request.tools).length, 1); assert.equal(t.requests.filter(request => request.model === "physical-planner").length, 0);
+    const loop = JSON.parse(await readFile(join(parent.directory, "autonomy-loop", "session.json"), "utf8"));
+    assert.equal(loop.config.maxTasks, 2); assert.equal(loop.steps.at(-1).context.observation.availableTasks, 0);
+    assert.equal(loop.steps.at(-1).decisionChargedRaw, "0");
+    const requests = t.requests.length, nonce = await t.f.fx.f.provider.getTransactionCount(actor.wallet.address);
+    assert.deepEqual(await executor.execute({ ...parent, recover: true }), result);
+    assert.equal(t.requests.length, requests); assert.equal(await t.f.fx.f.provider.getTransactionCount(actor.wallet.address), nonce);
+  } finally { await t.close(); }
+});
+
 test("real service replenishes an exhausted autonomous reward child through a manual game and resumes the original escrow task", { timeout: 240000 }, async () => {
   const t = await fixture(); let service: HostedService | undefined;
   try {
