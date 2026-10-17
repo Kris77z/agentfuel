@@ -45,7 +45,10 @@
     "test:publisher-worker": "node scripts/check-publisher-worker.mjs",
     "review:integration": "npm run economics:local && npm run test:publisher-worker",
     "strategy:demo": "tsx scripts/strategy-advice-demo.ts",
-    "test:strategy-demo": "tsx --test scripts/test/strategy-advice-demo.test.ts"
+    "test:strategy-demo": "tsx --test scripts/test/strategy-advice-demo.test.ts",
+    "operating:demo": "tsx scripts/operating-report-demo.ts",
+    "operating:report": "tsx scripts/operating-report.ts",
+    "test:operating-demo": "tsx --test scripts/test/operating-report-demo.test.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

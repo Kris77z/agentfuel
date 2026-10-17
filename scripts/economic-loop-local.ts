@@ -8,6 +8,7 @@ import { key, read, tx } from "../services/underwriter/test/fixture.js";
 import { HostedTaskExecutor, type HostedTaskExecutorConfig } from "../services/hosted-agents/src/task-executor.js";
 import { readHostedAccounting } from "../services/hosted-agents/src/accounting.js";
 import { readHostedStrategyAdvice } from "../services/hosted-agents/src/strategy-history.js";
+import { readHostedOperatingReport } from "../services/hosted-agents/src/operating-history.js";
 import type { StrategyPreviewCandidate } from "../services/hosted-agents/src/strategy-types.js";
 import type { HostedAgent, HostedExecution, HostedResult, HostedRun, HostedStrategy } from "../services/hosted-agents/src/types.js";
 import type { WorkflowConfig } from "../packages/pi-loop/src/workflow.js";
@@ -38,8 +39,13 @@ const strategySources = ["services/hosted-agents/src/strategy-advice.ts", "servi
   "packages/pi-loop/src/selector.ts", "packages/pi-loop/src/economics.ts"];
 const strategySourceHashes = async () => Object.fromEntries(await Promise.all(strategySources.map(async path =>
   [path, sha(await readFile(new URL(`../${path}`, import.meta.url)))])));
+const operatingSources = ["services/hosted-agents/src/operating-types.ts", "services/hosted-agents/src/operating-report.ts",
+  "services/hosted-agents/src/operating-history.ts"];
+const operatingSourceHashes = async () => Object.fromEntries(await Promise.all([...strategySources, ...operatingSources].map(async path =>
+  [path, sha(await readFile(new URL(`../${path}`, import.meta.url)))])));
 try {
   report.strategySourceSha256 = await strategySourceHashes();
+  report.operatingSourceSha256 = await operatingSourceHashes();
   stage("starting owned local services");
   fx = await createWorkflowFixture(join(directory, "runtime"), definitions);
   const f = fx.f;
@@ -115,12 +121,40 @@ try {
     }));
     const advice = await readHostedStrategyAdvice({ directory, agent, runs, finance,
       preview: { policy: { reserveCashRaw: "120000", minProfitRaw: "1", minMarginBps: "1000" }, candidates } });
+    const operating = await readHostedOperatingReport({ directory, agent, runs, finance,
+      preview: { reserveCashRaw: "120000", burn: { amountRaw: "120000", windowMs: 86400000, taskCount: 1 } } });
     const after = { ...await snapshot(), quoteCalls, historySha256: await historyDigest(), inputsSha256: sha(JSON.stringify({ agent, runs })) };
     assert.deepEqual(after, before);
     assert.equal(advice.mode, "advisory-only");
     assert.equal(advice.cash.creditIncluded, false);
     assert.ok(advice.candidates.every(candidate => candidate.source === "owner-hypothetical"));
     (report.strategyAdvice ??= []).push({ label, before, after, advice });
+    assert.equal(operating.mode, "read-only");
+    assert.equal(operating.scope, "owner-agent-contribution");
+    assert.equal(operating.agent.settlementOperatingRaw, advice.history.netOperatingRaw);
+    assert.equal(operating.agent.actualProfitRaw, null);
+    assert.equal(operating.platform.treasuryReceiptsRaw, null);
+    assert.equal(operating.suppliers.actualProfitRaw, null);
+    assert.equal(operating.consolidation.roleTotalsAdditive, false);
+    assert.equal(operating.subsidy.gameUsdcGrantedRaw, "0");
+    assert.equal(operating.subsidy.usdcAttributedConsumptionRaw, null);
+    assert.equal(operating.cash.creditIncluded, false);
+    if (label === "after-three-settled-tasks") {
+      assert.equal(operating.suppliers.netReceiptsRaw, "360000");
+      assert.equal(operating.runway.status, "finite");
+      assert.equal(operating.runway.horizonMs, "105264000");
+      assert.equal(operating.runway.fullTasks, "1");
+    } else if (label === "while-original-payment-is-unknown") {
+      assert.equal(operating.runway.status, "unknown");
+      assert.equal(operating.runway.horizonMs, null);
+    } else if (label === "after-original-full-refund") {
+      assert.equal(operating.platform.creditFeeSettledRaw, "13800");
+      assert.deepEqual([operating.suppliers.grossReceiptsRaw, operating.suppliers.refundsRaw, operating.suppliers.netReceiptsRaw], ["600000", "120000", "480000"]);
+      assert.equal(operating.suppliers.unattributedNetServiceCostRaw, "0");
+      assert.equal(operating.runway.horizonMs, "18864000");
+      assert.equal(operating.runway.fullTasks, "0");
+    }
+    (report.operatingReports ??= []).push({ label, before, after, operating });
     return advice;
   };
   const ledgerHashes: Record<string, string> = {};
@@ -240,6 +274,8 @@ try {
   assert.equal(refundedAdvice.cash.unresolvedLiabilities, false);
   report.predicates.readOnlyStrategyAdvicePreservesHistoryCashNonceAndModelCalls = true;
   report.predicates.strategyAdviceRetainsPaidFailureAndBlocksUnknown = true;
+  report.predicates.roleAccountsReconcileSupplierReceiptsAndRefunds = true;
+  report.predicates.readOnlyRunwaySeparatesActualResultsFromAssumptions = true;
   const lastNonce = await f.provider.getTransactionCount(wallet.address), lastCalls = fx.calls.length;
   assert.deepEqual(await execute({ ...unknownRequest, recover: true }, unknownConfig), refunded);
   assert.equal(await f.provider.getTransactionCount(wallet.address), lastNonce); assert.equal(fx.calls.length, lastCalls);
@@ -256,6 +292,7 @@ try {
   const publicText = JSON.stringify(report);
   for (const secret of [key(1), key(2), key(3), key(4), key(20), fx.local.rpc, fx.options.arenaUrl!, fx.options.underwriterUrl!, fx.config.providers[0].relayUrl, originalSession.accept.rawTransaction, originalSession.handle.submission.rawTransaction]) assert.equal(publicText.includes(secret), false);
   assert.deepEqual(await strategySourceHashes(), report.strategySourceSha256, "advisory sources must remain stable during acceptance");
+  assert.deepEqual(await operatingSourceHashes(), report.operatingSourceSha256, "operating sources must remain stable during acceptance");
   report.status = "passed";
 } catch (error) {
   report.error = error instanceof assert.AssertionError ? "ASSERTION_FAILED" : /^[A-Z][A-Z0-9_]+$/.test((error as Error).message) ? (error as Error).message : "LOCAL_ECONOMIC_LOOP_FAILED";

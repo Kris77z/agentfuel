@@ -42,6 +42,10 @@ For example, a successful task pays 100 USDC with a 2 USDC protocol fee. Inferen
 
 Where settlement, payment, nested execution, or refund evidence is missing or inconsistent, the view labels the gap and withholds a complete operating result. It does not manufacture historical profit from current balances. The [verification guide](VERIFICATION.md) retains the separate dated public business evidence.
 
+## Role contributions and subsidy runway
+
+The [operating report](OPERATING-REPORT.md) attributes retained service payments and refunds to their original supplier routes, derives task protocol fees separately from credit-vault fees, and retains unknown full profits. Explicit operator declarations can add scoped non-subsidy costs and cash grants offline. Cash consumption and subsidy distribution have independent assumptions; neither borrowed principal nor token usage is treated as subsidy consumption. Run `npm run operating:demo` to reproduce the distinctions.
+
 ## Review and scope
 
 The [read-only strategy advice](STRATEGY-ADVICE.md) connects original predictions to realized costs and failed-task losses, then uses those observations to preview the next choice. It adds explicit cash reserves and absolute/margin profit requirements without changing runtime admission or saved requests. Run `npm run strategy:demo` for the controlled feedback example.

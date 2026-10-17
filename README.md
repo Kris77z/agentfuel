@@ -32,6 +32,8 @@ For fresh local transactions, Docker verification and operating accounts, run `n
 
 For the decision feedback step, run `npm run strategy:demo`: [read-only strategy advice](docs/STRATEGY-ADVICE.md) compares original estimates with realized costs and losses, then changes hypothetical choices using cash reserves and minimum-profit requirements. It does not automatically change execution policy.
 
+For Agent, platform and supplier contributions, run `npm run operating:demo`: [operating reports and subsidy runway](docs/OPERATING-REPORT.md) separate retained receipts, operator-declared costs, cash grants and token usage. Cash-consumption and subsidy-distribution assumptions produce separate read-only runway estimates; missing cost evidence never becomes full profit.
+
 ## Inspect the arena
 
 | Capability | Concrete result | Evidence and reproduction |

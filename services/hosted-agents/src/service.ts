@@ -11,6 +11,9 @@ import { readHostedAccounting } from "./accounting.js";
 import { readHostedStrategyAdvice } from "./strategy-history.js";
 import { validateStrategyAdvicePreview } from "./strategy-advice.js";
 import type { HostedStrategyAdvice, StrategyAdvicePreview } from "./strategy-types.js";
+import { readHostedOperatingReport } from "./operating-history.js";
+import { validateOperatingReportPreview } from "./operating-report.js";
+import type { HostedOperatingReport, OperatingReportPreview } from "./operating-types.js";
 import { HOSTED_ACTIVITY_LIMIT, validateHostedActivity, type HostedActivityInput } from "./scene-types.js";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -181,6 +184,18 @@ export class HostedService {
     const finance: HostedFinance = hash(JSON.stringify(before)) === hash(JSON.stringify(after)) ? observedFinance
       : { status: "unavailable", observedAt, reason: "HOSTED_FINANCE_UNCONFIRMED" };
     return readHostedStrategyAdvice({ directory: this.config.directory, ...after, observedAt, finance, preview });
+  }
+  async operatingReport(who: string, agentId: string, input: OperatingReportPreview = {}): Promise<HostedOperatingReport> {
+    // Authenticate before private evidence reads. Owner assumptions never enter the database or execution/admission queue.
+    const copy = () => ({ agent: structuredClone(this.agent(who, agentId)),
+      runs: structuredClone(this.state.runs.filter(run => run.agentId === agentId)), fundingRoutes: structuredClone(this.state.fundingRoutes ?? {}) });
+    const before = await this.serial(async () => copy()), preview = validateOperatingReportPreview(input);
+    const observedFinance = await this.finance(who, agentId);
+    const snapshot = await this.serial(async () => ({ ...copy(), observedAt: now() }));
+    const { observedAt, ...after } = snapshot;
+    const finance: HostedFinance = hash(JSON.stringify(before)) === hash(JSON.stringify(after)) ? observedFinance
+      : { status: "unavailable", observedAt, reason: "HOSTED_FINANCE_UNCONFIRMED" };
+    return readHostedOperatingReport({ directory: this.config.directory, ...after, observedAt, finance, preview });
   }
   mayContinue(agentId: string) { return this.serial(async () => this.state.agents.some(agent => agent.id === agentId && agent.status === "Ready")); }
   /** Daemon-only durable admission. There is deliberately no HTTP command for selecting a child ID. */

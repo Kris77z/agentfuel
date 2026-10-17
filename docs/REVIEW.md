@@ -13,6 +13,8 @@ For the next economic layer, inspect [task admission and operating accounts](ECO
 
 The [read-only strategy advice](STRATEGY-ADVICE.md) closes the next feedback step: original decision → actual cost or failure → next hypothetical choice. `npm run strategy:demo` shows cost deviations and failed losses changing the preferred route, with cash reserves and profit requirements. It leaves execution policy unchanged and does not claim live market availability or a measured success probability.
 
+The [role operating report](OPERATING-REPORT.md) separates Agent contribution, attributable platform fees, supplier receipts, cash/token grants and optional operator-declared costs. `npm run operating:demo` reproduces the accounting and independently scoped cash/subsidy runway. The [role acceptance](p1-role-local-20261017.md) records the local checks; missing vendor invoices remain explicit gaps.
+
 ## One command, no business credentials
 
 With Node.js **22+** and npm, install the locked dependencies once, then run:

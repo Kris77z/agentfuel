@@ -200,3 +200,7 @@ forge test --root contracts --offline
 ## License
 
 项目原创代码采用 [MIT](LICENSE)，第三方依赖、字体和适配材料保留各自许可与来源，详见[归属说明](docs/ATTRIBUTION.md)。`agentfuel` 包名、请求存储键及部分历史名称保留兼容性；Tabby 是产品，InferCredit 是金融协议。
+
+## 三方经营核算与补贴续航
+
+运行 `npm run operating:demo`，复验 [Agent、平台和供应商经营核算](docs/OPERATING-REPORT.md)。报告区分原结算收支、运营方声明成本、现金奖补和代币用量；现金消耗与补贴发放采用独立速度计算只读续航。缺失成本保持未知，不把收款称为完整利润。

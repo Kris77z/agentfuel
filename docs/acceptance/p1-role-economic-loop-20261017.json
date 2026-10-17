@@ -1,0 +1,2963 @@
+{
+  "version": 1,
+  "suite": "local-economic-loop",
+  "status": "passed",
+  "startedAt": "2026-10-17T14:10:37.010Z",
+  "provenance": {
+    "chainId": "31337",
+    "environment": "owned-local-anvil",
+    "settlementAsset": "six-decimal-mock-USDC",
+    "model": "controlled-response-injection",
+    "evaluation": "real-pinned-Docker-public-and-hidden-tests",
+    "settlement": "independent-Arena-settler-process",
+    "admission": "successful-completion-bound; not expected value",
+    "node": "v22.23.2",
+    "tools": {
+      "dockerTransport": "local-unix-socket",
+      "forge": "forge Version: 1.8.1",
+      "anvil": "anvil Version: 1.8.1",
+      "docker": "28.1.1",
+      "image": "sha256:54f0c1506c135da9a6b9cc0b0524b97e225b712ead8d601326d24f7e6619fede"
+    },
+    "source": {
+      "revision": "3a56e3234e20b56aac5d14a51891b99ee8670152",
+      "dirty": true,
+      "trackedDiffSha256": "9e27422dccdb79c21a80ccd78336e2352723d94b2793c455b6642cb974a6616f",
+      "harnessSha256": "20c943d135e091615c788e649e338d36795c3a324000cee3aeb965321ee22eac",
+      "launcherSha256": "4899d71ae348dff51da8a5f8186e26eaf2e61f856ef6a5b5dd888ab76ee9c8e3"
+    },
+    "dockerImage": "python:3.12-alpine@sha256:4c47124a8391cb7a9f571164147d154777cf012a4ece5f86097130d7a4478111"
+  },
+  "scope": {
+    "productionNetworkUsed": false,
+    "publicVendorCalls": false,
+    "nativeGasValuedInUSDC": false,
+    "nonzeroGameSubsidyExercised": false,
+    "autonomousPlannerExercised": false,
+    "limitations": [
+      "Local MockERC20 and MockIdentityRegistry; no public Monad or live model-vendor evidence.",
+      "Model outputs and dispatch-unknown faults are controlled; Docker verdicts, payments, settlement and refund are real local transactions.",
+      "Owner supplies initial USDC and native gas; task publishers pre-fund rewards and the lending pool has initial liquidity.",
+      "The host supplies an explicit task sequence; this is not an autonomous-planner or external-publisher acceptance.",
+      "No game is run: game subsidy is exactly zero; nonzero subsidy accounting is covered by separate game integration tests."
+    ]
+  },
+  "scenarios": [
+    {
+      "name": "reject-loss-before-payment",
+      "requestId": "098ae78d-b20a-46ff-8e13-b8f7edd59969",
+      "taskId": "1",
+      "phase": "Stopped",
+      "reason": "ECONOMICS_NOT_WORTHWHILE",
+      "economics": {
+        "basis": "successful-completion-bound",
+        "scope": "settlement-asset-only",
+        "rewardRaw": "100000",
+        "protocolFeeRaw": "0",
+        "netRevenueRaw": "100000",
+        "executionCostRaw": "120000",
+        "planningCostRaw": "0",
+        "fromCashRaw": "40000",
+        "fromCreditRaw": "80000",
+        "borrowerFeeRaw": "12000",
+        "netRewardRaw": "-32000",
+        "reason": "ECONOMICS_NOT_WORTHWHILE"
+      },
+      "before": {
+        "cashRaw": "40000",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "0",
+        "agentNonce": 4,
+        "modelCalls": 0,
+        "quoteCalls": 0
+      },
+      "after": {
+        "cashRaw": "40000",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "0",
+        "agentNonce": 4,
+        "modelCalls": 0,
+        "quoteCalls": 0
+      }
+    },
+    {
+      "name": "profitable-task-1",
+      "requestId": "dfffff70-f482-4803-9f6e-fa68c8ef9799",
+      "taskId": "2",
+      "before": {
+        "cashRaw": "40000",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "0",
+        "agentNonce": 4,
+        "modelCalls": 0
+      },
+      "after": {
+        "cashRaw": "108000",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "120000",
+        "agentNonce": 6,
+        "modelCalls": 1
+      },
+      "chargedRaw": "120000",
+      "taskRevenueRaw": "200000",
+      "fromCashRaw": "40000",
+      "fromCreditRaw": "80000",
+      "borrowingFeeRaw": "12000",
+      "netOperatingRaw": "68000",
+      "repaidRaw": "92000",
+      "residualRaw": "108000",
+      "loanStatus": "2",
+      "payment": {
+        "txHash": "0xa8e5c24d337ff584dda0753b2ed0b4f55bad2d34849f3c1c30e6e712fe020204",
+        "blockHash": "0x4424ecdb913a2dd4514cbec056e6b78b38b6644786d0a7389f6621b8490f56e1",
+        "blockNumber": 38,
+        "status": 1,
+        "event": "ProviderPaid",
+        "eventCount": 1,
+        "values": {
+          "agentId": "2",
+          "provider": "0x1efF47bc3a10a45D4B230B5d10E37751FE6AA718",
+          "paymentId": "0x3ef02d8696a483852dc2ad1609bdc4eddbd090e60cf37950844837c1835f131b",
+          "fromCash": "40000",
+          "fromCredit": "80000"
+        }
+      },
+      "settlement": {
+        "txHash": "0x430ba3a38635138dface8e56bc978ab05e7c97b1a06b6fb8cf480cef8c8dee2c",
+        "blockHash": "0xc1adf101b14eb7dd69c7f69e9f8320f67c1bc65e7f835d5b31dadacc2555ae09",
+        "blockNumber": 39,
+        "status": 1,
+        "event": "TaskSettled",
+        "eventCount": 1,
+        "values": {
+          "taskId": "2",
+          "passed": true,
+          "repaid": "92000",
+          "slashed": "0",
+          "toAgent": "108000"
+        }
+      },
+      "funding": "initial-or-earned-cash-plus-task-credit"
+    },
+    {
+      "name": "profitable-task-2",
+      "requestId": "c71255ef-4598-461e-8153-23f14cf1b8ee",
+      "taskId": "3",
+      "before": {
+        "cashRaw": "108000",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "120000",
+        "agentNonce": 6,
+        "modelCalls": 1
+      },
+      "after": {
+        "cashRaw": "186200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "240000",
+        "agentNonce": 8,
+        "modelCalls": 2
+      },
+      "chargedRaw": "120000",
+      "taskRevenueRaw": "200000",
+      "fromCashRaw": "108000",
+      "fromCreditRaw": "12000",
+      "borrowingFeeRaw": "1800",
+      "netOperatingRaw": "78200",
+      "repaidRaw": "13800",
+      "residualRaw": "186200",
+      "loanStatus": "2",
+      "payment": {
+        "txHash": "0x08e479131304797571803076e8a8339086556b92a5ad7c8355c62455394d3670",
+        "blockHash": "0x181ca9f1fa141173f9c2b77aec591c0e35f0e202dd6c55f1b6b83050756db15d",
+        "blockNumber": 41,
+        "status": 1,
+        "event": "ProviderPaid",
+        "eventCount": 1,
+        "values": {
+          "agentId": "2",
+          "provider": "0x1efF47bc3a10a45D4B230B5d10E37751FE6AA718",
+          "paymentId": "0xf22491e02089201741c39d176925c8d7ce1bb98f985d0bcf990388c10b5ffd9e",
+          "fromCash": "108000",
+          "fromCredit": "12000"
+        }
+      },
+      "settlement": {
+        "txHash": "0x28f043e2bc80e12ddc59bcbc74596866c66d62cfc18272f06c84d3052b02885d",
+        "blockHash": "0x957d807e025596732aaae59ad3fe73940c3050cf2f496c11f91319af44497212",
+        "blockNumber": 42,
+        "status": 1,
+        "event": "TaskSettled",
+        "eventCount": 1,
+        "values": {
+          "taskId": "3",
+          "passed": true,
+          "repaid": "13800",
+          "slashed": "0",
+          "toAgent": "186200"
+        }
+      },
+      "funding": "initial-or-earned-cash-plus-task-credit"
+    },
+    {
+      "name": "profitable-task-3",
+      "requestId": "9db384d1-ee64-41b1-a7f2-8a8fa0e3d0c5",
+      "taskId": "4",
+      "before": {
+        "cashRaw": "186200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "240000",
+        "agentNonce": 8,
+        "modelCalls": 2
+      },
+      "after": {
+        "cashRaw": "266200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "360000",
+        "agentNonce": 11,
+        "modelCalls": 3
+      },
+      "chargedRaw": "120000",
+      "taskRevenueRaw": "200000",
+      "fromCashRaw": "120000",
+      "fromCreditRaw": "0",
+      "borrowingFeeRaw": "0",
+      "netOperatingRaw": "80000",
+      "repaidRaw": "0",
+      "residualRaw": "200000",
+      "loanStatus": "0",
+      "payment": {
+        "txHash": "0x4ca0d4c3594e10fd0d39a5850bb7c2474d06fe86756fadf925cb20bd38d306a3",
+        "blockHash": "0x74f1483b3d21db418d77cbd689c16d309e25d50bca7623d05aa5c74134246543",
+        "blockNumber": 45,
+        "status": 1,
+        "event": "ProviderPaid",
+        "eventCount": 1,
+        "values": {
+          "agentId": "2",
+          "provider": "0x1efF47bc3a10a45D4B230B5d10E37751FE6AA718",
+          "paymentId": "0x402a040fd103cdb7746f90ff4d309d54f4065307bff425b71eda374e94ef6400",
+          "fromCash": "120000",
+          "fromCredit": "0"
+        }
+      },
+      "settlement": {
+        "txHash": "0xf244844863f52048231c94d7466c7c68547d9cc61d4dc95f750d4767f408c6fc",
+        "blockHash": "0xe6b8b0d65dd47f3cf921dccc3339f73f886f9c6c5eb1e5f7a50a8f1cab7f1bb3",
+        "blockNumber": 46,
+        "status": 1,
+        "event": "TaskSettled",
+        "eventCount": 1,
+        "values": {
+          "taskId": "4",
+          "passed": true,
+          "repaid": "0",
+          "slashed": "0",
+          "toAgent": "200000"
+        }
+      },
+      "funding": "cash-only-from-retained-earnings; credit-disabled"
+    },
+    {
+      "name": "paid-hidden-test-failure",
+      "requestId": "89654533-4de2-4589-91d9-38d6098c9695",
+      "taskId": "5",
+      "before": {
+        "cashRaw": "266200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "360000",
+        "agentNonce": 11,
+        "modelCalls": 3
+      },
+      "after": {
+        "cashRaw": "146200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "480000",
+        "agentNonce": 13,
+        "modelCalls": 4
+      },
+      "phase": "Failed",
+      "reason": "ARENA_TASK_FAILED",
+      "chargedRaw": "120000",
+      "taskRevenueRaw": "0",
+      "borrowingFeeRaw": "0",
+      "payment": {
+        "txHash": "0xd70bbed25df3e6c65436f1c4fb12a839375152e79a76612a389b06dd0c10cf0d",
+        "blockHash": "0x72751a320455ad0882c2508ab15e4fc6299f2261bca2522b5959ca69e982819f",
+        "blockNumber": 48,
+        "status": 1,
+        "event": "ProviderPaid",
+        "eventCount": 1,
+        "values": {
+          "agentId": "2",
+          "provider": "0x1efF47bc3a10a45D4B230B5d10E37751FE6AA718",
+          "paymentId": "0x7d4c1f84018e7aa76e2ab1f00fcc8e626be3d8ce3e670fd52e631d5741bf1df8",
+          "fromCash": "120000",
+          "fromCredit": "0"
+        }
+      },
+      "settlement": {
+        "txHash": "0x431becc1faa86c67f7b0e0648cb6247e43cc19b39fd585650ec900cb969f3892",
+        "blockHash": "0x3c6e32436e019f08143d099e80e8735097e762ed216b384c732a8c0360f73ddf",
+        "blockNumber": 49,
+        "status": 1,
+        "event": "TaskSettled",
+        "eventCount": 1,
+        "values": {
+          "taskId": "5",
+          "passed": false,
+          "repaid": "0",
+          "slashed": "0",
+          "toAgent": "0"
+        }
+      }
+    },
+    {
+      "name": "unknown-original-request-recovery",
+      "requestId": "c89a8fef-fcfd-43e0-946b-959070e5d8c6",
+      "taskId": "6",
+      "paymentId": "0xcb1117978cc8d968a2c619aa2ebc8ce06aafa93ce232dd4e74f2114dfeebedf0",
+      "phaseBefore": "Paused",
+      "phaseAfter": "Paused",
+      "reason": "SOLVE_DISPATCH_UNKNOWN",
+      "chargedRaw": "120000",
+      "beforeRecovery": {
+        "cashRaw": "26200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "600000",
+        "agentNonce": 15,
+        "modelCalls": 5
+      },
+      "afterRecovery": {
+        "cashRaw": "26200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "600000",
+        "agentNonce": 15,
+        "modelCalls": 5
+      },
+      "pendingAccountingStatus": "partial",
+      "pendingNetOperatingRaw": null,
+      "originalAcceptBytesSha256": "241f463357b58066934ecfcfad51281919437924c7e8d890e16325d1e8f0c35a",
+      "originalPaymentBytesSha256": "085b0613e1a161e0e3cbef0838c377971a1d9775a57735c2771028f2232c7fa4",
+      "payment": {
+        "txHash": "0xaf391449e1f46fe55daf8d8197f60416c9e50c89eb8c2df510a3d70a131aa5f7",
+        "blockHash": "0x1d3768c0a5c04481866b47ee8e4d92cbe409353e7f34837483518633d4585936",
+        "blockNumber": 51,
+        "status": 1,
+        "event": "ProviderPaid",
+        "eventCount": 1,
+        "values": {
+          "agentId": "2",
+          "provider": "0x1efF47bc3a10a45D4B230B5d10E37751FE6AA718",
+          "paymentId": "0xcb1117978cc8d968a2c619aa2ebc8ce06aafa93ce232dd4e74f2114dfeebedf0",
+          "fromCash": "120000",
+          "fromCredit": "0"
+        }
+      }
+    },
+    {
+      "name": "original-unknown-full-refund",
+      "requestId": "c89a8fef-fcfd-43e0-946b-959070e5d8c6",
+      "paymentId": "0xcb1117978cc8d968a2c619aa2ebc8ce06aafa93ce232dd4e74f2114dfeebedf0",
+      "phase": "Refunded",
+      "chargedRaw": "0",
+      "refundedRaw": "120000",
+      "after": {
+        "cashRaw": "146200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "480000",
+        "agentNonce": 15,
+        "modelCalls": 5
+      },
+      "taskIsNotSuccessful": true,
+      "refund": {
+        "txHash": "0x1c68cc6c7a428a3bcab84efefa1e6e2d323c6027f84d1d6eb39e41fc773f4a62",
+        "blockHash": "0xaec966335b7ec4f11990b7237ae81414950af41a148221e18b359a8d9d6799e7",
+        "blockNumber": 53,
+        "status": 1,
+        "event": "RefundProcessed",
+        "eventCount": 1,
+        "values": {
+          "paymentId": "0xcb1117978cc8d968a2c619aa2ebc8ce06aafa93ce232dd4e74f2114dfeebedf0",
+          "refundId": "0xac39e1914b3f01c9c9d8bc0be4cd0ec16d6d60ff673b2ed8f07ca9b74d38fcc9",
+          "amount": "120000",
+          "debtReduced": "0",
+          "toCash": "120000"
+        }
+      }
+    }
+  ],
+  "predicates": {
+    "rejectLossWithZeroPayment": true,
+    "realCreditExecutionSettlementRepayment": true,
+    "earningsFundNextTaskWithCreditDisabledAndZeroTopups": true,
+    "failedCostRetainedWithoutInventedIncome": true,
+    "unknownResumeUsesOriginalBytesWithoutDuplicatePaymentOrDispatch": true,
+    "incomeCostCapitalAndSubsidySeparated": true,
+    "cashReconcilesToCapitalPlusOperatingResult": true,
+    "readOnlyStrategyAdvicePreservesHistoryCashNonceAndModelCalls": true,
+    "strategyAdviceRetainsPaidFailureAndBlocksUnknown": true,
+    "roleAccountsReconcileSupplierReceiptsAndRefunds": true,
+    "readOnlyRunwaySeparatesActualResultsFromAssumptions": true
+  },
+  "strategySourceSha256": {
+    "services/hosted-agents/src/strategy-advice.ts": "8590f4524e8bd8d124f02fa85239c3ee306a701d52d7c763677a83640d203ca9",
+    "services/hosted-agents/src/strategy-history.ts": "c19b836110f2f31956a3915cf6f04bfec0b85091a2bf26e33f63cceecfc91aa2",
+    "services/hosted-agents/src/strategy-types.ts": "2dba25648a3619256d1a28466d66d3c8ab9e2bc43fac29c54331429ad7a6ba45",
+    "services/hosted-agents/src/accounting.ts": "926ced6e7a1c601e05fc87e47ddb5858867fd482534060b6becac63194e4d097",
+    "services/hosted-agents/src/finance-projection.ts": "b1c2d2992895b93d11f7485917838f8df31e120407d67f620537b96d789f19f9",
+    "services/hosted-agents/src/finance-reader.ts": "f6387300e0793571c8146b571b1d9a9021e8057500893416dba3fc32edc87dfa",
+    "services/hosted-agents/src/task-executor.ts": "d030c35127beba2f54f25ea96a647aa9d36dc76aa8c2c6fffa690222f3ea0da6",
+    "packages/pi-loop/src/workflow.ts": "824ed688031262882acae15a64bd5d9d2d9e626918e97486633e5b6393fdf8ee",
+    "packages/pi-loop/src/selector.ts": "0eee1effe9d38f8b51738d7455d31cd05faa28657a865151308be08b698b65fe",
+    "packages/pi-loop/src/economics.ts": "c5efc4ee98d28a270b411baaf11e83d0fa7ff71e28a0e671c627528a4848227d"
+  },
+  "operatingSourceSha256": {
+    "services/hosted-agents/src/strategy-advice.ts": "8590f4524e8bd8d124f02fa85239c3ee306a701d52d7c763677a83640d203ca9",
+    "services/hosted-agents/src/strategy-history.ts": "c19b836110f2f31956a3915cf6f04bfec0b85091a2bf26e33f63cceecfc91aa2",
+    "services/hosted-agents/src/strategy-types.ts": "2dba25648a3619256d1a28466d66d3c8ab9e2bc43fac29c54331429ad7a6ba45",
+    "services/hosted-agents/src/accounting.ts": "926ced6e7a1c601e05fc87e47ddb5858867fd482534060b6becac63194e4d097",
+    "services/hosted-agents/src/finance-projection.ts": "b1c2d2992895b93d11f7485917838f8df31e120407d67f620537b96d789f19f9",
+    "services/hosted-agents/src/finance-reader.ts": "f6387300e0793571c8146b571b1d9a9021e8057500893416dba3fc32edc87dfa",
+    "services/hosted-agents/src/task-executor.ts": "d030c35127beba2f54f25ea96a647aa9d36dc76aa8c2c6fffa690222f3ea0da6",
+    "packages/pi-loop/src/workflow.ts": "824ed688031262882acae15a64bd5d9d2d9e626918e97486633e5b6393fdf8ee",
+    "packages/pi-loop/src/selector.ts": "0eee1effe9d38f8b51738d7455d31cd05faa28657a865151308be08b698b65fe",
+    "packages/pi-loop/src/economics.ts": "c5efc4ee98d28a270b411baaf11e83d0fa7ff71e28a0e671c627528a4848227d",
+    "services/hosted-agents/src/operating-types.ts": "89f5ffc5a21bc3e09dbe6bbb019de638c062ee4f8db7cb30cba2cc7c30da4964",
+    "services/hosted-agents/src/operating-report.ts": "d2abbb78f8d6439141bef6e2924e32eb36479d60626332bf3189e0295a91cd91",
+    "services/hosted-agents/src/operating-history.ts": "f5936131090f9751e5a802a53a6445fce71ce87b4fe40c2478d0cbd165bfe621"
+  },
+  "initialFunding": {
+    "startupCapitalRaw": "40000",
+    "ownerTopupsAfterProvisionRaw": "0",
+    "gameSubsidyRaw": "0",
+    "taskPublisherFundedRewardsRaw": "1100000",
+    "mint": {
+      "txHash": "0x78805b2b835f85b637958dbe1da035728671be51962ddab3a7a2f4b9ace7785c",
+      "blockHash": "0x025e8cdad4f091bf51c8dbbaf62d97c59a9d45f0f52a1df483ac46b9a27afcc1",
+      "blockNumber": 31,
+      "status": 1
+    },
+    "initialAgentId": "2"
+  },
+  "publishedTasks": [
+    {
+      "taskId": "1",
+      "problemId": "sum-integers",
+      "rewardRaw": "100000",
+      "fundedEscrowRaw": "100000",
+      "creation": {
+        "txHash": "0x66c0ea6b223a3b579a98a27ab417af63f1806d1e51cbed1d667468f236e4d0d8",
+        "blockHash": "0xabf2956feda44f0ed7cb4b39d5ddc11ad32ad311475c1f719c8b4bd2a9c59732",
+        "blockNumber": 25,
+        "status": 1,
+        "event": "TaskCreated",
+        "eventCount": 1,
+        "values": {
+          "taskId": "1",
+          "poster": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+          "reward": "100000",
+          "deadline": "1792248039"
+        }
+      }
+    },
+    {
+      "taskId": "2",
+      "problemId": "sum-integers",
+      "rewardRaw": "200000",
+      "fundedEscrowRaw": "200000",
+      "creation": {
+        "txHash": "0x11c68e4696a5a833ae99cb24b8fdd2a4d4b59d27d1253451f2f59ab9d55f7688",
+        "blockHash": "0x0e333e7796c38571827babd40a2ad88c6787003f5211bd62693d71352050e5f3",
+        "blockNumber": 26,
+        "status": 1,
+        "event": "TaskCreated",
+        "eventCount": 1,
+        "values": {
+          "taskId": "2",
+          "poster": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+          "reward": "200000",
+          "deadline": "1792248040"
+        }
+      }
+    },
+    {
+      "taskId": "3",
+      "problemId": "unique-sorted",
+      "rewardRaw": "200000",
+      "fundedEscrowRaw": "200000",
+      "creation": {
+        "txHash": "0x85db50d7cc53c98acf745f6894db6018b7e2c6cc64e5082864883926db6ede7d",
+        "blockHash": "0x5dcdb4c8b5ed5f46a1306555815ca3c0df51ae7691a70d1e21b1a6ba6e1ffcb2",
+        "blockNumber": 27,
+        "status": 1,
+        "event": "TaskCreated",
+        "eventCount": 1,
+        "values": {
+          "taskId": "3",
+          "poster": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+          "reward": "200000",
+          "deadline": "1792248040"
+        }
+      }
+    },
+    {
+      "taskId": "4",
+      "problemId": "sum-integers",
+      "rewardRaw": "200000",
+      "fundedEscrowRaw": "200000",
+      "creation": {
+        "txHash": "0x67f33aab45779ce56a28d89547e70c5697fb33794c8e4d29d961b52262380ddc",
+        "blockHash": "0x89d8d353f49a50c282a3663476970156358d2d98e467ce6e9ad0a9d06a7bc1aa",
+        "blockNumber": 28,
+        "status": 1,
+        "event": "TaskCreated",
+        "eventCount": 1,
+        "values": {
+          "taskId": "4",
+          "poster": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+          "reward": "200000",
+          "deadline": "1792248040"
+        }
+      }
+    },
+    {
+      "taskId": "5",
+      "problemId": "balanced-brackets",
+      "rewardRaw": "200000",
+      "fundedEscrowRaw": "200000",
+      "creation": {
+        "txHash": "0xd3f55845b433c78e0c87ea4ef346eddfc427223a55ee01d64a0d1cb84d86ccdd",
+        "blockHash": "0x4c8a68162f01b41f129506d7c9447b692d5ec0a8158d64498d9dadd41c835a6d",
+        "blockNumber": 29,
+        "status": 1,
+        "event": "TaskCreated",
+        "eventCount": 1,
+        "values": {
+          "taskId": "5",
+          "poster": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+          "reward": "200000",
+          "deadline": "1792248040"
+        }
+      }
+    },
+    {
+      "taskId": "6",
+      "problemId": "sum-integers",
+      "rewardRaw": "200000",
+      "fundedEscrowRaw": "200000",
+      "creation": {
+        "txHash": "0xb3a7d01b92e1015877246e2835fc646e29c053fda8a683e3b0dfcbff30728568",
+        "blockHash": "0xdd0a262e62c06dd8817101cbe048ad2cb550b9e5de0f02a24c029191c171d292",
+        "blockNumber": 30,
+        "status": 1,
+        "event": "TaskCreated",
+        "eventCount": 1,
+        "values": {
+          "taskId": "6",
+          "poster": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+          "reward": "200000",
+          "deadline": "1792248040"
+        }
+      }
+    }
+  ],
+  "accountingBeforeFailure": {
+    "version": 1,
+    "observedAt": "2026-10-17T14:11:07.714Z",
+    "agentId": "fc6ee1ba-1f40-41e6-a2a7-0215daeb685d",
+    "currency": "USDC",
+    "decimals": 6,
+    "status": "complete",
+    "totals": {
+      "inferenceCostRaw": "360000",
+      "refundsRaw": "0",
+      "taskRevenueRaw": "600000",
+      "borrowingFeeRaw": "13800",
+      "gameSubsidyRaw": "0",
+      "ownerCapitalRaw": "0",
+      "startupCapitalRaw": "40000",
+      "loanPrincipalRaw": "92000",
+      "creditsGranted": 0,
+      "creditsUsed": 0,
+      "netOperatingRaw": "226200"
+    },
+    "coverage": {
+      "scope": "retained-hosted-history",
+      "since": "2026-10-17T14:10:41.110Z",
+      "runCount": 5,
+      "entryCount": 5,
+      "pendingCount": 0,
+      "incompleteCount": 0,
+      "returnedEntryCount": 5,
+      "entriesTruncated": false,
+      "uncoveredSpentRaw": "0",
+      "reasons": []
+    },
+    "entries": [
+      {
+        "id": "9db384d1-ee64-41b1-a7f2-8a8fa0e3d0c5",
+        "requestId": "9db384d1-ee64-41b1-a7f2-8a8fa0e3d0c5",
+        "action": "task",
+        "at": "2026-10-17T14:11:07.621Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "120000",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "200000",
+        "borrowingFeeRaw": "0",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "0",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "taskId": "4",
+        "paymentId": "0x402a040fd103cdb7746f90ff4d309d54f4065307bff425b71eda374e94ef6400",
+        "txHash": "0xf244844863f52048231c94d7466c7c68547d9cc61d4dc95f750d4767f408c6fc"
+      },
+      {
+        "id": "c71255ef-4598-461e-8153-23f14cf1b8ee",
+        "requestId": "c71255ef-4598-461e-8153-23f14cf1b8ee",
+        "action": "task",
+        "at": "2026-10-17T14:10:59.680Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "120000",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "200000",
+        "borrowingFeeRaw": "1800",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "12000",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "taskId": "3",
+        "paymentId": "0xf22491e02089201741c39d176925c8d7ce1bb98f985d0bcf990388c10b5ffd9e",
+        "txHash": "0x28f043e2bc80e12ddc59bcbc74596866c66d62cfc18272f06c84d3052b02885d"
+      },
+      {
+        "id": "dfffff70-f482-4803-9f6e-fa68c8ef9799",
+        "requestId": "dfffff70-f482-4803-9f6e-fa68c8ef9799",
+        "action": "task",
+        "at": "2026-10-17T14:10:52.299Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "120000",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "200000",
+        "borrowingFeeRaw": "12000",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "80000",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "taskId": "2",
+        "paymentId": "0x3ef02d8696a483852dc2ad1609bdc4eddbd090e60cf37950844837c1835f131b",
+        "txHash": "0x430ba3a38635138dface8e56bc978ab05e7c97b1a06b6fb8cf480cef8c8dee2c"
+      },
+      {
+        "id": "098ae78d-b20a-46ff-8e13-b8f7edd59969",
+        "requestId": "098ae78d-b20a-46ff-8e13-b8f7edd59969",
+        "action": "task",
+        "at": "2026-10-17T14:10:43.110Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "0",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "0",
+        "borrowingFeeRaw": "0",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "0",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": []
+      },
+      {
+        "id": "f1e47633-3fd5-4b90-a3dd-dc07b08428c4",
+        "requestId": "f1e47633-3fd5-4b90-a3dd-dc07b08428c4",
+        "action": "provision",
+        "at": "2026-10-17T14:10:42.633Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "0",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "0",
+        "borrowingFeeRaw": "0",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "40000",
+        "loanPrincipalRaw": "0",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "txHash": "0x97796f015ac5c4dac21aad6cb4c653552e00026bcca12668e47d895b1490476c"
+      }
+    ]
+  },
+  "strategyAdvice": [
+    {
+      "label": "after-three-settled-tasks",
+      "before": {
+        "cashRaw": "266200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "360000",
+        "agentNonce": 11,
+        "modelCalls": 3,
+        "quoteCalls": 3,
+        "historySha256": "474ead68d3955b2c64381630357ba64e28054408b276cb260a0f6e9c4d03f7eb",
+        "inputsSha256": "9d4b068d4aa8e42971470dc51b3eca79b9f47193fcc8c89d574f55b6cc048a56"
+      },
+      "after": {
+        "cashRaw": "266200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "360000",
+        "agentNonce": 11,
+        "modelCalls": 3,
+        "quoteCalls": 3,
+        "historySha256": "474ead68d3955b2c64381630357ba64e28054408b276cb260a0f6e9c4d03f7eb",
+        "inputsSha256": "9d4b068d4aa8e42971470dc51b3eca79b9f47193fcc8c89d574f55b6cc048a56"
+      },
+      "advice": {
+        "version": 1,
+        "observedAt": "2026-10-17T14:11:08.098Z",
+        "agentId": "fc6ee1ba-1f40-41e6-a2a7-0215daeb685d",
+        "mode": "advisory-only",
+        "currency": "USDC",
+        "decimals": 6,
+        "policy": {
+          "reserveCashRaw": "120000",
+          "minProfitRaw": "1",
+          "minMarginBps": "1000",
+          "source": "owner-preview",
+          "marginBasis": "net-task-revenue"
+        },
+        "basis": "successful-completion-bound",
+        "scope": "settlement-asset-only",
+        "exclusions": [
+          "native-gas",
+          "reward-token-opportunity-cost",
+          "success-probability"
+        ],
+        "cash": {
+          "status": "confirmed",
+          "cashRaw": "266200",
+          "financeObservedAt": "2026-10-17T14:11:08.080Z",
+          "reserveCashRaw": "120000",
+          "pendingCommitmentsRaw": "0",
+          "outstandingDebtRaw": "0",
+          "availableBeforeReserveRaw": "266200",
+          "spendableCashRaw": "146200",
+          "unresolvedLiabilities": false,
+          "creditIncluded": false
+        },
+        "history": {
+          "scope": "retained-hosted-history",
+          "entries": [
+            {
+              "requestId": "9db384d1-ee64-41b1-a7f2-8a8fa0e3d0c5",
+              "at": "2026-10-17T14:11:07.621Z",
+              "action": "task",
+              "outcome": "succeeded",
+              "prediction": {
+                "source": "original-workflow-admission",
+                "atMs": 1792246260430,
+                "snapshotHash": "d32641746fc8d25725f3b75407a44df001bdc4f0dbc50fc0eb3cba9f4d765ea4",
+                "routeBinding": "6db5a459e41e0c67103c5379d6ec92e24a8a156a87ac205e3b28ddf89be13c96",
+                "taskId": "4",
+                "problemId": "sum-integers",
+                "providerId": "trusted-fixed",
+                "tier": "cheap",
+                "funding": "cash",
+                "executionCostRaw": "120000",
+                "planningCostRaw": "0",
+                "borrowerFeeRaw": "0",
+                "netRevenueRaw": "200000",
+                "netRewardRaw": "80000",
+                "originalMinNetRewardRaw": "1"
+              },
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "120000",
+                "borrowingFeeRaw": "0",
+                "taskRevenueRaw": "200000",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "80000",
+                "netAfterPlanningRaw": "80000",
+                "failureLossRaw": null,
+                "knownFailureLossLowerBoundRaw": null
+              },
+              "executionCostDeviationRaw": "0",
+              "gaps": []
+            },
+            {
+              "requestId": "c71255ef-4598-461e-8153-23f14cf1b8ee",
+              "at": "2026-10-17T14:10:59.680Z",
+              "action": "task",
+              "outcome": "succeeded",
+              "prediction": {
+                "source": "original-workflow-admission",
+                "atMs": 1792246252883,
+                "snapshotHash": "25d76ddfb30f3547108d3e8dc1cacf787ade1e787d37432d121811b9f2ae18ae",
+                "routeBinding": "c631fe10b7565ae5ad062e12335c9665ea74cb5372dca8d32b99e3fb3b53cdd0",
+                "taskId": "3",
+                "problemId": "unique-sorted",
+                "providerId": "trusted-fixed",
+                "tier": "cheap",
+                "funding": "task-credit",
+                "executionCostRaw": "120000",
+                "planningCostRaw": "0",
+                "borrowerFeeRaw": "1800",
+                "netRevenueRaw": "200000",
+                "netRewardRaw": "78200",
+                "originalMinNetRewardRaw": "1"
+              },
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "120000",
+                "borrowingFeeRaw": "1800",
+                "taskRevenueRaw": "200000",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "78200",
+                "netAfterPlanningRaw": "78200",
+                "failureLossRaw": null,
+                "knownFailureLossLowerBoundRaw": null
+              },
+              "executionCostDeviationRaw": "0",
+              "gaps": []
+            },
+            {
+              "requestId": "dfffff70-f482-4803-9f6e-fa68c8ef9799",
+              "at": "2026-10-17T14:10:52.299Z",
+              "action": "task",
+              "outcome": "succeeded",
+              "prediction": {
+                "source": "original-workflow-admission",
+                "atMs": 1792246243704,
+                "snapshotHash": "7bff90f464e31e9da7ee32b131facf1d40a7198541bcf94d3c691164a03fc782",
+                "routeBinding": "c631fe10b7565ae5ad062e12335c9665ea74cb5372dca8d32b99e3fb3b53cdd0",
+                "taskId": "2",
+                "problemId": "sum-integers",
+                "providerId": "trusted-fixed",
+                "tier": "cheap",
+                "funding": "task-credit",
+                "executionCostRaw": "120000",
+                "planningCostRaw": "0",
+                "borrowerFeeRaw": "12000",
+                "netRevenueRaw": "200000",
+                "netRewardRaw": "68000",
+                "originalMinNetRewardRaw": "1"
+              },
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "120000",
+                "borrowingFeeRaw": "12000",
+                "taskRevenueRaw": "200000",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "68000",
+                "netAfterPlanningRaw": "68000",
+                "failureLossRaw": null,
+                "knownFailureLossLowerBoundRaw": null
+              },
+              "executionCostDeviationRaw": "0",
+              "gaps": []
+            },
+            {
+              "requestId": "098ae78d-b20a-46ff-8e13-b8f7edd59969",
+              "at": "2026-10-17T14:10:43.110Z",
+              "action": "task",
+              "outcome": "failed",
+              "prediction": null,
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "0",
+                "borrowingFeeRaw": "0",
+                "taskRevenueRaw": "0",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "0",
+                "netAfterPlanningRaw": "0",
+                "failureLossRaw": "0",
+                "knownFailureLossLowerBoundRaw": "0"
+              },
+              "executionCostDeviationRaw": null,
+              "gaps": [
+                "STRATEGY_ORIGINAL_ADMISSION_REJECTED",
+                "STRATEGY_ORIGINAL_PREDICTION_MISSING"
+              ]
+            }
+          ],
+          "entryCount": 4,
+          "entriesTruncated": false,
+          "gaps": [
+            "STRATEGY_ORIGINAL_ADMISSION_REJECTED",
+            "STRATEGY_ORIGINAL_PREDICTION_MISSING"
+          ],
+          "comparableCount": 3,
+          "knownFailureLossRaw": "0",
+          "unknownFailureLossCount": 0,
+          "gameSubsidyRaw": "0",
+          "creditsGranted": 0,
+          "creditsUsed": 0,
+          "netOperatingRaw": "226200"
+        },
+        "candidates": [
+          {
+            "taskId": "9001",
+            "problemId": "sum-integers",
+            "providerId": "trusted-fixed",
+            "tier": "cheap",
+            "funding": "cash",
+            "source": "owner-hypothetical",
+            "status": "eligible",
+            "quotedExecutionCostRaw": "120000",
+            "observedCostBufferRaw": "0",
+            "comparableCount": 1,
+            "failedComparableCount": 0,
+            "observedFailureLossRaw": "0",
+            "adjustedExecutionCostRaw": "120000",
+            "planningCostRaw": "0",
+            "borrowerFeeRaw": "0",
+            "netRevenueRaw": "200000",
+            "successfulCompletionProfitRaw": "80000",
+            "requiredProfitRaw": "20000",
+            "cashRequiredRaw": "120000",
+            "cashAfterRaw": "146200",
+            "creditRequiredRaw": "0",
+            "reasons": [],
+            "gaps": []
+          },
+          {
+            "taskId": "9002",
+            "problemId": "balanced-brackets",
+            "providerId": "trusted-fixed",
+            "tier": "cheap",
+            "funding": "cash",
+            "source": "owner-hypothetical",
+            "status": "insufficient-evidence",
+            "quotedExecutionCostRaw": "120000",
+            "observedCostBufferRaw": null,
+            "comparableCount": 0,
+            "failedComparableCount": 0,
+            "observedFailureLossRaw": null,
+            "adjustedExecutionCostRaw": "120000",
+            "planningCostRaw": "0",
+            "borrowerFeeRaw": "0",
+            "netRevenueRaw": "200000",
+            "successfulCompletionProfitRaw": "80000",
+            "requiredProfitRaw": "20000",
+            "cashRequiredRaw": "120000",
+            "cashAfterRaw": "146200",
+            "creditRequiredRaw": "0",
+            "reasons": [],
+            "gaps": [
+              "STRATEGY_COMPARABLE_HISTORY_MISSING",
+              "STRATEGY_ROUTE_BINDING_MISSING"
+            ]
+          }
+        ],
+        "recommendation": {
+          "status": "preview",
+          "taskId": "9001",
+          "providerId": "trusted-fixed",
+          "tier": "cheap",
+          "funding": "cash",
+          "reasons": [
+            "STRATEGY_HYPOTHETICAL_ONLY"
+          ]
+        },
+        "gaps": [
+          "STRATEGY_ORIGINAL_ADMISSION_REJECTED",
+          "STRATEGY_ORIGINAL_PREDICTION_MISSING"
+        ]
+      }
+    },
+    {
+      "label": "after-paid-failure",
+      "before": {
+        "cashRaw": "146200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "480000",
+        "agentNonce": 13,
+        "modelCalls": 4,
+        "quoteCalls": 4,
+        "historySha256": "7769753c0e7d0a6a76210efa02367b5fe42f8db2e4a871c60c2756d7c4297f64",
+        "inputsSha256": "adff22dd72e466fd681f8c92c253a67492070737191df643c1c34b1db117551b"
+      },
+      "after": {
+        "cashRaw": "146200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "480000",
+        "agentNonce": 13,
+        "modelCalls": 4,
+        "quoteCalls": 4,
+        "historySha256": "7769753c0e7d0a6a76210efa02367b5fe42f8db2e4a871c60c2756d7c4297f64",
+        "inputsSha256": "adff22dd72e466fd681f8c92c253a67492070737191df643c1c34b1db117551b"
+      },
+      "advice": {
+        "version": 1,
+        "observedAt": "2026-10-17T14:11:14.849Z",
+        "agentId": "fc6ee1ba-1f40-41e6-a2a7-0215daeb685d",
+        "mode": "advisory-only",
+        "currency": "USDC",
+        "decimals": 6,
+        "policy": {
+          "reserveCashRaw": "120000",
+          "minProfitRaw": "1",
+          "minMarginBps": "1000",
+          "source": "owner-preview",
+          "marginBasis": "net-task-revenue"
+        },
+        "basis": "successful-completion-bound",
+        "scope": "settlement-asset-only",
+        "exclusions": [
+          "native-gas",
+          "reward-token-opportunity-cost",
+          "success-probability"
+        ],
+        "cash": {
+          "status": "confirmed",
+          "cashRaw": "146200",
+          "financeObservedAt": "2026-10-17T14:11:14.834Z",
+          "reserveCashRaw": "120000",
+          "pendingCommitmentsRaw": "0",
+          "outstandingDebtRaw": "0",
+          "availableBeforeReserveRaw": "146200",
+          "spendableCashRaw": "26200",
+          "unresolvedLiabilities": false,
+          "creditIncluded": false
+        },
+        "history": {
+          "scope": "retained-hosted-history",
+          "entries": [
+            {
+              "requestId": "89654533-4de2-4589-91d9-38d6098c9695",
+              "at": "2026-10-17T14:11:14.378Z",
+              "action": "task",
+              "outcome": "failed",
+              "prediction": {
+                "source": "original-workflow-admission",
+                "atMs": 1792246268639,
+                "snapshotHash": "b34808fb82ba1cf50c76b43e2b8f4fbe4866011ef937ec90927a08cdefbb7d2a",
+                "routeBinding": "6db5a459e41e0c67103c5379d6ec92e24a8a156a87ac205e3b28ddf89be13c96",
+                "taskId": "5",
+                "problemId": "balanced-brackets",
+                "providerId": "trusted-fixed",
+                "tier": "cheap",
+                "funding": "cash",
+                "executionCostRaw": "120000",
+                "planningCostRaw": "0",
+                "borrowerFeeRaw": "0",
+                "netRevenueRaw": "200000",
+                "netRewardRaw": "80000",
+                "originalMinNetRewardRaw": "1"
+              },
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "120000",
+                "borrowingFeeRaw": "0",
+                "taskRevenueRaw": "0",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "-120000",
+                "netAfterPlanningRaw": "-120000",
+                "failureLossRaw": "120000",
+                "knownFailureLossLowerBoundRaw": "120000"
+              },
+              "executionCostDeviationRaw": "0",
+              "gaps": []
+            },
+            {
+              "requestId": "9db384d1-ee64-41b1-a7f2-8a8fa0e3d0c5",
+              "at": "2026-10-17T14:11:07.621Z",
+              "action": "task",
+              "outcome": "succeeded",
+              "prediction": {
+                "source": "original-workflow-admission",
+                "atMs": 1792246260430,
+                "snapshotHash": "d32641746fc8d25725f3b75407a44df001bdc4f0dbc50fc0eb3cba9f4d765ea4",
+                "routeBinding": "6db5a459e41e0c67103c5379d6ec92e24a8a156a87ac205e3b28ddf89be13c96",
+                "taskId": "4",
+                "problemId": "sum-integers",
+                "providerId": "trusted-fixed",
+                "tier": "cheap",
+                "funding": "cash",
+                "executionCostRaw": "120000",
+                "planningCostRaw": "0",
+                "borrowerFeeRaw": "0",
+                "netRevenueRaw": "200000",
+                "netRewardRaw": "80000",
+                "originalMinNetRewardRaw": "1"
+              },
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "120000",
+                "borrowingFeeRaw": "0",
+                "taskRevenueRaw": "200000",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "80000",
+                "netAfterPlanningRaw": "80000",
+                "failureLossRaw": null,
+                "knownFailureLossLowerBoundRaw": null
+              },
+              "executionCostDeviationRaw": "0",
+              "gaps": []
+            },
+            {
+              "requestId": "c71255ef-4598-461e-8153-23f14cf1b8ee",
+              "at": "2026-10-17T14:10:59.680Z",
+              "action": "task",
+              "outcome": "succeeded",
+              "prediction": {
+                "source": "original-workflow-admission",
+                "atMs": 1792246252883,
+                "snapshotHash": "25d76ddfb30f3547108d3e8dc1cacf787ade1e787d37432d121811b9f2ae18ae",
+                "routeBinding": "c631fe10b7565ae5ad062e12335c9665ea74cb5372dca8d32b99e3fb3b53cdd0",
+                "taskId": "3",
+                "problemId": "unique-sorted",
+                "providerId": "trusted-fixed",
+                "tier": "cheap",
+                "funding": "task-credit",
+                "executionCostRaw": "120000",
+                "planningCostRaw": "0",
+                "borrowerFeeRaw": "1800",
+                "netRevenueRaw": "200000",
+                "netRewardRaw": "78200",
+                "originalMinNetRewardRaw": "1"
+              },
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "120000",
+                "borrowingFeeRaw": "1800",
+                "taskRevenueRaw": "200000",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "78200",
+                "netAfterPlanningRaw": "78200",
+                "failureLossRaw": null,
+                "knownFailureLossLowerBoundRaw": null
+              },
+              "executionCostDeviationRaw": "0",
+              "gaps": []
+            },
+            {
+              "requestId": "dfffff70-f482-4803-9f6e-fa68c8ef9799",
+              "at": "2026-10-17T14:10:52.299Z",
+              "action": "task",
+              "outcome": "succeeded",
+              "prediction": {
+                "source": "original-workflow-admission",
+                "atMs": 1792246243704,
+                "snapshotHash": "7bff90f464e31e9da7ee32b131facf1d40a7198541bcf94d3c691164a03fc782",
+                "routeBinding": "c631fe10b7565ae5ad062e12335c9665ea74cb5372dca8d32b99e3fb3b53cdd0",
+                "taskId": "2",
+                "problemId": "sum-integers",
+                "providerId": "trusted-fixed",
+                "tier": "cheap",
+                "funding": "task-credit",
+                "executionCostRaw": "120000",
+                "planningCostRaw": "0",
+                "borrowerFeeRaw": "12000",
+                "netRevenueRaw": "200000",
+                "netRewardRaw": "68000",
+                "originalMinNetRewardRaw": "1"
+              },
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "120000",
+                "borrowingFeeRaw": "12000",
+                "taskRevenueRaw": "200000",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "68000",
+                "netAfterPlanningRaw": "68000",
+                "failureLossRaw": null,
+                "knownFailureLossLowerBoundRaw": null
+              },
+              "executionCostDeviationRaw": "0",
+              "gaps": []
+            },
+            {
+              "requestId": "098ae78d-b20a-46ff-8e13-b8f7edd59969",
+              "at": "2026-10-17T14:10:43.110Z",
+              "action": "task",
+              "outcome": "failed",
+              "prediction": null,
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "0",
+                "borrowingFeeRaw": "0",
+                "taskRevenueRaw": "0",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "0",
+                "netAfterPlanningRaw": "0",
+                "failureLossRaw": "0",
+                "knownFailureLossLowerBoundRaw": "0"
+              },
+              "executionCostDeviationRaw": null,
+              "gaps": [
+                "STRATEGY_ORIGINAL_ADMISSION_REJECTED",
+                "STRATEGY_ORIGINAL_PREDICTION_MISSING"
+              ]
+            }
+          ],
+          "entryCount": 5,
+          "entriesTruncated": false,
+          "gaps": [
+            "STRATEGY_ORIGINAL_ADMISSION_REJECTED",
+            "STRATEGY_ORIGINAL_PREDICTION_MISSING"
+          ],
+          "comparableCount": 4,
+          "knownFailureLossRaw": "120000",
+          "unknownFailureLossCount": 0,
+          "gameSubsidyRaw": "0",
+          "creditsGranted": 0,
+          "creditsUsed": 0,
+          "netOperatingRaw": "106200"
+        },
+        "candidates": [
+          {
+            "taskId": "9001",
+            "problemId": "sum-integers",
+            "providerId": "trusted-fixed",
+            "tier": "cheap",
+            "funding": "cash",
+            "source": "owner-hypothetical",
+            "status": "rejected",
+            "quotedExecutionCostRaw": "120000",
+            "observedCostBufferRaw": "0",
+            "comparableCount": 1,
+            "failedComparableCount": 0,
+            "observedFailureLossRaw": "0",
+            "adjustedExecutionCostRaw": "120000",
+            "planningCostRaw": "0",
+            "borrowerFeeRaw": "0",
+            "netRevenueRaw": "200000",
+            "successfulCompletionProfitRaw": "80000",
+            "requiredProfitRaw": "20000",
+            "cashRequiredRaw": "120000",
+            "cashAfterRaw": "26200",
+            "creditRequiredRaw": "0",
+            "reasons": [
+              "STRATEGY_CASH_RESERVE"
+            ],
+            "gaps": []
+          },
+          {
+            "taskId": "9002",
+            "problemId": "balanced-brackets",
+            "providerId": "trusted-fixed",
+            "tier": "cheap",
+            "funding": "cash",
+            "source": "owner-hypothetical",
+            "status": "rejected",
+            "quotedExecutionCostRaw": "120000",
+            "observedCostBufferRaw": "0",
+            "comparableCount": 1,
+            "failedComparableCount": 1,
+            "observedFailureLossRaw": "120000",
+            "adjustedExecutionCostRaw": "120000",
+            "planningCostRaw": "0",
+            "borrowerFeeRaw": "0",
+            "netRevenueRaw": "200000",
+            "successfulCompletionProfitRaw": "80000",
+            "requiredProfitRaw": "140000",
+            "cashRequiredRaw": "120000",
+            "cashAfterRaw": "26200",
+            "creditRequiredRaw": "0",
+            "reasons": [
+              "STRATEGY_CASH_RESERVE",
+              "STRATEGY_MINIMUM_PROFIT"
+            ],
+            "gaps": []
+          }
+        ],
+        "recommendation": {
+          "status": "no-eligible-candidate",
+          "reasons": [
+            "STRATEGY_CASH_RESERVE",
+            "STRATEGY_MINIMUM_PROFIT"
+          ]
+        },
+        "gaps": [
+          "STRATEGY_ORIGINAL_ADMISSION_REJECTED",
+          "STRATEGY_ORIGINAL_PREDICTION_MISSING"
+        ]
+      }
+    },
+    {
+      "label": "while-original-payment-is-unknown",
+      "before": {
+        "cashRaw": "26200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "600000",
+        "agentNonce": 15,
+        "modelCalls": 5,
+        "quoteCalls": 5,
+        "historySha256": "7e41c40ac4bff8ca6e72a7a5024b0d54982f18e0740cc05f1fc54ce8833caf67",
+        "inputsSha256": "6cd68664d50e9c384a6e435e8c7dec260373dfa8b0998e8d63a79e1ee8b4e84f"
+      },
+      "after": {
+        "cashRaw": "26200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "600000",
+        "agentNonce": 15,
+        "modelCalls": 5,
+        "quoteCalls": 5,
+        "historySha256": "7e41c40ac4bff8ca6e72a7a5024b0d54982f18e0740cc05f1fc54ce8833caf67",
+        "inputsSha256": "6cd68664d50e9c384a6e435e8c7dec260373dfa8b0998e8d63a79e1ee8b4e84f"
+      },
+      "advice": {
+        "version": 1,
+        "observedAt": "2026-10-17T14:11:17.337Z",
+        "agentId": "fc6ee1ba-1f40-41e6-a2a7-0215daeb685d",
+        "mode": "advisory-only",
+        "currency": "USDC",
+        "decimals": 6,
+        "policy": {
+          "reserveCashRaw": "120000",
+          "minProfitRaw": "1",
+          "minMarginBps": "1000",
+          "source": "owner-preview",
+          "marginBasis": "net-task-revenue"
+        },
+        "basis": "successful-completion-bound",
+        "scope": "settlement-asset-only",
+        "exclusions": [
+          "native-gas",
+          "reward-token-opportunity-cost",
+          "success-probability"
+        ],
+        "cash": {
+          "status": "confirmed",
+          "cashRaw": "26200",
+          "financeObservedAt": "2026-10-17T14:11:17.321Z",
+          "reserveCashRaw": "120000",
+          "pendingCommitmentsRaw": "120000",
+          "outstandingDebtRaw": "0",
+          "availableBeforeReserveRaw": "0",
+          "spendableCashRaw": "0",
+          "unresolvedLiabilities": true,
+          "creditIncluded": false
+        },
+        "history": {
+          "scope": "retained-hosted-history",
+          "entries": [
+            {
+              "requestId": "c89a8fef-fcfd-43e0-946b-959070e5d8c6",
+              "at": "2026-10-17T14:11:16.914Z",
+              "action": "task",
+              "outcome": "pending",
+              "prediction": {
+                "source": "original-workflow-admission",
+                "atMs": 1792246275334,
+                "snapshotHash": "3d0e37a760756d88a576f3ddef2d9037f8ff68aeb2e49fc0cde493a74465a580",
+                "routeBinding": "6db5a459e41e0c67103c5379d6ec92e24a8a156a87ac205e3b28ddf89be13c96",
+                "taskId": "6",
+                "problemId": "sum-integers",
+                "providerId": "trusted-fixed",
+                "tier": "cheap",
+                "funding": "cash",
+                "executionCostRaw": "120000",
+                "planningCostRaw": "0",
+                "borrowerFeeRaw": "0",
+                "netRevenueRaw": "200000",
+                "netRewardRaw": "80000",
+                "originalMinNetRewardRaw": "1"
+              },
+              "realized": {
+                "status": "pending",
+                "executionCostRaw": "120000",
+                "borrowingFeeRaw": null,
+                "taskRevenueRaw": null,
+                "planningCostRaw": "0",
+                "taskContributionRaw": null,
+                "netAfterPlanningRaw": null,
+                "failureLossRaw": null,
+                "knownFailureLossLowerBoundRaw": null
+              },
+              "executionCostDeviationRaw": null,
+              "gaps": [
+                "ACCOUNTING_PAYMENT_UNRESOLVED",
+                "ACCOUNTING_PENDING",
+                "ACCOUNTING_SETTLEMENT_MISSING"
+              ]
+            },
+            {
+              "requestId": "89654533-4de2-4589-91d9-38d6098c9695",
+              "at": "2026-10-17T14:11:14.378Z",
+              "action": "task",
+              "outcome": "failed",
+              "prediction": {
+                "source": "original-workflow-admission",
+                "atMs": 1792246268639,
+                "snapshotHash": "b34808fb82ba1cf50c76b43e2b8f4fbe4866011ef937ec90927a08cdefbb7d2a",
+                "routeBinding": "6db5a459e41e0c67103c5379d6ec92e24a8a156a87ac205e3b28ddf89be13c96",
+                "taskId": "5",
+                "problemId": "balanced-brackets",
+                "providerId": "trusted-fixed",
+                "tier": "cheap",
+                "funding": "cash",
+                "executionCostRaw": "120000",
+                "planningCostRaw": "0",
+                "borrowerFeeRaw": "0",
+                "netRevenueRaw": "200000",
+                "netRewardRaw": "80000",
+                "originalMinNetRewardRaw": "1"
+              },
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "120000",
+                "borrowingFeeRaw": "0",
+                "taskRevenueRaw": "0",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "-120000",
+                "netAfterPlanningRaw": "-120000",
+                "failureLossRaw": "120000",
+                "knownFailureLossLowerBoundRaw": "120000"
+              },
+              "executionCostDeviationRaw": "0",
+              "gaps": []
+            },
+            {
+              "requestId": "9db384d1-ee64-41b1-a7f2-8a8fa0e3d0c5",
+              "at": "2026-10-17T14:11:07.621Z",
+              "action": "task",
+              "outcome": "succeeded",
+              "prediction": {
+                "source": "original-workflow-admission",
+                "atMs": 1792246260430,
+                "snapshotHash": "d32641746fc8d25725f3b75407a44df001bdc4f0dbc50fc0eb3cba9f4d765ea4",
+                "routeBinding": "6db5a459e41e0c67103c5379d6ec92e24a8a156a87ac205e3b28ddf89be13c96",
+                "taskId": "4",
+                "problemId": "sum-integers",
+                "providerId": "trusted-fixed",
+                "tier": "cheap",
+                "funding": "cash",
+                "executionCostRaw": "120000",
+                "planningCostRaw": "0",
+                "borrowerFeeRaw": "0",
+                "netRevenueRaw": "200000",
+                "netRewardRaw": "80000",
+                "originalMinNetRewardRaw": "1"
+              },
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "120000",
+                "borrowingFeeRaw": "0",
+                "taskRevenueRaw": "200000",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "80000",
+                "netAfterPlanningRaw": "80000",
+                "failureLossRaw": null,
+                "knownFailureLossLowerBoundRaw": null
+              },
+              "executionCostDeviationRaw": "0",
+              "gaps": []
+            },
+            {
+              "requestId": "c71255ef-4598-461e-8153-23f14cf1b8ee",
+              "at": "2026-10-17T14:10:59.680Z",
+              "action": "task",
+              "outcome": "succeeded",
+              "prediction": {
+                "source": "original-workflow-admission",
+                "atMs": 1792246252883,
+                "snapshotHash": "25d76ddfb30f3547108d3e8dc1cacf787ade1e787d37432d121811b9f2ae18ae",
+                "routeBinding": "c631fe10b7565ae5ad062e12335c9665ea74cb5372dca8d32b99e3fb3b53cdd0",
+                "taskId": "3",
+                "problemId": "unique-sorted",
+                "providerId": "trusted-fixed",
+                "tier": "cheap",
+                "funding": "task-credit",
+                "executionCostRaw": "120000",
+                "planningCostRaw": "0",
+                "borrowerFeeRaw": "1800",
+                "netRevenueRaw": "200000",
+                "netRewardRaw": "78200",
+                "originalMinNetRewardRaw": "1"
+              },
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "120000",
+                "borrowingFeeRaw": "1800",
+                "taskRevenueRaw": "200000",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "78200",
+                "netAfterPlanningRaw": "78200",
+                "failureLossRaw": null,
+                "knownFailureLossLowerBoundRaw": null
+              },
+              "executionCostDeviationRaw": "0",
+              "gaps": []
+            },
+            {
+              "requestId": "dfffff70-f482-4803-9f6e-fa68c8ef9799",
+              "at": "2026-10-17T14:10:52.299Z",
+              "action": "task",
+              "outcome": "succeeded",
+              "prediction": {
+                "source": "original-workflow-admission",
+                "atMs": 1792246243704,
+                "snapshotHash": "7bff90f464e31e9da7ee32b131facf1d40a7198541bcf94d3c691164a03fc782",
+                "routeBinding": "c631fe10b7565ae5ad062e12335c9665ea74cb5372dca8d32b99e3fb3b53cdd0",
+                "taskId": "2",
+                "problemId": "sum-integers",
+                "providerId": "trusted-fixed",
+                "tier": "cheap",
+                "funding": "task-credit",
+                "executionCostRaw": "120000",
+                "planningCostRaw": "0",
+                "borrowerFeeRaw": "12000",
+                "netRevenueRaw": "200000",
+                "netRewardRaw": "68000",
+                "originalMinNetRewardRaw": "1"
+              },
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "120000",
+                "borrowingFeeRaw": "12000",
+                "taskRevenueRaw": "200000",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "68000",
+                "netAfterPlanningRaw": "68000",
+                "failureLossRaw": null,
+                "knownFailureLossLowerBoundRaw": null
+              },
+              "executionCostDeviationRaw": "0",
+              "gaps": []
+            },
+            {
+              "requestId": "098ae78d-b20a-46ff-8e13-b8f7edd59969",
+              "at": "2026-10-17T14:10:43.110Z",
+              "action": "task",
+              "outcome": "failed",
+              "prediction": null,
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "0",
+                "borrowingFeeRaw": "0",
+                "taskRevenueRaw": "0",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "0",
+                "netAfterPlanningRaw": "0",
+                "failureLossRaw": "0",
+                "knownFailureLossLowerBoundRaw": "0"
+              },
+              "executionCostDeviationRaw": null,
+              "gaps": [
+                "STRATEGY_ORIGINAL_ADMISSION_REJECTED",
+                "STRATEGY_ORIGINAL_PREDICTION_MISSING"
+              ]
+            }
+          ],
+          "entryCount": 6,
+          "entriesTruncated": false,
+          "gaps": [
+            "ACCOUNTING_PAYMENT_UNRESOLVED",
+            "ACCOUNTING_PENDING",
+            "ACCOUNTING_SETTLEMENT_MISSING",
+            "STRATEGY_ORIGINAL_ADMISSION_REJECTED",
+            "STRATEGY_ORIGINAL_PREDICTION_MISSING"
+          ],
+          "comparableCount": 4,
+          "knownFailureLossRaw": "120000",
+          "unknownFailureLossCount": 0,
+          "gameSubsidyRaw": "0",
+          "creditsGranted": 0,
+          "creditsUsed": 0,
+          "netOperatingRaw": null
+        },
+        "candidates": [
+          {
+            "taskId": "9001",
+            "problemId": "sum-integers",
+            "providerId": "trusted-fixed",
+            "tier": "cheap",
+            "funding": "cash",
+            "source": "owner-hypothetical",
+            "status": "rejected",
+            "quotedExecutionCostRaw": "120000",
+            "observedCostBufferRaw": "0",
+            "comparableCount": 1,
+            "failedComparableCount": 0,
+            "observedFailureLossRaw": "0",
+            "adjustedExecutionCostRaw": "120000",
+            "planningCostRaw": "0",
+            "borrowerFeeRaw": "0",
+            "netRevenueRaw": "200000",
+            "successfulCompletionProfitRaw": "80000",
+            "requiredProfitRaw": "20000",
+            "cashRequiredRaw": "120000",
+            "cashAfterRaw": "-213800",
+            "creditRequiredRaw": "0",
+            "reasons": [
+              "STRATEGY_CASH_RESERVE"
+            ],
+            "gaps": [
+              "STRATEGY_UNRESOLVED_LIABILITIES"
+            ]
+          },
+          {
+            "taskId": "9002",
+            "problemId": "balanced-brackets",
+            "providerId": "trusted-fixed",
+            "tier": "cheap",
+            "funding": "cash",
+            "source": "owner-hypothetical",
+            "status": "rejected",
+            "quotedExecutionCostRaw": "120000",
+            "observedCostBufferRaw": "0",
+            "comparableCount": 1,
+            "failedComparableCount": 1,
+            "observedFailureLossRaw": "120000",
+            "adjustedExecutionCostRaw": "120000",
+            "planningCostRaw": "0",
+            "borrowerFeeRaw": "0",
+            "netRevenueRaw": "200000",
+            "successfulCompletionProfitRaw": "80000",
+            "requiredProfitRaw": "140000",
+            "cashRequiredRaw": "120000",
+            "cashAfterRaw": "-213800",
+            "creditRequiredRaw": "0",
+            "reasons": [
+              "STRATEGY_CASH_RESERVE",
+              "STRATEGY_MINIMUM_PROFIT"
+            ],
+            "gaps": [
+              "STRATEGY_UNRESOLVED_LIABILITIES"
+            ]
+          }
+        ],
+        "recommendation": {
+          "status": "blocked",
+          "reasons": [
+            "STRATEGY_UNRESOLVED_LIABILITIES"
+          ]
+        },
+        "gaps": [
+          "ACCOUNTING_HISTORY_MISSING",
+          "ACCOUNTING_PAYMENT_UNRESOLVED",
+          "ACCOUNTING_PENDING",
+          "ACCOUNTING_SETTLEMENT_MISSING",
+          "STRATEGY_ORIGINAL_ADMISSION_REJECTED",
+          "STRATEGY_ORIGINAL_PREDICTION_MISSING",
+          "STRATEGY_UNRESOLVED_LIABILITIES"
+        ]
+      }
+    },
+    {
+      "label": "after-original-full-refund",
+      "before": {
+        "cashRaw": "146200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "480000",
+        "agentNonce": 15,
+        "modelCalls": 5,
+        "quoteCalls": 5,
+        "historySha256": "2fe7ad64296dbcb8d27670bc5f7c062408fce5b2f429b544b4d4346572b1de89",
+        "inputsSha256": "ddd1e8a45fdd654a078a631ddfa5a0e87edc5463c74e3619e237dbed9edacfa2"
+      },
+      "after": {
+        "cashRaw": "146200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "480000",
+        "agentNonce": 15,
+        "modelCalls": 5,
+        "quoteCalls": 5,
+        "historySha256": "2fe7ad64296dbcb8d27670bc5f7c062408fce5b2f429b544b4d4346572b1de89",
+        "inputsSha256": "ddd1e8a45fdd654a078a631ddfa5a0e87edc5463c74e3619e237dbed9edacfa2"
+      },
+      "advice": {
+        "version": 1,
+        "observedAt": "2026-10-17T14:11:19.339Z",
+        "agentId": "fc6ee1ba-1f40-41e6-a2a7-0215daeb685d",
+        "mode": "advisory-only",
+        "currency": "USDC",
+        "decimals": 6,
+        "policy": {
+          "reserveCashRaw": "120000",
+          "minProfitRaw": "1",
+          "minMarginBps": "1000",
+          "source": "owner-preview",
+          "marginBasis": "net-task-revenue"
+        },
+        "basis": "successful-completion-bound",
+        "scope": "settlement-asset-only",
+        "exclusions": [
+          "native-gas",
+          "reward-token-opportunity-cost",
+          "success-probability"
+        ],
+        "cash": {
+          "status": "confirmed",
+          "cashRaw": "146200",
+          "financeObservedAt": "2026-10-17T14:11:19.324Z",
+          "reserveCashRaw": "120000",
+          "pendingCommitmentsRaw": "0",
+          "outstandingDebtRaw": "0",
+          "availableBeforeReserveRaw": "146200",
+          "spendableCashRaw": "26200",
+          "unresolvedLiabilities": false,
+          "creditIncluded": false
+        },
+        "history": {
+          "scope": "retained-hosted-history",
+          "entries": [
+            {
+              "requestId": "c89a8fef-fcfd-43e0-946b-959070e5d8c6",
+              "at": "2026-10-17T14:11:18.807Z",
+              "action": "task",
+              "outcome": "failed",
+              "prediction": {
+                "source": "original-workflow-admission",
+                "atMs": 1792246275334,
+                "snapshotHash": "3d0e37a760756d88a576f3ddef2d9037f8ff68aeb2e49fc0cde493a74465a580",
+                "routeBinding": "6db5a459e41e0c67103c5379d6ec92e24a8a156a87ac205e3b28ddf89be13c96",
+                "taskId": "6",
+                "problemId": "sum-integers",
+                "providerId": "trusted-fixed",
+                "tier": "cheap",
+                "funding": "cash",
+                "executionCostRaw": "120000",
+                "planningCostRaw": "0",
+                "borrowerFeeRaw": "0",
+                "netRevenueRaw": "200000",
+                "netRewardRaw": "80000",
+                "originalMinNetRewardRaw": "1"
+              },
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "0",
+                "borrowingFeeRaw": "0",
+                "taskRevenueRaw": "0",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "0",
+                "netAfterPlanningRaw": "0",
+                "failureLossRaw": "0",
+                "knownFailureLossLowerBoundRaw": "0"
+              },
+              "executionCostDeviationRaw": "-120000",
+              "gaps": []
+            },
+            {
+              "requestId": "89654533-4de2-4589-91d9-38d6098c9695",
+              "at": "2026-10-17T14:11:14.378Z",
+              "action": "task",
+              "outcome": "failed",
+              "prediction": {
+                "source": "original-workflow-admission",
+                "atMs": 1792246268639,
+                "snapshotHash": "b34808fb82ba1cf50c76b43e2b8f4fbe4866011ef937ec90927a08cdefbb7d2a",
+                "routeBinding": "6db5a459e41e0c67103c5379d6ec92e24a8a156a87ac205e3b28ddf89be13c96",
+                "taskId": "5",
+                "problemId": "balanced-brackets",
+                "providerId": "trusted-fixed",
+                "tier": "cheap",
+                "funding": "cash",
+                "executionCostRaw": "120000",
+                "planningCostRaw": "0",
+                "borrowerFeeRaw": "0",
+                "netRevenueRaw": "200000",
+                "netRewardRaw": "80000",
+                "originalMinNetRewardRaw": "1"
+              },
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "120000",
+                "borrowingFeeRaw": "0",
+                "taskRevenueRaw": "0",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "-120000",
+                "netAfterPlanningRaw": "-120000",
+                "failureLossRaw": "120000",
+                "knownFailureLossLowerBoundRaw": "120000"
+              },
+              "executionCostDeviationRaw": "0",
+              "gaps": []
+            },
+            {
+              "requestId": "9db384d1-ee64-41b1-a7f2-8a8fa0e3d0c5",
+              "at": "2026-10-17T14:11:07.621Z",
+              "action": "task",
+              "outcome": "succeeded",
+              "prediction": {
+                "source": "original-workflow-admission",
+                "atMs": 1792246260430,
+                "snapshotHash": "d32641746fc8d25725f3b75407a44df001bdc4f0dbc50fc0eb3cba9f4d765ea4",
+                "routeBinding": "6db5a459e41e0c67103c5379d6ec92e24a8a156a87ac205e3b28ddf89be13c96",
+                "taskId": "4",
+                "problemId": "sum-integers",
+                "providerId": "trusted-fixed",
+                "tier": "cheap",
+                "funding": "cash",
+                "executionCostRaw": "120000",
+                "planningCostRaw": "0",
+                "borrowerFeeRaw": "0",
+                "netRevenueRaw": "200000",
+                "netRewardRaw": "80000",
+                "originalMinNetRewardRaw": "1"
+              },
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "120000",
+                "borrowingFeeRaw": "0",
+                "taskRevenueRaw": "200000",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "80000",
+                "netAfterPlanningRaw": "80000",
+                "failureLossRaw": null,
+                "knownFailureLossLowerBoundRaw": null
+              },
+              "executionCostDeviationRaw": "0",
+              "gaps": []
+            },
+            {
+              "requestId": "c71255ef-4598-461e-8153-23f14cf1b8ee",
+              "at": "2026-10-17T14:10:59.680Z",
+              "action": "task",
+              "outcome": "succeeded",
+              "prediction": {
+                "source": "original-workflow-admission",
+                "atMs": 1792246252883,
+                "snapshotHash": "25d76ddfb30f3547108d3e8dc1cacf787ade1e787d37432d121811b9f2ae18ae",
+                "routeBinding": "c631fe10b7565ae5ad062e12335c9665ea74cb5372dca8d32b99e3fb3b53cdd0",
+                "taskId": "3",
+                "problemId": "unique-sorted",
+                "providerId": "trusted-fixed",
+                "tier": "cheap",
+                "funding": "task-credit",
+                "executionCostRaw": "120000",
+                "planningCostRaw": "0",
+                "borrowerFeeRaw": "1800",
+                "netRevenueRaw": "200000",
+                "netRewardRaw": "78200",
+                "originalMinNetRewardRaw": "1"
+              },
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "120000",
+                "borrowingFeeRaw": "1800",
+                "taskRevenueRaw": "200000",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "78200",
+                "netAfterPlanningRaw": "78200",
+                "failureLossRaw": null,
+                "knownFailureLossLowerBoundRaw": null
+              },
+              "executionCostDeviationRaw": "0",
+              "gaps": []
+            },
+            {
+              "requestId": "dfffff70-f482-4803-9f6e-fa68c8ef9799",
+              "at": "2026-10-17T14:10:52.299Z",
+              "action": "task",
+              "outcome": "succeeded",
+              "prediction": {
+                "source": "original-workflow-admission",
+                "atMs": 1792246243704,
+                "snapshotHash": "7bff90f464e31e9da7ee32b131facf1d40a7198541bcf94d3c691164a03fc782",
+                "routeBinding": "c631fe10b7565ae5ad062e12335c9665ea74cb5372dca8d32b99e3fb3b53cdd0",
+                "taskId": "2",
+                "problemId": "sum-integers",
+                "providerId": "trusted-fixed",
+                "tier": "cheap",
+                "funding": "task-credit",
+                "executionCostRaw": "120000",
+                "planningCostRaw": "0",
+                "borrowerFeeRaw": "12000",
+                "netRevenueRaw": "200000",
+                "netRewardRaw": "68000",
+                "originalMinNetRewardRaw": "1"
+              },
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "120000",
+                "borrowingFeeRaw": "12000",
+                "taskRevenueRaw": "200000",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "68000",
+                "netAfterPlanningRaw": "68000",
+                "failureLossRaw": null,
+                "knownFailureLossLowerBoundRaw": null
+              },
+              "executionCostDeviationRaw": "0",
+              "gaps": []
+            },
+            {
+              "requestId": "098ae78d-b20a-46ff-8e13-b8f7edd59969",
+              "at": "2026-10-17T14:10:43.110Z",
+              "action": "task",
+              "outcome": "failed",
+              "prediction": null,
+              "realized": {
+                "status": "confirmed",
+                "executionCostRaw": "0",
+                "borrowingFeeRaw": "0",
+                "taskRevenueRaw": "0",
+                "planningCostRaw": "0",
+                "taskContributionRaw": "0",
+                "netAfterPlanningRaw": "0",
+                "failureLossRaw": "0",
+                "knownFailureLossLowerBoundRaw": "0"
+              },
+              "executionCostDeviationRaw": null,
+              "gaps": [
+                "STRATEGY_ORIGINAL_ADMISSION_REJECTED",
+                "STRATEGY_ORIGINAL_PREDICTION_MISSING"
+              ]
+            }
+          ],
+          "entryCount": 6,
+          "entriesTruncated": false,
+          "gaps": [
+            "STRATEGY_ORIGINAL_ADMISSION_REJECTED",
+            "STRATEGY_ORIGINAL_PREDICTION_MISSING"
+          ],
+          "comparableCount": 5,
+          "knownFailureLossRaw": "120000",
+          "unknownFailureLossCount": 0,
+          "gameSubsidyRaw": "0",
+          "creditsGranted": 0,
+          "creditsUsed": 0,
+          "netOperatingRaw": "106200"
+        },
+        "candidates": [
+          {
+            "taskId": "9001",
+            "problemId": "sum-integers",
+            "providerId": "trusted-fixed",
+            "tier": "cheap",
+            "funding": "cash",
+            "source": "owner-hypothetical",
+            "status": "rejected",
+            "quotedExecutionCostRaw": "120000",
+            "observedCostBufferRaw": "0",
+            "comparableCount": 2,
+            "failedComparableCount": 1,
+            "observedFailureLossRaw": "0",
+            "adjustedExecutionCostRaw": "120000",
+            "planningCostRaw": "0",
+            "borrowerFeeRaw": "0",
+            "netRevenueRaw": "200000",
+            "successfulCompletionProfitRaw": "80000",
+            "requiredProfitRaw": "20000",
+            "cashRequiredRaw": "120000",
+            "cashAfterRaw": "26200",
+            "creditRequiredRaw": "0",
+            "reasons": [
+              "STRATEGY_CASH_RESERVE"
+            ],
+            "gaps": []
+          },
+          {
+            "taskId": "9002",
+            "problemId": "balanced-brackets",
+            "providerId": "trusted-fixed",
+            "tier": "cheap",
+            "funding": "cash",
+            "source": "owner-hypothetical",
+            "status": "rejected",
+            "quotedExecutionCostRaw": "120000",
+            "observedCostBufferRaw": "0",
+            "comparableCount": 1,
+            "failedComparableCount": 1,
+            "observedFailureLossRaw": "120000",
+            "adjustedExecutionCostRaw": "120000",
+            "planningCostRaw": "0",
+            "borrowerFeeRaw": "0",
+            "netRevenueRaw": "200000",
+            "successfulCompletionProfitRaw": "80000",
+            "requiredProfitRaw": "140000",
+            "cashRequiredRaw": "120000",
+            "cashAfterRaw": "26200",
+            "creditRequiredRaw": "0",
+            "reasons": [
+              "STRATEGY_CASH_RESERVE",
+              "STRATEGY_MINIMUM_PROFIT"
+            ],
+            "gaps": []
+          }
+        ],
+        "recommendation": {
+          "status": "no-eligible-candidate",
+          "reasons": [
+            "STRATEGY_CASH_RESERVE",
+            "STRATEGY_MINIMUM_PROFIT"
+          ]
+        },
+        "gaps": [
+          "STRATEGY_ORIGINAL_ADMISSION_REJECTED",
+          "STRATEGY_ORIGINAL_PREDICTION_MISSING"
+        ]
+      }
+    }
+  ],
+  "operatingReports": [
+    {
+      "label": "after-three-settled-tasks",
+      "before": {
+        "cashRaw": "266200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "360000",
+        "agentNonce": 11,
+        "modelCalls": 3,
+        "quoteCalls": 3,
+        "historySha256": "474ead68d3955b2c64381630357ba64e28054408b276cb260a0f6e9c4d03f7eb",
+        "inputsSha256": "9d4b068d4aa8e42971470dc51b3eca79b9f47193fcc8c89d574f55b6cc048a56"
+      },
+      "after": {
+        "cashRaw": "266200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "360000",
+        "agentNonce": 11,
+        "modelCalls": 3,
+        "quoteCalls": 3,
+        "historySha256": "474ead68d3955b2c64381630357ba64e28054408b276cb260a0f6e9c4d03f7eb",
+        "inputsSha256": "9d4b068d4aa8e42971470dc51b3eca79b9f47193fcc8c89d574f55b6cc048a56"
+      },
+      "operating": {
+        "version": 1,
+        "agentId": "fc6ee1ba-1f40-41e6-a2a7-0215daeb685d",
+        "observedAt": "2026-10-17T14:11:08.100Z",
+        "currency": "USDC",
+        "decimals": 6,
+        "mode": "read-only",
+        "scope": "owner-agent-contribution",
+        "status": "partial",
+        "agent": {
+          "taskRevenueRaw": "600000",
+          "netServiceCostRaw": "360000",
+          "refundsRaw": "0",
+          "borrowingFeeRaw": "13800",
+          "settlementOperatingRaw": "226200",
+          "actualProfitRaw": null,
+          "ownerCapitalRaw": "0",
+          "startupCapitalRaw": "40000",
+          "loanPrincipalRaw": "92000",
+          "gaps": [
+            "OPERATING_HOSTING_COST_UNRECORDED",
+            "OPERATING_NATIVE_GAS_UNRECORDED"
+          ]
+        },
+        "platform": {
+          "scope": "this-agent-only",
+          "derivedProtocolFeeRaw": "0",
+          "knownDerivedProtocolFeeRaw": "0",
+          "creditFeeSettledRaw": "13800",
+          "knownCreditFeeSettledRaw": "13800",
+          "creditFeeRecipient": "credit-vault",
+          "treasuryReceiptsRaw": null,
+          "actualProfitRaw": null,
+          "gaps": [
+            "OPERATING_HOSTING_COST_UNRECORDED",
+            "OPERATING_NATIVE_GAS_UNRECORDED",
+            "OPERATING_PROTOCOL_FEE_RECEIPT_NOT_RETAINED",
+            "OPERATING_TREASURY_RECEIPTS_UNCONFIRMED"
+          ]
+        },
+        "suppliers": {
+          "scope": "this-agent-only",
+          "grossReceiptsRaw": "360000",
+          "refundsRaw": "0",
+          "netReceiptsRaw": "360000",
+          "unattributedNetServiceCostRaw": "0",
+          "actualProfitRaw": null,
+          "rows": [
+            {
+              "routeBinding": "72396ac1ad2a0da1dc2c15c43aed75b0374a4e1f2fbee107f7ea7462fb4d3292",
+              "providerId": "trusted-fixed",
+              "payTo": "0x1efF47bc3a10a45D4B230B5d10E37751FE6AA718",
+              "chainId": "31337",
+              "account": "0x6D411e0A54382eD43F02410Ce1c7a7c122afA6E1",
+              "asset": "0x51a240271AB8AB9f9a21C82d9a85396b704E164d",
+              "service": "infercredit/solve-fixed",
+              "model": "pi-fixed-v1",
+              "grossReceiptsRaw": "360000",
+              "refundsRaw": "0",
+              "netReceiptsRaw": "360000",
+              "paymentCount": 3,
+              "actualProfitRaw": null
+            }
+          ],
+          "gaps": [
+            "OPERATING_HOSTING_COST_UNRECORDED",
+            "OPERATING_NATIVE_GAS_UNRECORDED",
+            "OPERATING_SUPPLIER_COST_UNRECORDED",
+            "OPERATING_UPSTREAM_COST_UNRECORDED"
+          ]
+        },
+        "subsidy": {
+          "gameUsdcGrantedRaw": "0",
+          "startupCapitalGrantedRaw": "40000",
+          "gameDistributionOutflowRaw": "0",
+          "distributionScope": "recorded-game-rewards-to-this-agent",
+          "startupCapitalSource": "unattributed-capital",
+          "usdcAttributedConsumptionRaw": null,
+          "usdcGrantRemainingRaw": null,
+          "rewardTokensGranted": 0,
+          "inferenceTokensUsed": 0,
+          "rewardTokensConsumed": null,
+          "rewardTokensRemaining": null,
+          "tokenUsageScope": "paid-and-reward-mix-unknown",
+          "gaps": [
+            "OPERATING_CASH_ALLOCATION_UNKNOWN",
+            "OPERATING_REWARD_TOKEN_ALLOCATION_UNKNOWN",
+            "OPERATING_STARTUP_CAPITAL_SOURCE_UNKNOWN"
+          ]
+        },
+        "cash": {
+          "status": "confirmed",
+          "cashRaw": "266200",
+          "financeObservedAt": "2026-10-17T14:11:08.080Z",
+          "pendingReservationsRaw": "0",
+          "outstandingDebtRaw": "0",
+          "reserveCashRaw": "120000",
+          "spendableCashRaw": "146200",
+          "shortfallRaw": "0",
+          "creditIncluded": false
+        },
+        "scenario": {
+          "source": "owner-hypothetical",
+          "recurringCostRaw": "0",
+          "settlementOperatingAfterAssumedCostRaw": "226200",
+          "costScope": "retained-history-period",
+          "costPeriod": {
+            "from": "2026-10-17T14:10:41.110Z",
+            "to": "2026-10-17T14:11:08.100Z"
+          },
+          "subsidyBudgetRaw": null,
+          "subsidyBudgetRemainingRaw": null,
+          "subsidyBudgetShortfallRaw": null,
+          "subsidyBudgetRunway": null
+        },
+        "runway": {
+          "source": "owner-hypothetical",
+          "scope": "agent-spendable-cash",
+          "availableRaw": "146200",
+          "burnAmountRaw": "120000",
+          "burnWindowMs": 86400000,
+          "status": "finite",
+          "horizonMs": "105264000",
+          "fullTasks": "1",
+          "reasons": []
+        },
+        "consolidation": {
+          "externalRevenueRaw": null,
+          "roleTotalsAdditive": false,
+          "gaps": [
+            "OPERATING_ROLE_OVERLAP_UNKNOWN"
+          ]
+        },
+        "coverage": {
+          "scope": "retained-hosted-history",
+          "since": "2026-10-17T14:10:41.110Z",
+          "runCount": 5,
+          "entryCount": 5,
+          "pendingCount": 0,
+          "incompleteCount": 0,
+          "returnedEntryCount": 5,
+          "entriesTruncated": false,
+          "uncoveredSpentRaw": "0",
+          "reasons": [],
+          "roleEntriesTruncated": false
+        },
+        "gaps": [
+          "OPERATING_BINDING_MISMATCH",
+          "OPERATING_CASH_ALLOCATION_UNKNOWN",
+          "OPERATING_HOSTING_COST_UNRECORDED",
+          "OPERATING_NATIVE_GAS_UNRECORDED",
+          "OPERATING_PROTOCOL_FEE_RECEIPT_NOT_RETAINED",
+          "OPERATING_REWARD_TOKEN_ALLOCATION_UNKNOWN",
+          "OPERATING_ROLE_OVERLAP_UNKNOWN",
+          "OPERATING_STARTUP_CAPITAL_SOURCE_UNKNOWN",
+          "OPERATING_SUPPLIER_COST_UNRECORDED",
+          "OPERATING_TREASURY_RECEIPTS_UNCONFIRMED",
+          "OPERATING_UPSTREAM_COST_UNRECORDED"
+        ]
+      }
+    },
+    {
+      "label": "after-paid-failure",
+      "before": {
+        "cashRaw": "146200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "480000",
+        "agentNonce": 13,
+        "modelCalls": 4,
+        "quoteCalls": 4,
+        "historySha256": "7769753c0e7d0a6a76210efa02367b5fe42f8db2e4a871c60c2756d7c4297f64",
+        "inputsSha256": "adff22dd72e466fd681f8c92c253a67492070737191df643c1c34b1db117551b"
+      },
+      "after": {
+        "cashRaw": "146200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "480000",
+        "agentNonce": 13,
+        "modelCalls": 4,
+        "quoteCalls": 4,
+        "historySha256": "7769753c0e7d0a6a76210efa02367b5fe42f8db2e4a871c60c2756d7c4297f64",
+        "inputsSha256": "adff22dd72e466fd681f8c92c253a67492070737191df643c1c34b1db117551b"
+      },
+      "operating": {
+        "version": 1,
+        "agentId": "fc6ee1ba-1f40-41e6-a2a7-0215daeb685d",
+        "observedAt": "2026-10-17T14:11:14.850Z",
+        "currency": "USDC",
+        "decimals": 6,
+        "mode": "read-only",
+        "scope": "owner-agent-contribution",
+        "status": "partial",
+        "agent": {
+          "taskRevenueRaw": "600000",
+          "netServiceCostRaw": "480000",
+          "refundsRaw": "0",
+          "borrowingFeeRaw": "13800",
+          "settlementOperatingRaw": "106200",
+          "actualProfitRaw": null,
+          "ownerCapitalRaw": "0",
+          "startupCapitalRaw": "40000",
+          "loanPrincipalRaw": "92000",
+          "gaps": [
+            "OPERATING_HOSTING_COST_UNRECORDED",
+            "OPERATING_NATIVE_GAS_UNRECORDED"
+          ]
+        },
+        "platform": {
+          "scope": "this-agent-only",
+          "derivedProtocolFeeRaw": "0",
+          "knownDerivedProtocolFeeRaw": "0",
+          "creditFeeSettledRaw": "13800",
+          "knownCreditFeeSettledRaw": "13800",
+          "creditFeeRecipient": "credit-vault",
+          "treasuryReceiptsRaw": null,
+          "actualProfitRaw": null,
+          "gaps": [
+            "OPERATING_HOSTING_COST_UNRECORDED",
+            "OPERATING_NATIVE_GAS_UNRECORDED",
+            "OPERATING_PROTOCOL_FEE_RECEIPT_NOT_RETAINED",
+            "OPERATING_TREASURY_RECEIPTS_UNCONFIRMED"
+          ]
+        },
+        "suppliers": {
+          "scope": "this-agent-only",
+          "grossReceiptsRaw": "480000",
+          "refundsRaw": "0",
+          "netReceiptsRaw": "480000",
+          "unattributedNetServiceCostRaw": "0",
+          "actualProfitRaw": null,
+          "rows": [
+            {
+              "routeBinding": "72396ac1ad2a0da1dc2c15c43aed75b0374a4e1f2fbee107f7ea7462fb4d3292",
+              "providerId": "trusted-fixed",
+              "payTo": "0x1efF47bc3a10a45D4B230B5d10E37751FE6AA718",
+              "chainId": "31337",
+              "account": "0x6D411e0A54382eD43F02410Ce1c7a7c122afA6E1",
+              "asset": "0x51a240271AB8AB9f9a21C82d9a85396b704E164d",
+              "service": "infercredit/solve-fixed",
+              "model": "pi-fixed-v1",
+              "grossReceiptsRaw": "480000",
+              "refundsRaw": "0",
+              "netReceiptsRaw": "480000",
+              "paymentCount": 4,
+              "actualProfitRaw": null
+            }
+          ],
+          "gaps": [
+            "OPERATING_HOSTING_COST_UNRECORDED",
+            "OPERATING_NATIVE_GAS_UNRECORDED",
+            "OPERATING_SUPPLIER_COST_UNRECORDED",
+            "OPERATING_UPSTREAM_COST_UNRECORDED"
+          ]
+        },
+        "subsidy": {
+          "gameUsdcGrantedRaw": "0",
+          "startupCapitalGrantedRaw": "40000",
+          "gameDistributionOutflowRaw": "0",
+          "distributionScope": "recorded-game-rewards-to-this-agent",
+          "startupCapitalSource": "unattributed-capital",
+          "usdcAttributedConsumptionRaw": null,
+          "usdcGrantRemainingRaw": null,
+          "rewardTokensGranted": 0,
+          "inferenceTokensUsed": 0,
+          "rewardTokensConsumed": null,
+          "rewardTokensRemaining": null,
+          "tokenUsageScope": "paid-and-reward-mix-unknown",
+          "gaps": [
+            "OPERATING_CASH_ALLOCATION_UNKNOWN",
+            "OPERATING_REWARD_TOKEN_ALLOCATION_UNKNOWN",
+            "OPERATING_STARTUP_CAPITAL_SOURCE_UNKNOWN"
+          ]
+        },
+        "cash": {
+          "status": "confirmed",
+          "cashRaw": "146200",
+          "financeObservedAt": "2026-10-17T14:11:14.834Z",
+          "pendingReservationsRaw": "0",
+          "outstandingDebtRaw": "0",
+          "reserveCashRaw": "120000",
+          "spendableCashRaw": "26200",
+          "shortfallRaw": "0",
+          "creditIncluded": false
+        },
+        "scenario": {
+          "source": "owner-hypothetical",
+          "recurringCostRaw": "0",
+          "settlementOperatingAfterAssumedCostRaw": "106200",
+          "costScope": "retained-history-period",
+          "costPeriod": {
+            "from": "2026-10-17T14:10:41.110Z",
+            "to": "2026-10-17T14:11:14.850Z"
+          },
+          "subsidyBudgetRaw": null,
+          "subsidyBudgetRemainingRaw": null,
+          "subsidyBudgetShortfallRaw": null,
+          "subsidyBudgetRunway": null
+        },
+        "runway": {
+          "source": "owner-hypothetical",
+          "scope": "agent-spendable-cash",
+          "availableRaw": "26200",
+          "burnAmountRaw": "120000",
+          "burnWindowMs": 86400000,
+          "status": "finite",
+          "horizonMs": "18864000",
+          "fullTasks": "0",
+          "reasons": []
+        },
+        "consolidation": {
+          "externalRevenueRaw": null,
+          "roleTotalsAdditive": false,
+          "gaps": [
+            "OPERATING_ROLE_OVERLAP_UNKNOWN"
+          ]
+        },
+        "coverage": {
+          "scope": "retained-hosted-history",
+          "since": "2026-10-17T14:10:41.110Z",
+          "runCount": 6,
+          "entryCount": 6,
+          "pendingCount": 0,
+          "incompleteCount": 0,
+          "returnedEntryCount": 6,
+          "entriesTruncated": false,
+          "uncoveredSpentRaw": "0",
+          "reasons": [],
+          "roleEntriesTruncated": false
+        },
+        "gaps": [
+          "OPERATING_BINDING_MISMATCH",
+          "OPERATING_CASH_ALLOCATION_UNKNOWN",
+          "OPERATING_HOSTING_COST_UNRECORDED",
+          "OPERATING_NATIVE_GAS_UNRECORDED",
+          "OPERATING_PROTOCOL_FEE_RECEIPT_NOT_RETAINED",
+          "OPERATING_REWARD_TOKEN_ALLOCATION_UNKNOWN",
+          "OPERATING_ROLE_OVERLAP_UNKNOWN",
+          "OPERATING_STARTUP_CAPITAL_SOURCE_UNKNOWN",
+          "OPERATING_SUPPLIER_COST_UNRECORDED",
+          "OPERATING_TREASURY_RECEIPTS_UNCONFIRMED",
+          "OPERATING_UPSTREAM_COST_UNRECORDED"
+        ]
+      }
+    },
+    {
+      "label": "while-original-payment-is-unknown",
+      "before": {
+        "cashRaw": "26200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "600000",
+        "agentNonce": 15,
+        "modelCalls": 5,
+        "quoteCalls": 5,
+        "historySha256": "7e41c40ac4bff8ca6e72a7a5024b0d54982f18e0740cc05f1fc54ce8833caf67",
+        "inputsSha256": "6cd68664d50e9c384a6e435e8c7dec260373dfa8b0998e8d63a79e1ee8b4e84f"
+      },
+      "after": {
+        "cashRaw": "26200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "600000",
+        "agentNonce": 15,
+        "modelCalls": 5,
+        "quoteCalls": 5,
+        "historySha256": "7e41c40ac4bff8ca6e72a7a5024b0d54982f18e0740cc05f1fc54ce8833caf67",
+        "inputsSha256": "6cd68664d50e9c384a6e435e8c7dec260373dfa8b0998e8d63a79e1ee8b4e84f"
+      },
+      "operating": {
+        "version": 1,
+        "agentId": "fc6ee1ba-1f40-41e6-a2a7-0215daeb685d",
+        "observedAt": "2026-10-17T14:11:17.337Z",
+        "currency": "USDC",
+        "decimals": 6,
+        "mode": "read-only",
+        "scope": "owner-agent-contribution",
+        "status": "partial",
+        "agent": {
+          "taskRevenueRaw": "600000",
+          "netServiceCostRaw": "600000",
+          "refundsRaw": "0",
+          "borrowingFeeRaw": "13800",
+          "settlementOperatingRaw": null,
+          "actualProfitRaw": null,
+          "ownerCapitalRaw": "0",
+          "startupCapitalRaw": "40000",
+          "loanPrincipalRaw": "92000",
+          "gaps": [
+            "OPERATING_HOSTING_COST_UNRECORDED",
+            "OPERATING_NATIVE_GAS_UNRECORDED"
+          ]
+        },
+        "platform": {
+          "scope": "this-agent-only",
+          "derivedProtocolFeeRaw": null,
+          "knownDerivedProtocolFeeRaw": "0",
+          "creditFeeSettledRaw": null,
+          "knownCreditFeeSettledRaw": "13800",
+          "creditFeeRecipient": "credit-vault",
+          "treasuryReceiptsRaw": null,
+          "actualProfitRaw": null,
+          "gaps": [
+            "OPERATING_CREDIT_FEE_UNKNOWN",
+            "OPERATING_HOSTING_COST_UNRECORDED",
+            "OPERATING_NATIVE_GAS_UNRECORDED",
+            "OPERATING_PROTOCOL_FEE_RECEIPT_NOT_RETAINED",
+            "OPERATING_PROTOCOL_FEE_UNKNOWN",
+            "OPERATING_TREASURY_RECEIPTS_UNCONFIRMED"
+          ]
+        },
+        "suppliers": {
+          "scope": "this-agent-only",
+          "grossReceiptsRaw": "480000",
+          "refundsRaw": "0",
+          "netReceiptsRaw": "480000",
+          "unattributedNetServiceCostRaw": "120000",
+          "actualProfitRaw": null,
+          "rows": [
+            {
+              "routeBinding": "72396ac1ad2a0da1dc2c15c43aed75b0374a4e1f2fbee107f7ea7462fb4d3292",
+              "providerId": "trusted-fixed",
+              "payTo": "0x1efF47bc3a10a45D4B230B5d10E37751FE6AA718",
+              "chainId": "31337",
+              "account": "0x6D411e0A54382eD43F02410Ce1c7a7c122afA6E1",
+              "asset": "0x51a240271AB8AB9f9a21C82d9a85396b704E164d",
+              "service": "infercredit/solve-fixed",
+              "model": "pi-fixed-v1",
+              "grossReceiptsRaw": "480000",
+              "refundsRaw": "0",
+              "netReceiptsRaw": "480000",
+              "paymentCount": 4,
+              "actualProfitRaw": null
+            }
+          ],
+          "gaps": [
+            "OPERATING_HOSTING_COST_UNRECORDED",
+            "OPERATING_NATIVE_GAS_UNRECORDED",
+            "OPERATING_SUPPLIER_ATTRIBUTION_INCOMPLETE",
+            "OPERATING_SUPPLIER_COST_UNRECORDED",
+            "OPERATING_UPSTREAM_COST_UNRECORDED"
+          ]
+        },
+        "subsidy": {
+          "gameUsdcGrantedRaw": "0",
+          "startupCapitalGrantedRaw": "40000",
+          "gameDistributionOutflowRaw": "0",
+          "distributionScope": "recorded-game-rewards-to-this-agent",
+          "startupCapitalSource": "unattributed-capital",
+          "usdcAttributedConsumptionRaw": null,
+          "usdcGrantRemainingRaw": null,
+          "rewardTokensGranted": 0,
+          "inferenceTokensUsed": 0,
+          "rewardTokensConsumed": null,
+          "rewardTokensRemaining": null,
+          "tokenUsageScope": "paid-and-reward-mix-unknown",
+          "gaps": [
+            "OPERATING_CASH_ALLOCATION_UNKNOWN",
+            "OPERATING_REWARD_TOKEN_ALLOCATION_UNKNOWN",
+            "OPERATING_STARTUP_CAPITAL_SOURCE_UNKNOWN",
+            "OPERATING_SUBSIDY_GRANTS_UNKNOWN"
+          ]
+        },
+        "cash": {
+          "status": "confirmed",
+          "cashRaw": "26200",
+          "financeObservedAt": "2026-10-17T14:11:17.321Z",
+          "pendingReservationsRaw": "120000",
+          "outstandingDebtRaw": "0",
+          "reserveCashRaw": "120000",
+          "spendableCashRaw": null,
+          "shortfallRaw": null,
+          "creditIncluded": false
+        },
+        "scenario": {
+          "source": "owner-hypothetical",
+          "recurringCostRaw": "0",
+          "settlementOperatingAfterAssumedCostRaw": null,
+          "costScope": "retained-history-period",
+          "costPeriod": {
+            "from": "2026-10-17T14:10:41.110Z",
+            "to": "2026-10-17T14:11:17.337Z"
+          },
+          "subsidyBudgetRaw": null,
+          "subsidyBudgetRemainingRaw": null,
+          "subsidyBudgetShortfallRaw": null,
+          "subsidyBudgetRunway": null
+        },
+        "runway": {
+          "source": "owner-hypothetical",
+          "scope": "agent-spendable-cash",
+          "availableRaw": null,
+          "burnAmountRaw": "120000",
+          "burnWindowMs": 86400000,
+          "status": "unknown",
+          "horizonMs": null,
+          "fullTasks": null,
+          "reasons": [
+            "OPERATING_LIABILITIES_UNRESOLVED"
+          ]
+        },
+        "consolidation": {
+          "externalRevenueRaw": null,
+          "roleTotalsAdditive": false,
+          "gaps": [
+            "OPERATING_ROLE_OVERLAP_UNKNOWN"
+          ]
+        },
+        "coverage": {
+          "scope": "retained-hosted-history",
+          "since": "2026-10-17T14:10:41.110Z",
+          "runCount": 7,
+          "entryCount": 7,
+          "pendingCount": 1,
+          "incompleteCount": 0,
+          "returnedEntryCount": 7,
+          "entriesTruncated": false,
+          "uncoveredSpentRaw": "120000",
+          "reasons": [
+            "ACCOUNTING_HISTORY_MISSING",
+            "ACCOUNTING_PAYMENT_UNRESOLVED",
+            "ACCOUNTING_PENDING",
+            "ACCOUNTING_SETTLEMENT_MISSING"
+          ],
+          "roleEntriesTruncated": false
+        },
+        "gaps": [
+          "ACCOUNTING_HISTORY_MISSING",
+          "ACCOUNTING_PAYMENT_UNRESOLVED",
+          "ACCOUNTING_PENDING",
+          "ACCOUNTING_SETTLEMENT_MISSING",
+          "OPERATING_BINDING_MISMATCH",
+          "OPERATING_CASH_ALLOCATION_UNKNOWN",
+          "OPERATING_CREDIT_FEE_UNKNOWN",
+          "OPERATING_HOSTING_COST_UNRECORDED",
+          "OPERATING_LIABILITIES_UNRESOLVED",
+          "OPERATING_NATIVE_GAS_UNRECORDED",
+          "OPERATING_PROTOCOL_FEE_RECEIPT_NOT_RETAINED",
+          "OPERATING_PROTOCOL_FEE_UNKNOWN",
+          "OPERATING_REWARD_TOKEN_ALLOCATION_UNKNOWN",
+          "OPERATING_ROLE_OVERLAP_UNKNOWN",
+          "OPERATING_STARTUP_CAPITAL_SOURCE_UNKNOWN",
+          "OPERATING_SUBSIDY_GRANTS_UNKNOWN",
+          "OPERATING_SUPPLIER_ATTRIBUTION_INCOMPLETE",
+          "OPERATING_SUPPLIER_COST_UNRECORDED",
+          "OPERATING_TREASURY_RECEIPTS_UNCONFIRMED",
+          "OPERATING_UPSTREAM_COST_UNRECORDED"
+        ]
+      }
+    },
+    {
+      "label": "after-original-full-refund",
+      "before": {
+        "cashRaw": "146200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "480000",
+        "agentNonce": 15,
+        "modelCalls": 5,
+        "quoteCalls": 5,
+        "historySha256": "2fe7ad64296dbcb8d27670bc5f7c062408fce5b2f429b544b4d4346572b1de89",
+        "inputsSha256": "ddd1e8a45fdd654a078a631ddfa5a0e87edc5463c74e3619e237dbed9edacfa2"
+      },
+      "after": {
+        "cashRaw": "146200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "480000",
+        "agentNonce": 15,
+        "modelCalls": 5,
+        "quoteCalls": 5,
+        "historySha256": "2fe7ad64296dbcb8d27670bc5f7c062408fce5b2f429b544b4d4346572b1de89",
+        "inputsSha256": "ddd1e8a45fdd654a078a631ddfa5a0e87edc5463c74e3619e237dbed9edacfa2"
+      },
+      "operating": {
+        "version": 1,
+        "agentId": "fc6ee1ba-1f40-41e6-a2a7-0215daeb685d",
+        "observedAt": "2026-10-17T14:11:19.340Z",
+        "currency": "USDC",
+        "decimals": 6,
+        "mode": "read-only",
+        "scope": "owner-agent-contribution",
+        "status": "partial",
+        "agent": {
+          "taskRevenueRaw": "600000",
+          "netServiceCostRaw": "480000",
+          "refundsRaw": "120000",
+          "borrowingFeeRaw": "13800",
+          "settlementOperatingRaw": "106200",
+          "actualProfitRaw": null,
+          "ownerCapitalRaw": "0",
+          "startupCapitalRaw": "40000",
+          "loanPrincipalRaw": "92000",
+          "gaps": [
+            "OPERATING_HOSTING_COST_UNRECORDED",
+            "OPERATING_NATIVE_GAS_UNRECORDED"
+          ]
+        },
+        "platform": {
+          "scope": "this-agent-only",
+          "derivedProtocolFeeRaw": "0",
+          "knownDerivedProtocolFeeRaw": "0",
+          "creditFeeSettledRaw": "13800",
+          "knownCreditFeeSettledRaw": "13800",
+          "creditFeeRecipient": "credit-vault",
+          "treasuryReceiptsRaw": null,
+          "actualProfitRaw": null,
+          "gaps": [
+            "OPERATING_HOSTING_COST_UNRECORDED",
+            "OPERATING_NATIVE_GAS_UNRECORDED",
+            "OPERATING_PROTOCOL_FEE_RECEIPT_NOT_RETAINED",
+            "OPERATING_TREASURY_RECEIPTS_UNCONFIRMED"
+          ]
+        },
+        "suppliers": {
+          "scope": "this-agent-only",
+          "grossReceiptsRaw": "600000",
+          "refundsRaw": "120000",
+          "netReceiptsRaw": "480000",
+          "unattributedNetServiceCostRaw": "0",
+          "actualProfitRaw": null,
+          "rows": [
+            {
+              "routeBinding": "72396ac1ad2a0da1dc2c15c43aed75b0374a4e1f2fbee107f7ea7462fb4d3292",
+              "providerId": "trusted-fixed",
+              "payTo": "0x1efF47bc3a10a45D4B230B5d10E37751FE6AA718",
+              "chainId": "31337",
+              "account": "0x6D411e0A54382eD43F02410Ce1c7a7c122afA6E1",
+              "asset": "0x51a240271AB8AB9f9a21C82d9a85396b704E164d",
+              "service": "infercredit/solve-fixed",
+              "model": "pi-fixed-v1",
+              "grossReceiptsRaw": "600000",
+              "refundsRaw": "120000",
+              "netReceiptsRaw": "480000",
+              "paymentCount": 5,
+              "actualProfitRaw": null
+            }
+          ],
+          "gaps": [
+            "OPERATING_HOSTING_COST_UNRECORDED",
+            "OPERATING_NATIVE_GAS_UNRECORDED",
+            "OPERATING_SUPPLIER_COST_UNRECORDED",
+            "OPERATING_UPSTREAM_COST_UNRECORDED"
+          ]
+        },
+        "subsidy": {
+          "gameUsdcGrantedRaw": "0",
+          "startupCapitalGrantedRaw": "40000",
+          "gameDistributionOutflowRaw": "0",
+          "distributionScope": "recorded-game-rewards-to-this-agent",
+          "startupCapitalSource": "unattributed-capital",
+          "usdcAttributedConsumptionRaw": null,
+          "usdcGrantRemainingRaw": null,
+          "rewardTokensGranted": 0,
+          "inferenceTokensUsed": 0,
+          "rewardTokensConsumed": null,
+          "rewardTokensRemaining": null,
+          "tokenUsageScope": "paid-and-reward-mix-unknown",
+          "gaps": [
+            "OPERATING_CASH_ALLOCATION_UNKNOWN",
+            "OPERATING_REWARD_TOKEN_ALLOCATION_UNKNOWN",
+            "OPERATING_STARTUP_CAPITAL_SOURCE_UNKNOWN"
+          ]
+        },
+        "cash": {
+          "status": "confirmed",
+          "cashRaw": "146200",
+          "financeObservedAt": "2026-10-17T14:11:19.324Z",
+          "pendingReservationsRaw": "0",
+          "outstandingDebtRaw": "0",
+          "reserveCashRaw": "120000",
+          "spendableCashRaw": "26200",
+          "shortfallRaw": "0",
+          "creditIncluded": false
+        },
+        "scenario": {
+          "source": "owner-hypothetical",
+          "recurringCostRaw": "0",
+          "settlementOperatingAfterAssumedCostRaw": "106200",
+          "costScope": "retained-history-period",
+          "costPeriod": {
+            "from": "2026-10-17T14:10:41.110Z",
+            "to": "2026-10-17T14:11:19.340Z"
+          },
+          "subsidyBudgetRaw": null,
+          "subsidyBudgetRemainingRaw": null,
+          "subsidyBudgetShortfallRaw": null,
+          "subsidyBudgetRunway": null
+        },
+        "runway": {
+          "source": "owner-hypothetical",
+          "scope": "agent-spendable-cash",
+          "availableRaw": "26200",
+          "burnAmountRaw": "120000",
+          "burnWindowMs": 86400000,
+          "status": "finite",
+          "horizonMs": "18864000",
+          "fullTasks": "0",
+          "reasons": []
+        },
+        "consolidation": {
+          "externalRevenueRaw": null,
+          "roleTotalsAdditive": false,
+          "gaps": [
+            "OPERATING_ROLE_OVERLAP_UNKNOWN"
+          ]
+        },
+        "coverage": {
+          "scope": "retained-hosted-history",
+          "since": "2026-10-17T14:10:41.110Z",
+          "runCount": 7,
+          "entryCount": 7,
+          "pendingCount": 0,
+          "incompleteCount": 0,
+          "returnedEntryCount": 7,
+          "entriesTruncated": false,
+          "uncoveredSpentRaw": "0",
+          "reasons": [],
+          "roleEntriesTruncated": false
+        },
+        "gaps": [
+          "OPERATING_BINDING_MISMATCH",
+          "OPERATING_CASH_ALLOCATION_UNKNOWN",
+          "OPERATING_HOSTING_COST_UNRECORDED",
+          "OPERATING_NATIVE_GAS_UNRECORDED",
+          "OPERATING_PROTOCOL_FEE_RECEIPT_NOT_RETAINED",
+          "OPERATING_REWARD_TOKEN_ALLOCATION_UNKNOWN",
+          "OPERATING_ROLE_OVERLAP_UNKNOWN",
+          "OPERATING_STARTUP_CAPITAL_SOURCE_UNKNOWN",
+          "OPERATING_SUPPLIER_COST_UNRECORDED",
+          "OPERATING_TREASURY_RECEIPTS_UNCONFIRMED",
+          "OPERATING_UPSTREAM_COST_UNRECORDED"
+        ]
+      }
+    }
+  ],
+  "accounting": {
+    "version": 1,
+    "observedAt": "2026-10-17T14:11:18.941Z",
+    "agentId": "fc6ee1ba-1f40-41e6-a2a7-0215daeb685d",
+    "currency": "USDC",
+    "decimals": 6,
+    "status": "complete",
+    "totals": {
+      "inferenceCostRaw": "480000",
+      "refundsRaw": "120000",
+      "taskRevenueRaw": "600000",
+      "borrowingFeeRaw": "13800",
+      "gameSubsidyRaw": "0",
+      "ownerCapitalRaw": "0",
+      "startupCapitalRaw": "40000",
+      "loanPrincipalRaw": "92000",
+      "creditsGranted": 0,
+      "creditsUsed": 0,
+      "netOperatingRaw": "106200"
+    },
+    "coverage": {
+      "scope": "retained-hosted-history",
+      "since": "2026-10-17T14:10:41.110Z",
+      "runCount": 7,
+      "entryCount": 7,
+      "pendingCount": 0,
+      "incompleteCount": 0,
+      "returnedEntryCount": 7,
+      "entriesTruncated": false,
+      "uncoveredSpentRaw": "0",
+      "reasons": []
+    },
+    "entries": [
+      {
+        "id": "c89a8fef-fcfd-43e0-946b-959070e5d8c6",
+        "requestId": "c89a8fef-fcfd-43e0-946b-959070e5d8c6",
+        "action": "task",
+        "at": "2026-10-17T14:11:18.807Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "0",
+        "refundsRaw": "120000",
+        "taskRevenueRaw": "0",
+        "borrowingFeeRaw": "0",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "0",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "taskId": "6",
+        "paymentId": "0xcb1117978cc8d968a2c619aa2ebc8ce06aafa93ce232dd4e74f2114dfeebedf0",
+        "txHash": "0xaf391449e1f46fe55daf8d8197f60416c9e50c89eb8c2df510a3d70a131aa5f7"
+      },
+      {
+        "id": "89654533-4de2-4589-91d9-38d6098c9695",
+        "requestId": "89654533-4de2-4589-91d9-38d6098c9695",
+        "action": "task",
+        "at": "2026-10-17T14:11:14.378Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "120000",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "0",
+        "borrowingFeeRaw": "0",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "0",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "taskId": "5",
+        "paymentId": "0x7d4c1f84018e7aa76e2ab1f00fcc8e626be3d8ce3e670fd52e631d5741bf1df8",
+        "txHash": "0x431becc1faa86c67f7b0e0648cb6247e43cc19b39fd585650ec900cb969f3892"
+      },
+      {
+        "id": "9db384d1-ee64-41b1-a7f2-8a8fa0e3d0c5",
+        "requestId": "9db384d1-ee64-41b1-a7f2-8a8fa0e3d0c5",
+        "action": "task",
+        "at": "2026-10-17T14:11:07.621Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "120000",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "200000",
+        "borrowingFeeRaw": "0",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "0",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "taskId": "4",
+        "paymentId": "0x402a040fd103cdb7746f90ff4d309d54f4065307bff425b71eda374e94ef6400",
+        "txHash": "0xf244844863f52048231c94d7466c7c68547d9cc61d4dc95f750d4767f408c6fc"
+      },
+      {
+        "id": "c71255ef-4598-461e-8153-23f14cf1b8ee",
+        "requestId": "c71255ef-4598-461e-8153-23f14cf1b8ee",
+        "action": "task",
+        "at": "2026-10-17T14:10:59.680Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "120000",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "200000",
+        "borrowingFeeRaw": "1800",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "12000",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "taskId": "3",
+        "paymentId": "0xf22491e02089201741c39d176925c8d7ce1bb98f985d0bcf990388c10b5ffd9e",
+        "txHash": "0x28f043e2bc80e12ddc59bcbc74596866c66d62cfc18272f06c84d3052b02885d"
+      },
+      {
+        "id": "dfffff70-f482-4803-9f6e-fa68c8ef9799",
+        "requestId": "dfffff70-f482-4803-9f6e-fa68c8ef9799",
+        "action": "task",
+        "at": "2026-10-17T14:10:52.299Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "120000",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "200000",
+        "borrowingFeeRaw": "12000",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "80000",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "taskId": "2",
+        "paymentId": "0x3ef02d8696a483852dc2ad1609bdc4eddbd090e60cf37950844837c1835f131b",
+        "txHash": "0x430ba3a38635138dface8e56bc978ab05e7c97b1a06b6fb8cf480cef8c8dee2c"
+      },
+      {
+        "id": "098ae78d-b20a-46ff-8e13-b8f7edd59969",
+        "requestId": "098ae78d-b20a-46ff-8e13-b8f7edd59969",
+        "action": "task",
+        "at": "2026-10-17T14:10:43.110Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "0",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "0",
+        "borrowingFeeRaw": "0",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "0",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": []
+      },
+      {
+        "id": "f1e47633-3fd5-4b90-a3dd-dc07b08428c4",
+        "requestId": "f1e47633-3fd5-4b90-a3dd-dc07b08428c4",
+        "action": "provision",
+        "at": "2026-10-17T14:10:42.633Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "0",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "0",
+        "borrowingFeeRaw": "0",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "40000",
+        "loanPrincipalRaw": "0",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "txHash": "0x97796f015ac5c4dac21aad6cb4c653552e00026bcca12668e47d895b1490476c"
+      }
+    ]
+  },
+  "chain": {
+    "contracts": {
+      "identity": "0xF2E246BB76DF876Cef8b38ae84130F4F55De395b",
+      "asset": "0x51a240271AB8AB9f9a21C82d9a85396b704E164d",
+      "manager": "0xB9816fC57977D5A786E654c7CF76767be63b966e",
+      "account": "0x6D411e0A54382eD43F02410Ce1c7a7c122afA6E1",
+      "escrow": "0x5CF7F96627F3C9903763d128A1cc5D97556A6b99"
+    },
+    "latestBlock": 53,
+    "providerPaidEventCount": 5,
+    "finalAgentCashRaw": "146200",
+    "providerNetReceivedRaw": "480000"
+  },
+  "journalSha256": {
+    "provision": "953204987787d977026ec261b22b638e25ea18b23f45faf1f49f0d6ac31d8990",
+    "rejected": "3d942fba00ec679fd12521394a4fa4c8572b782af10fff142c9e3e215d06fa5b",
+    "profitable-1": "c0ee1bcccf3749eb1c0aa9edd99cc22d7b9b802aa91fa9557ce7737e68d94720",
+    "profitable-2": "9d4451d77d23b7d5661f731e286ba67da0aaafdef7443e3ffd9756076464febf",
+    "profitable-3": "a5b1255ede5ee73440443599ab826f6e8ebea420aa43835599d7430de23a9cec",
+    "failed": "fc06c527582c47ae6f025807d628ebc49cd501778c118b81f61b58b46705423d",
+    "unknown-refunded": "931a1af22281d89c88fa1c7a8977a96caaa035867611e12385adbcb6a2c84b95"
+  },
+  "artifactSha256": {
+    "AgentAccount": "404cf30a8014b2968f514ea0b0c3e5349156ae3d8e46a5fc2f4174d892b5a26d",
+    "CreditManager": "9caed8b54d5e39e5795b61f45638264a881808cd8bdc8eb2f140d1f47422b2a6",
+    "TaskEscrow": "54d52b352d179b625270fb7a89e169578e53fc8e677bac8cabab8d28e879d5b4",
+    "ERC8004Adapter": "0b98004cea7ee7def71e3f0a64edbbe40bd0c57bc53a305ea32939c546b9daa7",
+    "MockERC20": "b344e254307f85c59105ae7d170d421dd10b87d32ae89977dbf3da6803cc9a5d",
+    "MockIdentityRegistry": "be8d3fa38aa2faf23b426df9a69060e5f3b341f916e0e5f075f7865810336539"
+  },
+  "completedAt": "2026-10-17T14:11:19.540Z",
+  "durationMs": 42530,
+  "cleanup": {
+    "privateTempDirectoryRemoved": true,
+    "ownedContainersRemoved": true,
+    "ownedProcessesStopped": true,
+    "ownedIpcDirectoryRemoved": true,
+    "failures": []
+  }
+}
