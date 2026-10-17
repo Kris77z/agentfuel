@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
-import { readFile, realpath, writeFile } from "node:fs/promises";
+import { readFile, readdir, realpath, writeFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { Contract, Wallet } from "ethers";
 import { createWorkflowFixture, GOOD_CODE } from "../packages/pi-loop/test/workflow-fixture.js";
 import { key, read, tx } from "../services/underwriter/test/fixture.js";
 import { HostedTaskExecutor, type HostedTaskExecutorConfig } from "../services/hosted-agents/src/task-executor.js";
 import { readHostedAccounting } from "../services/hosted-agents/src/accounting.js";
+import { readHostedStrategyAdvice } from "../services/hosted-agents/src/strategy-history.js";
+import type { StrategyPreviewCandidate } from "../services/hosted-agents/src/strategy-types.js";
 import type { HostedAgent, HostedExecution, HostedResult, HostedRun, HostedStrategy } from "../services/hosted-agents/src/types.js";
 import type { WorkflowConfig } from "../packages/pi-loop/src/workflow.js";
 
@@ -30,7 +32,14 @@ const report: Record<string, any> = { version: 1, suite: "local-economic-loop", 
     limitations: ["Local MockERC20 and MockIdentityRegistry; no public Monad or live model-vendor evidence.", "Model outputs and dispatch-unknown faults are controlled; Docker verdicts, payments, settlement and refund are real local transactions.", "Owner supplies initial USDC and native gas; task publishers pre-fund rewards and the lending pool has initial liquidity.", "The host supplies an explicit task sequence; this is not an autonomous-planner or external-publisher acceptance.", "No game is run: game subsidy is exactly zero; nonzero subsidy accounting is covered by separate game integration tests."] }, scenarios: [], predicates: {} };
 const stage = (name: string) => process.stderr.write(`economic-loop: ${name}\n`);
 const sha = (bytes: string | Buffer) => createHash("sha256").update(bytes).digest("hex");
+const strategySources = ["services/hosted-agents/src/strategy-advice.ts", "services/hosted-agents/src/strategy-history.ts",
+  "services/hosted-agents/src/strategy-types.ts", "services/hosted-agents/src/accounting.ts", "services/hosted-agents/src/finance-projection.ts",
+  "services/hosted-agents/src/finance-reader.ts", "services/hosted-agents/src/task-executor.ts", "packages/pi-loop/src/workflow.ts",
+  "packages/pi-loop/src/selector.ts", "packages/pi-loop/src/economics.ts"];
+const strategySourceHashes = async () => Object.fromEntries(await Promise.all(strategySources.map(async path =>
+  [path, sha(await readFile(new URL(`../${path}`, import.meta.url)))])));
 try {
+  report.strategySourceSha256 = await strategySourceHashes();
   stage("starting owned local services");
   fx = await createWorkflowFixture(join(directory, "runtime"), definitions);
   const f = fx.f;
@@ -77,6 +86,43 @@ try {
     return { txHash: receipt.hash, blockHash: receipt.blockHash, blockNumber: receipt.blockNumber, status: receipt.status, ...(eventName ? { event: eventName, eventCount: events.length, values } : {}) };
   };
   const accounting = async () => readHostedAccounting({ directory, agent, runs });
+  // Read the fresh local execution history; never manufacture new admissions or
+  // mutate the original requests to make the advisory projection look complete.
+  const historyDigest = async () => {
+    const files: [string, string][] = [];
+    const walk = async (path: string) => {
+      for (const entry of (await readdir(path, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
+        const child = join(path, entry.name);
+        assert.equal(entry.isSymbolicLink(), false);
+        if (entry.isDirectory()) await walk(child);
+        else if (entry.isFile()) files.push([child.slice(directory.length), sha(await readFile(child))]);
+      }
+    };
+    await walk(join(directory, "agents", agent.id));
+    return sha(JSON.stringify(files));
+  };
+  const advisoryRead = async (label: string) => {
+    const before = { ...await snapshot(), quoteCalls, historySha256: await historyDigest(), inputsSha256: sha(JSON.stringify({ agent, runs })) };
+    const finance = await new HostedTaskExecutor(config, { provider: f.provider }).finance(agent);
+    assert.equal(finance.status, "confirmed");
+    const history = await readHostedStrategyAdvice({ directory, agent, runs, finance });
+    assert.equal(history.history.gaps.includes("STRATEGY_ADMISSION_BINDING_MISMATCH"), false);
+    const candidates: StrategyPreviewCandidate[] = ["sum-integers", "balanced-brackets"].map((problemId, index) => ({
+      taskId: String(9001 + index), problemId, providerId: template.providers[0].id, tier: "cheap", funding: "cash",
+      routeBinding: history.history.entries.find(entry => entry.prediction?.problemId === problemId && entry.prediction.funding === "cash")?.prediction?.routeBinding,
+      executionCostRaw: "120000", planningCostRaw: "0", borrowerFeeBps: "1500", creditLimitRaw: "0",
+      rewardRaw: "200000", escrowBalanceRaw: "200000", protocolFeeBps: "0", deadlineMs: Date.now() + 60000,
+    }));
+    const advice = await readHostedStrategyAdvice({ directory, agent, runs, finance,
+      preview: { policy: { reserveCashRaw: "120000", minProfitRaw: "1", minMarginBps: "1000" }, candidates } });
+    const after = { ...await snapshot(), quoteCalls, historySha256: await historyDigest(), inputsSha256: sha(JSON.stringify({ agent, runs })) };
+    assert.deepEqual(after, before);
+    assert.equal(advice.mode, "advisory-only");
+    assert.equal(advice.cash.creditIncluded, false);
+    assert.ok(advice.candidates.every(candidate => candidate.source === "owner-hypothetical"));
+    (report.strategyAdvice ??= []).push({ label, before, after, advice });
+    return advice;
+  };
   const ledgerHashes: Record<string, string> = {};
   const remember = async (request: HostedExecution, label: string) => { ledgerHashes[label] = sha(await readFile(join(request.directory, "task-executor", "session.json"))); };
   let quoteCalls = 0; const quote = fx.relay.quote.bind(fx.relay); fx.relay.quote = async request => { quoteCalls++; return quote(request); };
@@ -129,6 +175,12 @@ try {
   assert.deepEqual([beforeFailureAccounting.totals.taskRevenueRaw, beforeFailureAccounting.totals.inferenceCostRaw, beforeFailureAccounting.totals.borrowingFeeRaw, beforeFailureAccounting.totals.startupCapitalRaw, beforeFailureAccounting.totals.gameSubsidyRaw], ["600000", "360000", "13800", "40000", "0"]);
   assert.equal(await cash(), "266200");
   report.accountingBeforeFailure = beforeFailureAccounting; report.predicates.realCreditExecutionSettlementRepayment = true; report.predicates.earningsFundNextTaskWithCreditDisabledAndZeroTopups = true;
+  const profitableAdvice = await advisoryRead("after-three-settled-tasks");
+  assert.equal(profitableAdvice.cash.cashRaw, "266200");
+  assert.equal(profitableAdvice.cash.spendableCashRaw, "146200");
+  assert.ok(profitableAdvice.history.entries.some(entry => entry.outcome === "succeeded" && entry.prediction !== null && entry.executionCostDeviationRaw === "0"));
+  assert.equal(profitableAdvice.recommendation.status, "preview");
+  assert.equal(profitableAdvice.recommendation.taskId, "9001");
 
   stage("retaining a paid hidden test failure");
   const failedRequest = input("task"), beforeFailed = await snapshot(); failedRequest.agent.allowCredit = false;
@@ -142,6 +194,11 @@ try {
     phase: failed.phase, reason: failed.reason, chargedRaw: failed.chargedRaw, taskRevenueRaw: failedEntry.taskRevenueRaw, borrowingFeeRaw: failedEntry.borrowingFeeRaw,
     payment: await receipt(failed.paymentTxHash, f.account, "ProviderPaid"), settlement: await receipt(failed.settlement!.txHash, f.escrow, "TaskSettled") });
   await remember(failedRequest, "failed"); report.predicates.failedCostRetainedWithoutInventedIncome = true;
+  const failedAdvice = await advisoryRead("after-paid-failure");
+  assert.equal(failedAdvice.cash.cashRaw, "146200");
+  assert.equal(failedAdvice.cash.spendableCashRaw, "26200");
+  assert.equal(failedAdvice.history.entries.find(entry => entry.requestId === failedRequest.run.requestId)?.realized.failureLossRaw, "120000");
+  assert.ok(failedAdvice.candidates.every(candidate => candidate.status !== "eligible"));
 
   stage("resuming the original unknown payment");
   const unknownRequest = input("task"); unknownRequest.agent.allowCredit = false;
@@ -149,6 +206,10 @@ try {
   assert.equal(unknown.phase, "Paused"); assert.equal(unknown.reason, "SOLVE_DISPATCH_UNKNOWN"); assert.equal(unknown.chargedRaw, "120000");
   const beforeRecovery = await snapshot(), originalSession = JSON.parse(await readFile(join(unknownRequest.directory, "task-executor/workflow/session.json"), "utf8"));
   const pendingAccounting = await accounting(); assert.equal(pendingAccounting.status, "partial"); assert.equal(pendingAccounting.totals.netOperatingRaw, null);
+  const unknownAdvice = await advisoryRead("while-original-payment-is-unknown");
+  assert.equal(unknownAdvice.recommendation.status, "blocked");
+  assert.equal(unknownAdvice.cash.unresolvedLiabilities, true);
+  assert.equal(unknownAdvice.history.netOperatingRaw, null);
   const recovered = await execute({ ...unknownRequest, recover: true }, unknownConfig); assert.equal(recovered.phase, "Paused"); assert.equal(recovered.paymentId, unknown.paymentId);
   assert.deepEqual(await snapshot(), beforeRecovery);
   const resumedSession = JSON.parse(await readFile(join(unknownRequest.directory, "task-executor/workflow/session.json"), "utf8"));
@@ -174,6 +235,11 @@ try {
   assert.equal(BigInt(await cash()), BigInt(report.accounting.totals.startupCapitalRaw) + BigInt(report.accounting.totals.netOperatingRaw));
   assert.equal(report.accounting.entries.find((entry: any) => entry.requestId === failedRequest.run.requestId).inferenceCostRaw, "120000");
   report.predicates.incomeCostCapitalAndSubsidySeparated = true; report.predicates.cashReconcilesToCapitalPlusOperatingResult = true;
+  const refundedAdvice = await advisoryRead("after-original-full-refund");
+  assert.equal(refundedAdvice.history.netOperatingRaw, "106200");
+  assert.equal(refundedAdvice.cash.unresolvedLiabilities, false);
+  report.predicates.readOnlyStrategyAdvicePreservesHistoryCashNonceAndModelCalls = true;
+  report.predicates.strategyAdviceRetainsPaidFailureAndBlocksUnknown = true;
   const lastNonce = await f.provider.getTransactionCount(wallet.address), lastCalls = fx.calls.length;
   assert.deepEqual(await execute({ ...unknownRequest, recover: true }, unknownConfig), refunded);
   assert.equal(await f.provider.getTransactionCount(wallet.address), lastNonce); assert.equal(fx.calls.length, lastCalls);
@@ -189,6 +255,7 @@ try {
   // No export of private journals, endpoint URLs, code responses or signed bytes.
   const publicText = JSON.stringify(report);
   for (const secret of [key(1), key(2), key(3), key(4), key(20), fx.local.rpc, fx.options.arenaUrl!, fx.options.underwriterUrl!, fx.config.providers[0].relayUrl, originalSession.accept.rawTransaction, originalSession.handle.submission.rawTransaction]) assert.equal(publicText.includes(secret), false);
+  assert.deepEqual(await strategySourceHashes(), report.strategySourceSha256, "advisory sources must remain stable during acceptance");
   report.status = "passed";
 } catch (error) {
   report.error = error instanceof assert.AssertionError ? "ASSERTION_FAILED" : /^[A-Z][A-Z0-9_]+$/.test((error as Error).message) ? (error as Error).message : "LOCAL_ECONOMIC_LOOP_FAILED";

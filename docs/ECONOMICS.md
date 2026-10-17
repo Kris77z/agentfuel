@@ -44,6 +44,8 @@ Where settlement, payment, nested execution, or refund evidence is missing or in
 
 ## Review and scope
 
+The [read-only strategy advice](STRATEGY-ADVICE.md) connects original predictions to realized costs and failed-task losses, then uses those observations to preview the next choice. It adds explicit cash reserves and absolute/margin profit requirements without changing runtime admission or saved requests. Run `npm run strategy:demo` for the controlled feedback example.
+
 The [Oct 17 local verification record](economics-local-20261017.md) lists the exercised layers, corrected test failures and actual local accounting assertions. It does not replace the public-chain evidence.
 
 Start with [the review entry](REVIEW.md) and run `npm run review:check` on Node.js 22+. The controlled economic tests exercise rejection, raw-unit arithmetic, funding and fee boundaries, subsidy/capital classification, duplicate accounting, and incomplete records. Local chain and browser integration checks are distinct from this offline entry point; their fixtures do not establish real model or public-chain performance.

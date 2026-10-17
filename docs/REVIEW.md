@@ -11,6 +11,8 @@ Tabby is Agent economic execution infrastructure on Monad: task-bound credit, pa
 
 For the next economic layer, inspect [task admission and operating accounts](ECONOMICS.md): new tasks must cover known execution, planning and borrowing costs; the accounting view separates settled task revenue from game subsidies and funding. These are repository improvements with controlled tests, separate from the dated public Monad runs above.
 
+The [read-only strategy advice](STRATEGY-ADVICE.md) closes the next feedback step: original decision → actual cost or failure → next hypothetical choice. `npm run strategy:demo` shows cost deviations and failed losses changing the preferred route, with cash reserves and profit requirements. It leaves execution policy unchanged and does not claim live market availability or a measured success probability.
+
 ## One command, no business credentials
 
 With Node.js **22+** and npm, install the locked dependencies once, then run:
@@ -41,6 +43,8 @@ npm run review:integration
 This runs the [economic lifecycle](economic-loop-local.md) first and then the [external publisher/Worker example](../examples/publisher-worker/README.md). Each creates a fresh local Anvil chain and temporary private state. Contract payments and settlements are real local transactions; model responses and registry identities are controlled. Docker evaluates the delivered code through the existing Arena and separate settler. These checks require the pinned Python image described in the linked guides; they do not use production wallets or public-chain/model credentials. The GitHub `local-economy` job runs this layer separately from `offline-review`.
 
 The [Oct 17 P0 local acceptance](p0-local-20261017.md) links the main agent's fresh reports, exact financial results, failure/recovery checks and preserved-history baseline.
+
+The [Oct 17 P1 acceptance](p1-strategy-local-20261017.md) adds reproducible decision feedback, authenticated read-only previews, and unchanged journal/nonce/model-call assertions against fresh local business results.
 
 The publisher/Worker example demonstrates independent installation and separate roles. It is not evidence of another team's adoption. Publisher task specifications are signed off-chain and admitted by a trusted verifier; the existing escrow does not enforce the specification hash on-chain. Neither local check establishes commercial demand or real-vendor profitability.
 

@@ -43,7 +43,9 @@
     "test:sdk:standalone": "node scripts/check-sdk-standalone.mjs",
     "economics:local": "node scripts/check-economic-loop.mjs",
     "test:publisher-worker": "node scripts/check-publisher-worker.mjs",
-    "review:integration": "npm run economics:local && npm run test:publisher-worker"
+    "review:integration": "npm run economics:local && npm run test:publisher-worker",
+    "strategy:demo": "tsx scripts/strategy-advice-demo.ts",
+    "test:strategy-demo": "tsx --test scripts/test/strategy-advice-demo.test.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

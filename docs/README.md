@@ -9,6 +9,7 @@ The repository contains current guides and dated engineering/acceptance records.
 | Where is the short review and one-command check? | [Five-minute review](REVIEW.md): latest evidence, source route, `review:check`, submission/date boundaries and deeper checks. |
 | How can I integrate the SDK outside this workspace? | [Standalone SDK example](../examples/sdk-standalone/README.md). |
 | Can I reproduce task economics and integrate separate publishing/execution roles? | [Local economic lifecycle](economic-loop-local.md) and [independent publisher/Worker example](../examples/publisher-worker/README.md); run `npm run review:integration` with Foundry and Docker. |
+| Does an actual result change the next economic suggestion? | [Read-only strategy advice](STRATEGY-ADVICE.md); run `npm run strategy:demo` for cost deviation, failure-loss cushions, cash reserves and minimum-profit gates. |
 | What does Tabby solve, and what can I run? | [English overview](../README.md), [中文介绍](../README.zh-CN.md) |
 | Where is each behavior implemented? | [Architecture and code map](ARCHITECTURE.md) |
 | What evidence supports a claim? | [Verification, amounts, receipts and replay checks](VERIFICATION.md) |

@@ -8,6 +8,9 @@ import { taskPrivateDirectory } from "../../../packages/pi-loop/src/task-runner/
 import { HostedError, type AgentCreation, type AgentSettings, type HostedAgent, type HostedConfig, type HostedExecutor, type HostedExecution, type HostedFinance, type HostedAccounting, type HostedResult, type HostedRun } from "./types.js";
 import { validateHostedFinance } from "./finance-projection.js";
 import { readHostedAccounting } from "./accounting.js";
+import { readHostedStrategyAdvice } from "./strategy-history.js";
+import { validateStrategyAdvicePreview } from "./strategy-advice.js";
+import type { HostedStrategyAdvice, StrategyAdvicePreview } from "./strategy-types.js";
 import { HOSTED_ACTIVITY_LIMIT, validateHostedActivity, type HostedActivityInput } from "./scene-types.js";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -164,6 +167,20 @@ export class HostedService {
     const snapshot = await this.serial(async () => ({ agent: structuredClone(this.agent(who, agentId)),
       runs: structuredClone(this.state.runs.filter(run => run.agentId === agentId)), fundingRoutes: structuredClone(this.state.fundingRoutes ?? {}) }));
     return readHostedAccounting({ directory: this.config.directory, ...snapshot });
+  }
+  async strategyAdvice(who: string, agentId: string, input: StrategyAdvicePreview = {}): Promise<HostedStrategyAdvice> {
+    // Authenticate ownership before reading any private evidence; previews never enter durable admission.
+    const copy = () => ({ agent: structuredClone(this.agent(who, agentId)),
+      runs: structuredClone(this.state.runs.filter(run => run.agentId === agentId)), fundingRoutes: structuredClone(this.state.fundingRoutes ?? {}) });
+    const before = await this.serial(async () => copy());
+    const preview = validateStrategyAdvicePreview(input);
+    const observedFinance = await this.finance(who, agentId);
+    const snapshot = await this.serial(async () => ({ ...copy(), observedAt: now() }));
+    // A chain read may outlive a new admission, completion or configuration change. Never combine its old cash with new free budget.
+    const { observedAt, ...after } = snapshot;
+    const finance: HostedFinance = hash(JSON.stringify(before)) === hash(JSON.stringify(after)) ? observedFinance
+      : { status: "unavailable", observedAt, reason: "HOSTED_FINANCE_UNCONFIRMED" };
+    return readHostedStrategyAdvice({ directory: this.config.directory, ...after, observedAt, finance, preview });
   }
   mayContinue(agentId: string) { return this.serial(async () => this.state.agents.some(agent => agent.id === agentId && agent.status === "Ready")); }
   /** Daemon-only durable admission. There is deliberately no HTTP command for selecting a child ID. */
