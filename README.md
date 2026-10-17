@@ -28,6 +28,8 @@ npm run review:check
 
 This checks documentation, saved evidence, types and selected controlled mechanisms. [Review scope and deeper verification](docs/REVIEW.md) · [Standalone SDK integration](examples/sdk-standalone/README.md).
 
+For fresh local transactions, Docker verification and operating accounts, run `npm run review:integration` after preparing Foundry and the pinned Python image. It runs the [economic lifecycle](docs/economic-loop-local.md), followed by an [independent publisher/Worker consumer](examples/publisher-worker/README.md). Both use temporary Anvil chains and controlled model responses, separate from the public Monad evidence above.
+
 ## Inspect the arena
 
 | Capability | Concrete result | Evidence and reproduction |

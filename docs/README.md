@@ -8,6 +8,7 @@ The repository contains current guides and dated engineering/acceptance records.
 | --- | --- |
 | Where is the short review and one-command check? | [Five-minute review](REVIEW.md): latest evidence, source route, `review:check`, submission/date boundaries and deeper checks. |
 | How can I integrate the SDK outside this workspace? | [Standalone SDK example](../examples/sdk-standalone/README.md). |
+| Can I reproduce task economics and integrate separate publishing/execution roles? | [Local economic lifecycle](economic-loop-local.md) and [independent publisher/Worker example](../examples/publisher-worker/README.md); run `npm run review:integration` with Foundry and Docker. |
 | What does Tabby solve, and what can I run? | [English overview](../README.md), [中文介绍](../README.zh-CN.md) |
 | Where is each behavior implemented? | [Architecture and code map](ARCHITECTURE.md) |
 | What evidence supports a claim? | [Verification, amounts, receipts and replay checks](VERIFICATION.md) |
@@ -35,6 +36,7 @@ Runbooks retain Chinese operational detail. Real-model or public-chain execution
 
 | Date | Scope |
 | --- | --- |
+| Oct 17, 2026 | [P0 local economic lifecycle and external consumer acceptance](p0-local-20261017.md): real isolated Anvil/Docker, controlled models, seven economic predicates, independent publisher/Worker integration and original-request recovery; no production deployment or third-party adoption claim. |
 | Oct 16, 2026 | [Public demo readiness audit](monad-demo-readiness-20261016.md): current preparation gaps, local corrections, verification scope and a seven-step rehearsal script; no new public business execution. |
 | Oct 17, 2026 | [Public hackathon rehearsal](monad-hackathon-live-20261017.md) and [evidence index](../frontend/acceptance/monad-hackathon-20261017/README.md): real Monad execution, independent verification, recovery and presenter preparation. |
 | Oct 15, 2026 | [Public Monad real-model collaboration](monad-collaboration-live-20261015.md), [public report guide](../frontend/acceptance/monad-collaboration-20261015/README.md): external hiring, a separate model-fallback recheck and task 19's automatic token branch passed; original fallback failure and task 18's production failure/default retained. |

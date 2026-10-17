@@ -40,7 +40,10 @@
     "test:hosted": "npm test --workspace @agentfuel/hosted-agents",
     "review:check": "node scripts/review-check.mjs",
     "test:evidence": "node --test scripts/test/acceptance-evidence.test.mjs",
-    "test:sdk:standalone": "node scripts/check-sdk-standalone.mjs"
+    "test:sdk:standalone": "node scripts/check-sdk-standalone.mjs",
+    "economics:local": "node scripts/check-economic-loop.mjs",
+    "test:publisher-worker": "node scripts/check-publisher-worker.mjs",
+    "review:integration": "npm run economics:local && npm run test:publisher-worker"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

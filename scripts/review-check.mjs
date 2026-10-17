@@ -19,7 +19,8 @@ const steps = [
     'services/hosted-agents/test/accounting-http.test.ts',
     'frontend/test/hosted-accounting.test.ts',
     'services/hosted-agents/test/goals-reconciliation.test.ts',
-    'services/hosted-agents/test/model-fallback.test.ts']],
+    'services/hosted-agents/test/model-fallback.test.ts',
+    'examples/publisher-worker/test/protocol.test.mjs']],
   ['standalone SDK consumer', ['scripts/check-sdk-standalone.mjs']],
 ];
 for (const [label, args] of steps) {

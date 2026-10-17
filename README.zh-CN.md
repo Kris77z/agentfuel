@@ -26,6 +26,8 @@ npm run review:check
 
 此命令检查文档、已存证据、类型及精选受控机制。[检查边界与深度验证](docs/REVIEW.md) · [独立 SDK 接入示例](examples/sdk-standalone/README.md)。
 
+如需重新执行本地链交易、Docker 验证与经营核算，准备 Foundry 和固定摘要的 Python 镜像后，运行 `npm run review:integration`。它依次验证[完整经营过程](docs/economic-loop-local.md)与[独立发布方、Worker 接入](examples/publisher-worker/README.md)。两者均使用临时 Anvil 链和受控模型响应，与上面的公网 Monad 证据分开记录。
+
 ## 查看竞技场如何运行
 
 | 能力 | 具体结果 | 证据与复现 |

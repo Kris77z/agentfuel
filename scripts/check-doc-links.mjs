@@ -11,6 +11,7 @@ const guides = [
   'docs/monad-collaboration-live-20261015.md', 'frontend/acceptance/monad-collaboration-20261015/README.md',
   'docs/monad-demo-readiness-20261016.md',
   'docs/economics-local-20261017.md',
+  'docs/economic-loop-local.md', 'docs/p0-local-20261017.md', 'examples/publisher-worker/README.md',
   'docs/monad-hackathon-live-20261017.md', 'frontend/acceptance/monad-hackathon-20261017/README.md',
   'deploy/monad-vps/README.md', 'docs/monad-vps-20261014.md', 'AGENTS.md',
   'contracts/README.md', 'services/underwriter/README.md', 'services/provider-relay/README.md',

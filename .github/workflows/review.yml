@@ -20,3 +20,21 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npm run review:check
+
+  local-economy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.8.1
+      - run: npm ci --ignore-scripts
+      - name: Prepare isolated execution image
+        run: docker pull python:3.12-alpine@sha256:4c47124a8391cb7a9f571164147d154777cf012a4ece5f86097130d7a4478111
+      - name: Verify local economic loop and independent consumers
+        run: npm run review:integration

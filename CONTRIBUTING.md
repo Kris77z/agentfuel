@@ -15,6 +15,7 @@ For full protocol development, use Node.js 22.19+, npm, and Foundry. A complete 
 | TypeScript services or shared types | `npm run typecheck:all` and the affected workspace tests |
 | Solidity financial behavior | `forge test --root contracts --offline`; review invariants and affected integrations |
 | Full local payment/verification/settlement path | `npm run test:demo` with local Anvil and Docker |
+| Economic lifecycle and independent publisher/Worker integration | `npm run review:integration` with Foundry, Docker and the pinned Python image; see the [economic loop](docs/economic-loop-local.md) and [consumer guide](examples/publisher-worker/README.md) |
 | UI behavior and wallet interactions | Frontend unit/browser checks described in [frontend README](frontend/README.md) |
 | Monad recovery or real-model integration | Explicit opt-in configuration and dated evidence; use the relevant runbook |
 
@@ -37,7 +38,7 @@ Record acceptance date, chain ID, tested revision, real/controlled model mode, e
 
 Publish only needed, redacted evidence. `demo-output/`, keys, authenticated RPC URLs, sessions, provider secrets, private IPC, and raw signed transaction journals stay outside Git. Public JSON receipt summaries and transaction hashes are appropriate when their schema excludes those fields.
 
-CI runs `review:check` on pull requests and main/master pushes after dependency installation. Its explicit test list excludes public-chain, paid-model and Anvil/Docker integrations. Adding such a test to this entry point requires changing its documented scope.
+CI runs `review:check` on pull requests and main/master pushes after dependency installation. Its explicit test list excludes public-chain, paid-model and Anvil/Docker integrations. A separate `local-economy` job prepares Foundry and the pinned Docker image, then runs `review:integration` against temporary Anvil chains and controlled model responses. Neither job deploys services or reads production configuration. Keep these verification scopes separate.
 
 The [documentation checker](scripts/check-doc-links.mjs) validates the public guide set and accepts additional Markdown paths as arguments. Use repository-relative links so documents work on GitHub and in a clone.
 

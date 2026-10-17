@@ -1,0 +1,884 @@
+{
+  "version": 1,
+  "suite": "local-economic-loop",
+  "status": "passed",
+  "startedAt": "2026-10-17T07:17:16.281Z",
+  "provenance": {
+    "chainId": "31337",
+    "environment": "owned-local-anvil",
+    "settlementAsset": "six-decimal-mock-USDC",
+    "model": "controlled-response-injection",
+    "evaluation": "real-pinned-Docker-public-and-hidden-tests",
+    "settlement": "independent-Arena-settler-process",
+    "admission": "successful-completion-bound; not expected value",
+    "node": "v22.23.2",
+    "tools": {
+      "dockerTransport": "local-unix-socket",
+      "forge": "forge Version: 1.8.1",
+      "anvil": "anvil Version: 1.8.1",
+      "docker": "28.1.1",
+      "image": "sha256:54f0c1506c135da9a6b9cc0b0524b97e225b712ead8d601326d24f7e6619fede"
+    },
+    "source": {
+      "revision": "936f80d86072a4ae998a1a7fcc0d9bfb6e6dadf5",
+      "dirty": true,
+      "trackedDiffSha256": "95abe0c36f1553047a115309ec8df35f02abff8b7023879c516de396ae25197b",
+      "harnessSha256": "4b1286305a97ff30ad7195f46756b6e84ed1e3969b480a59da80e8e0c9105c67",
+      "launcherSha256": "4899d71ae348dff51da8a5f8186e26eaf2e61f856ef6a5b5dd888ab76ee9c8e3"
+    },
+    "dockerImage": "python:3.12-alpine@sha256:4c47124a8391cb7a9f571164147d154777cf012a4ece5f86097130d7a4478111"
+  },
+  "scope": {
+    "productionNetworkUsed": false,
+    "publicVendorCalls": false,
+    "nativeGasValuedInUSDC": false,
+    "nonzeroGameSubsidyExercised": false,
+    "autonomousPlannerExercised": false,
+    "limitations": [
+      "Local MockERC20 and MockIdentityRegistry; no public Monad or live model-vendor evidence.",
+      "Model outputs and dispatch-unknown faults are controlled; Docker verdicts, payments, settlement and refund are real local transactions.",
+      "Owner supplies initial USDC and native gas; task publishers pre-fund rewards and the lending pool has initial liquidity.",
+      "The host supplies an explicit task sequence; this is not an autonomous-planner or external-publisher acceptance.",
+      "No game is run: game subsidy is exactly zero; nonzero subsidy accounting is covered by separate game integration tests."
+    ]
+  },
+  "scenarios": [
+    {
+      "name": "reject-loss-before-payment",
+      "requestId": "73dfa1f1-64c6-40f8-b8d0-237ecc53b9f7",
+      "taskId": "1",
+      "phase": "Stopped",
+      "reason": "ECONOMICS_NOT_WORTHWHILE",
+      "economics": {
+        "basis": "successful-completion-bound",
+        "scope": "settlement-asset-only",
+        "rewardRaw": "100000",
+        "protocolFeeRaw": "0",
+        "netRevenueRaw": "100000",
+        "executionCostRaw": "120000",
+        "planningCostRaw": "0",
+        "fromCashRaw": "40000",
+        "fromCreditRaw": "80000",
+        "borrowerFeeRaw": "12000",
+        "netRewardRaw": "-32000",
+        "reason": "ECONOMICS_NOT_WORTHWHILE"
+      },
+      "before": {
+        "cashRaw": "40000",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "0",
+        "agentNonce": 4,
+        "modelCalls": 0,
+        "quoteCalls": 0
+      },
+      "after": {
+        "cashRaw": "40000",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "0",
+        "agentNonce": 4,
+        "modelCalls": 0,
+        "quoteCalls": 0
+      }
+    },
+    {
+      "name": "profitable-task-1",
+      "requestId": "c6668299-b9a2-40ec-a7ea-ee4be3c343e6",
+      "taskId": "2",
+      "before": {
+        "cashRaw": "40000",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "0",
+        "agentNonce": 4,
+        "modelCalls": 0
+      },
+      "after": {
+        "cashRaw": "108000",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "120000",
+        "agentNonce": 6,
+        "modelCalls": 1
+      },
+      "chargedRaw": "120000",
+      "taskRevenueRaw": "200000",
+      "fromCashRaw": "40000",
+      "fromCreditRaw": "80000",
+      "borrowingFeeRaw": "12000",
+      "netOperatingRaw": "68000",
+      "repaidRaw": "92000",
+      "residualRaw": "108000",
+      "loanStatus": "2",
+      "payment": {
+        "txHash": "0x720c3ca302941770e20ae28ba28b8658f52bf7bc889d655402de51d4aca0cf43",
+        "blockHash": "0xecf451c0a00f35fd20e7a29fed6086af02c46ad87a09363b2f7c33accfbd612c",
+        "blockNumber": 38,
+        "status": 1,
+        "event": "ProviderPaid",
+        "eventCount": 1,
+        "values": {
+          "agentId": "2",
+          "provider": "0x1efF47bc3a10a45D4B230B5d10E37751FE6AA718",
+          "paymentId": "0x01f61727a20beb3a1083f788846b7e242a7a2c7bb836fda0880a3c31ef9d1ce8",
+          "fromCash": "40000",
+          "fromCredit": "80000"
+        }
+      },
+      "settlement": {
+        "txHash": "0x430ba3a38635138dface8e56bc978ab05e7c97b1a06b6fb8cf480cef8c8dee2c",
+        "blockHash": "0x84b377dff2f738c5e793112f78514c39f7862659e184e2f98f8cd0be66287d4e",
+        "blockNumber": 39,
+        "status": 1,
+        "event": "TaskSettled",
+        "eventCount": 1,
+        "values": {
+          "taskId": "2",
+          "passed": true,
+          "repaid": "92000",
+          "slashed": "0",
+          "toAgent": "108000"
+        }
+      },
+      "funding": "initial-or-earned-cash-plus-task-credit"
+    },
+    {
+      "name": "profitable-task-2",
+      "requestId": "5db43016-24f7-4d61-8fdb-68e2694db11a",
+      "taskId": "3",
+      "before": {
+        "cashRaw": "108000",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "120000",
+        "agentNonce": 6,
+        "modelCalls": 1
+      },
+      "after": {
+        "cashRaw": "186200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "240000",
+        "agentNonce": 8,
+        "modelCalls": 2
+      },
+      "chargedRaw": "120000",
+      "taskRevenueRaw": "200000",
+      "fromCashRaw": "108000",
+      "fromCreditRaw": "12000",
+      "borrowingFeeRaw": "1800",
+      "netOperatingRaw": "78200",
+      "repaidRaw": "13800",
+      "residualRaw": "186200",
+      "loanStatus": "2",
+      "payment": {
+        "txHash": "0xdb1ed54ebe7912847234b8c4b97ca9e197a7a98381639545a95827cf6bcf7df9",
+        "blockHash": "0xab04d7a2ae18aa1ef7e139b2615018b32c554c21a7612b9f43638ac7669752d0",
+        "blockNumber": 41,
+        "status": 1,
+        "event": "ProviderPaid",
+        "eventCount": 1,
+        "values": {
+          "agentId": "2",
+          "provider": "0x1efF47bc3a10a45D4B230B5d10E37751FE6AA718",
+          "paymentId": "0x5652dad3c88f35321daa7d297c35a6f7a375e0001bc957deac2963f222649a7f",
+          "fromCash": "108000",
+          "fromCredit": "12000"
+        }
+      },
+      "settlement": {
+        "txHash": "0xf743df2997c77755c066c3c4c4e5efa8f5b4f8b533822af34ee6e10be0843516",
+        "blockHash": "0x1680569eaef60ad34cd4b9a2ddbbb5b2b4572d9b8bc81622b90fd63922eac424",
+        "blockNumber": 42,
+        "status": 1,
+        "event": "TaskSettled",
+        "eventCount": 1,
+        "values": {
+          "taskId": "3",
+          "passed": true,
+          "repaid": "13800",
+          "slashed": "0",
+          "toAgent": "186200"
+        }
+      },
+      "funding": "initial-or-earned-cash-plus-task-credit"
+    },
+    {
+      "name": "profitable-task-3",
+      "requestId": "9ec664f0-6211-4916-8842-26d5b56a1256",
+      "taskId": "4",
+      "before": {
+        "cashRaw": "186200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "240000",
+        "agentNonce": 8,
+        "modelCalls": 2
+      },
+      "after": {
+        "cashRaw": "266200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "360000",
+        "agentNonce": 11,
+        "modelCalls": 3
+      },
+      "chargedRaw": "120000",
+      "taskRevenueRaw": "200000",
+      "fromCashRaw": "120000",
+      "fromCreditRaw": "0",
+      "borrowingFeeRaw": "0",
+      "netOperatingRaw": "80000",
+      "repaidRaw": "0",
+      "residualRaw": "200000",
+      "loanStatus": "0",
+      "payment": {
+        "txHash": "0xd97a6647c6c631e473dde496d034fcd4baa3ff7f385c5e335475923874a501ff",
+        "blockHash": "0xf7fad8b9aa32b07f3179386a811790d2ff2796b7b0ca94f2a123ac016baf7d7a",
+        "blockNumber": 45,
+        "status": 1,
+        "event": "ProviderPaid",
+        "eventCount": 1,
+        "values": {
+          "agentId": "2",
+          "provider": "0x1efF47bc3a10a45D4B230B5d10E37751FE6AA718",
+          "paymentId": "0x8b62aebab6f46e3d09c21509b2d6a54d63c9386c0065d26c6e274189eeebb220",
+          "fromCash": "120000",
+          "fromCredit": "0"
+        }
+      },
+      "settlement": {
+        "txHash": "0x79a35bdfe19b0a133ac8c392aaa6bdbfbe22ae46957e5493f99c0a4ca970df5e",
+        "blockHash": "0xfa69327ea7366fc9773bea422fdebe3f136387c3f9f5cc3415e92bf0ec46ff44",
+        "blockNumber": 46,
+        "status": 1,
+        "event": "TaskSettled",
+        "eventCount": 1,
+        "values": {
+          "taskId": "4",
+          "passed": true,
+          "repaid": "0",
+          "slashed": "0",
+          "toAgent": "200000"
+        }
+      },
+      "funding": "cash-only-from-retained-earnings; credit-disabled"
+    },
+    {
+      "name": "paid-hidden-test-failure",
+      "requestId": "ef336204-916b-40e7-a8f8-7de03a40d58d",
+      "taskId": "5",
+      "before": {
+        "cashRaw": "266200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "360000",
+        "agentNonce": 11,
+        "modelCalls": 3
+      },
+      "after": {
+        "cashRaw": "146200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "480000",
+        "agentNonce": 13,
+        "modelCalls": 4
+      },
+      "phase": "Failed",
+      "reason": "ARENA_TASK_FAILED",
+      "chargedRaw": "120000",
+      "taskRevenueRaw": "0",
+      "borrowingFeeRaw": "0",
+      "payment": {
+        "txHash": "0x0778685cb9a6400e339f1ac3a6dae0e5866e0eddcb7a2042724b27dd45a2ec04",
+        "blockHash": "0x060c8349bcac77f57d9e8850bedff69836a44cbf5c352a82f0417950f138cc51",
+        "blockNumber": 48,
+        "status": 1,
+        "event": "ProviderPaid",
+        "eventCount": 1,
+        "values": {
+          "agentId": "2",
+          "provider": "0x1efF47bc3a10a45D4B230B5d10E37751FE6AA718",
+          "paymentId": "0x252938337d6f9a572b5c96c63b23c14858dcb4913dd59cbecd39ec63db11d3f8",
+          "fromCash": "120000",
+          "fromCredit": "0"
+        }
+      },
+      "settlement": {
+        "txHash": "0x02d44f599acefc07751404ac4755117bdd541b8ae493dfd342f2cbca8f5e9a4d",
+        "blockHash": "0x458fcabe5153d7a5654235f17b12bb4e62f72e4fd9786a41e08ccc2f58bd3640",
+        "blockNumber": 49,
+        "status": 1,
+        "event": "TaskSettled",
+        "eventCount": 1,
+        "values": {
+          "taskId": "5",
+          "passed": false,
+          "repaid": "0",
+          "slashed": "0",
+          "toAgent": "0"
+        }
+      }
+    },
+    {
+      "name": "unknown-original-request-recovery",
+      "requestId": "6dee2304-5d65-4870-8acc-57bbb90dff98",
+      "taskId": "6",
+      "paymentId": "0xb9469ba8f331e03faccd344cb8a7591b613392eb2317da263bc21e76dcf3708c",
+      "phaseBefore": "Paused",
+      "phaseAfter": "Paused",
+      "reason": "SOLVE_DISPATCH_UNKNOWN",
+      "chargedRaw": "120000",
+      "beforeRecovery": {
+        "cashRaw": "26200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "600000",
+        "agentNonce": 15,
+        "modelCalls": 5
+      },
+      "afterRecovery": {
+        "cashRaw": "26200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "600000",
+        "agentNonce": 15,
+        "modelCalls": 5
+      },
+      "pendingAccountingStatus": "partial",
+      "pendingNetOperatingRaw": null,
+      "originalAcceptBytesSha256": "430dddd1bd51bc7a536ff8173a2da4914cfdf53bf505ddb08c31d4453cad258c",
+      "originalPaymentBytesSha256": "1b21a745e3ff2e3622ea4ff31598400e87644c0a264dc5df36483cbf780c1717",
+      "payment": {
+        "txHash": "0x566f985873a25ddfc7863da54199b316f6af0e0c4c00037a88de36b19887974b",
+        "blockHash": "0x56793a9dac86a09669126162485e40ea4a63a2cdf127eb164f9487361b224b43",
+        "blockNumber": 51,
+        "status": 1,
+        "event": "ProviderPaid",
+        "eventCount": 1,
+        "values": {
+          "agentId": "2",
+          "provider": "0x1efF47bc3a10a45D4B230B5d10E37751FE6AA718",
+          "paymentId": "0xb9469ba8f331e03faccd344cb8a7591b613392eb2317da263bc21e76dcf3708c",
+          "fromCash": "120000",
+          "fromCredit": "0"
+        }
+      }
+    },
+    {
+      "name": "original-unknown-full-refund",
+      "requestId": "6dee2304-5d65-4870-8acc-57bbb90dff98",
+      "paymentId": "0xb9469ba8f331e03faccd344cb8a7591b613392eb2317da263bc21e76dcf3708c",
+      "phase": "Refunded",
+      "chargedRaw": "0",
+      "refundedRaw": "120000",
+      "after": {
+        "cashRaw": "146200",
+        "walletTokenRaw": "0",
+        "providerTokenRaw": "480000",
+        "agentNonce": 15,
+        "modelCalls": 5
+      },
+      "taskIsNotSuccessful": true,
+      "refund": {
+        "txHash": "0x9737f20b6956345764a1f7bd324d4e399089a27967e01c8a62e6ee15c92cc25f",
+        "blockHash": "0xd497bef817c19172c740277d1b62488895b66f53f8ed533462af8bce5345f537",
+        "blockNumber": 53,
+        "status": 1,
+        "event": "RefundProcessed",
+        "eventCount": 1,
+        "values": {
+          "paymentId": "0xb9469ba8f331e03faccd344cb8a7591b613392eb2317da263bc21e76dcf3708c",
+          "refundId": "0xac39e1914b3f01c9c9d8bc0be4cd0ec16d6d60ff673b2ed8f07ca9b74d38fcc9",
+          "amount": "120000",
+          "debtReduced": "0",
+          "toCash": "120000"
+        }
+      }
+    }
+  ],
+  "predicates": {
+    "rejectLossWithZeroPayment": true,
+    "realCreditExecutionSettlementRepayment": true,
+    "earningsFundNextTaskWithCreditDisabledAndZeroTopups": true,
+    "failedCostRetainedWithoutInventedIncome": true,
+    "unknownResumeUsesOriginalBytesWithoutDuplicatePaymentOrDispatch": true,
+    "incomeCostCapitalAndSubsidySeparated": true,
+    "cashReconcilesToCapitalPlusOperatingResult": true
+  },
+  "initialFunding": {
+    "startupCapitalRaw": "40000",
+    "ownerTopupsAfterProvisionRaw": "0",
+    "gameSubsidyRaw": "0",
+    "taskPublisherFundedRewardsRaw": "1100000",
+    "mint": {
+      "txHash": "0x78805b2b835f85b637958dbe1da035728671be51962ddab3a7a2f4b9ace7785c",
+      "blockHash": "0xc321d2af25428512a19604e8fdccd03287ed81493bb13b99494fe29cc27490db",
+      "blockNumber": 31,
+      "status": 1
+    },
+    "initialAgentId": "2"
+  },
+  "publishedTasks": [
+    {
+      "taskId": "1",
+      "problemId": "sum-integers",
+      "rewardRaw": "100000",
+      "fundedEscrowRaw": "100000",
+      "creation": {
+        "txHash": "0x356e53106d6ecca49117df82238754c1fb8f5559b6a739cc14e9b461aca8684e",
+        "blockHash": "0xed7692c77d0ce22e04a7e2d8e1cc81022ffd94284553b28188a7a82b500aab24",
+        "blockNumber": 25,
+        "status": 1,
+        "event": "TaskCreated",
+        "eventCount": 1,
+        "values": {
+          "taskId": "1",
+          "poster": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+          "reward": "100000",
+          "deadline": "1792223239"
+        }
+      }
+    },
+    {
+      "taskId": "2",
+      "problemId": "sum-integers",
+      "rewardRaw": "200000",
+      "fundedEscrowRaw": "200000",
+      "creation": {
+        "txHash": "0xfa8d730b11205ec7722d59988e231fa4da88a280027287e7c2e1def0458bcbad",
+        "blockHash": "0x832bb3ef86bc1004e8fa05b4703d0a1f96eb5f9d99a20e75417d891f0cc31608",
+        "blockNumber": 26,
+        "status": 1,
+        "event": "TaskCreated",
+        "eventCount": 1,
+        "values": {
+          "taskId": "2",
+          "poster": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+          "reward": "200000",
+          "deadline": "1792223239"
+        }
+      }
+    },
+    {
+      "taskId": "3",
+      "problemId": "unique-sorted",
+      "rewardRaw": "200000",
+      "fundedEscrowRaw": "200000",
+      "creation": {
+        "txHash": "0x2c48caaff53434c153cc7746c7ee3e0095a3bd7bce42b5a7a044498884c5cad4",
+        "blockHash": "0x8accfd5c483fef4c2d4e13f1fb2aaba106cd11aab3e71aa5d50c92edbc94dbc2",
+        "blockNumber": 27,
+        "status": 1,
+        "event": "TaskCreated",
+        "eventCount": 1,
+        "values": {
+          "taskId": "3",
+          "poster": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+          "reward": "200000",
+          "deadline": "1792223239"
+        }
+      }
+    },
+    {
+      "taskId": "4",
+      "problemId": "sum-integers",
+      "rewardRaw": "200000",
+      "fundedEscrowRaw": "200000",
+      "creation": {
+        "txHash": "0xbb2cbe33cb0b1b563fc3348252d8750e001bf3a56afaedb27cfc51a1e52fa6ac",
+        "blockHash": "0x2c4c24ca3266f56c17a4e733d5cc6d3bde75c023412dad944df04e0bbce0adee",
+        "blockNumber": 28,
+        "status": 1,
+        "event": "TaskCreated",
+        "eventCount": 1,
+        "values": {
+          "taskId": "4",
+          "poster": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+          "reward": "200000",
+          "deadline": "1792223239"
+        }
+      }
+    },
+    {
+      "taskId": "5",
+      "problemId": "balanced-brackets",
+      "rewardRaw": "200000",
+      "fundedEscrowRaw": "200000",
+      "creation": {
+        "txHash": "0x5118d82df48495bd1c75d4fbe17ddc3bd93a8621c1169086fafb68f94226c8d1",
+        "blockHash": "0x46e850cf696d3b869f718101600cf3decffc9f0d72963cbcd447d41487c92c14",
+        "blockNumber": 29,
+        "status": 1,
+        "event": "TaskCreated",
+        "eventCount": 1,
+        "values": {
+          "taskId": "5",
+          "poster": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+          "reward": "200000",
+          "deadline": "1792223239"
+        }
+      }
+    },
+    {
+      "taskId": "6",
+      "problemId": "sum-integers",
+      "rewardRaw": "200000",
+      "fundedEscrowRaw": "200000",
+      "creation": {
+        "txHash": "0x8c2c9d2c3cbd7069fa3aace0f651db2e939b4be416805bce9e9104c3ac323a4f",
+        "blockHash": "0xbff7410f2c25c9b5ae6dc50a1444aca0688a7c88df6fe3ebc8ac79bf3a7baf8b",
+        "blockNumber": 30,
+        "status": 1,
+        "event": "TaskCreated",
+        "eventCount": 1,
+        "values": {
+          "taskId": "6",
+          "poster": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+          "reward": "200000",
+          "deadline": "1792223239"
+        }
+      }
+    }
+  ],
+  "accountingBeforeFailure": {
+    "version": 1,
+    "observedAt": "2026-10-17T07:17:47.891Z",
+    "agentId": "6d6676ee-b489-4daa-ab13-f452fe7dc8f9",
+    "currency": "USDC",
+    "decimals": 6,
+    "status": "complete",
+    "totals": {
+      "inferenceCostRaw": "360000",
+      "refundsRaw": "0",
+      "taskRevenueRaw": "600000",
+      "borrowingFeeRaw": "13800",
+      "gameSubsidyRaw": "0",
+      "ownerCapitalRaw": "0",
+      "startupCapitalRaw": "40000",
+      "loanPrincipalRaw": "92000",
+      "creditsGranted": 0,
+      "creditsUsed": 0,
+      "netOperatingRaw": "226200"
+    },
+    "coverage": {
+      "scope": "retained-hosted-history",
+      "since": "2026-10-17T07:17:20.499Z",
+      "runCount": 5,
+      "entryCount": 5,
+      "pendingCount": 0,
+      "incompleteCount": 0,
+      "returnedEntryCount": 5,
+      "entriesTruncated": false,
+      "uncoveredSpentRaw": "0",
+      "reasons": []
+    },
+    "entries": [
+      {
+        "id": "9ec664f0-6211-4916-8842-26d5b56a1256",
+        "requestId": "9ec664f0-6211-4916-8842-26d5b56a1256",
+        "action": "task",
+        "at": "2026-10-17T07:17:47.804Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "120000",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "200000",
+        "borrowingFeeRaw": "0",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "0",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "taskId": "4",
+        "paymentId": "0x8b62aebab6f46e3d09c21509b2d6a54d63c9386c0065d26c6e274189eeebb220",
+        "txHash": "0x79a35bdfe19b0a133ac8c392aaa6bdbfbe22ae46957e5493f99c0a4ca970df5e"
+      },
+      {
+        "id": "5db43016-24f7-4d61-8fdb-68e2694db11a",
+        "requestId": "5db43016-24f7-4d61-8fdb-68e2694db11a",
+        "action": "task",
+        "at": "2026-10-17T07:17:39.635Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "120000",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "200000",
+        "borrowingFeeRaw": "1800",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "12000",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "taskId": "3",
+        "paymentId": "0x5652dad3c88f35321daa7d297c35a6f7a375e0001bc957deac2963f222649a7f",
+        "txHash": "0xf743df2997c77755c066c3c4c4e5efa8f5b4f8b533822af34ee6e10be0843516"
+      },
+      {
+        "id": "c6668299-b9a2-40ec-a7ea-ee4be3c343e6",
+        "requestId": "c6668299-b9a2-40ec-a7ea-ee4be3c343e6",
+        "action": "task",
+        "at": "2026-10-17T07:17:32.060Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "120000",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "200000",
+        "borrowingFeeRaw": "12000",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "80000",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "taskId": "2",
+        "paymentId": "0x01f61727a20beb3a1083f788846b7e242a7a2c7bb836fda0880a3c31ef9d1ce8",
+        "txHash": "0x430ba3a38635138dface8e56bc978ab05e7c97b1a06b6fb8cf480cef8c8dee2c"
+      },
+      {
+        "id": "73dfa1f1-64c6-40f8-b8d0-237ecc53b9f7",
+        "requestId": "73dfa1f1-64c6-40f8-b8d0-237ecc53b9f7",
+        "action": "task",
+        "at": "2026-10-17T07:17:22.438Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "0",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "0",
+        "borrowingFeeRaw": "0",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "0",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": []
+      },
+      {
+        "id": "f603bdc0-9b47-4d54-b97b-097e56124eb7",
+        "requestId": "f603bdc0-9b47-4d54-b97b-097e56124eb7",
+        "action": "provision",
+        "at": "2026-10-17T07:17:21.983Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "0",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "0",
+        "borrowingFeeRaw": "0",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "40000",
+        "loanPrincipalRaw": "0",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "txHash": "0x5b6b50d7d972a1fc2183aee78b1c27823cf1f3e8b24770745a1f3a7dfe6216b5"
+      }
+    ]
+  },
+  "accounting": {
+    "version": 1,
+    "observedAt": "2026-10-17T07:17:57.531Z",
+    "agentId": "6d6676ee-b489-4daa-ab13-f452fe7dc8f9",
+    "currency": "USDC",
+    "decimals": 6,
+    "status": "complete",
+    "totals": {
+      "inferenceCostRaw": "480000",
+      "refundsRaw": "120000",
+      "taskRevenueRaw": "600000",
+      "borrowingFeeRaw": "13800",
+      "gameSubsidyRaw": "0",
+      "ownerCapitalRaw": "0",
+      "startupCapitalRaw": "40000",
+      "loanPrincipalRaw": "92000",
+      "creditsGranted": 0,
+      "creditsUsed": 0,
+      "netOperatingRaw": "106200"
+    },
+    "coverage": {
+      "scope": "retained-hosted-history",
+      "since": "2026-10-17T07:17:20.499Z",
+      "runCount": 7,
+      "entryCount": 7,
+      "pendingCount": 0,
+      "incompleteCount": 0,
+      "returnedEntryCount": 7,
+      "entriesTruncated": false,
+      "uncoveredSpentRaw": "0",
+      "reasons": []
+    },
+    "entries": [
+      {
+        "id": "6dee2304-5d65-4870-8acc-57bbb90dff98",
+        "requestId": "6dee2304-5d65-4870-8acc-57bbb90dff98",
+        "action": "task",
+        "at": "2026-10-17T07:17:57.391Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "0",
+        "refundsRaw": "120000",
+        "taskRevenueRaw": "0",
+        "borrowingFeeRaw": "0",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "0",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "taskId": "6",
+        "paymentId": "0xb9469ba8f331e03faccd344cb8a7591b613392eb2317da263bc21e76dcf3708c",
+        "txHash": "0x566f985873a25ddfc7863da54199b316f6af0e0c4c00037a88de36b19887974b"
+      },
+      {
+        "id": "ef336204-916b-40e7-a8f8-7de03a40d58d",
+        "requestId": "ef336204-916b-40e7-a8f8-7de03a40d58d",
+        "action": "task",
+        "at": "2026-10-17T07:17:54.046Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "120000",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "0",
+        "borrowingFeeRaw": "0",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "0",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "taskId": "5",
+        "paymentId": "0x252938337d6f9a572b5c96c63b23c14858dcb4913dd59cbecd39ec63db11d3f8",
+        "txHash": "0x02d44f599acefc07751404ac4755117bdd541b8ae493dfd342f2cbca8f5e9a4d"
+      },
+      {
+        "id": "9ec664f0-6211-4916-8842-26d5b56a1256",
+        "requestId": "9ec664f0-6211-4916-8842-26d5b56a1256",
+        "action": "task",
+        "at": "2026-10-17T07:17:47.804Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "120000",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "200000",
+        "borrowingFeeRaw": "0",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "0",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "taskId": "4",
+        "paymentId": "0x8b62aebab6f46e3d09c21509b2d6a54d63c9386c0065d26c6e274189eeebb220",
+        "txHash": "0x79a35bdfe19b0a133ac8c392aaa6bdbfbe22ae46957e5493f99c0a4ca970df5e"
+      },
+      {
+        "id": "5db43016-24f7-4d61-8fdb-68e2694db11a",
+        "requestId": "5db43016-24f7-4d61-8fdb-68e2694db11a",
+        "action": "task",
+        "at": "2026-10-17T07:17:39.635Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "120000",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "200000",
+        "borrowingFeeRaw": "1800",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "12000",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "taskId": "3",
+        "paymentId": "0x5652dad3c88f35321daa7d297c35a6f7a375e0001bc957deac2963f222649a7f",
+        "txHash": "0xf743df2997c77755c066c3c4c4e5efa8f5b4f8b533822af34ee6e10be0843516"
+      },
+      {
+        "id": "c6668299-b9a2-40ec-a7ea-ee4be3c343e6",
+        "requestId": "c6668299-b9a2-40ec-a7ea-ee4be3c343e6",
+        "action": "task",
+        "at": "2026-10-17T07:17:32.060Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "120000",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "200000",
+        "borrowingFeeRaw": "12000",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "80000",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "taskId": "2",
+        "paymentId": "0x01f61727a20beb3a1083f788846b7e242a7a2c7bb836fda0880a3c31ef9d1ce8",
+        "txHash": "0x430ba3a38635138dface8e56bc978ab05e7c97b1a06b6fb8cf480cef8c8dee2c"
+      },
+      {
+        "id": "73dfa1f1-64c6-40f8-b8d0-237ecc53b9f7",
+        "requestId": "73dfa1f1-64c6-40f8-b8d0-237ecc53b9f7",
+        "action": "task",
+        "at": "2026-10-17T07:17:22.438Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "0",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "0",
+        "borrowingFeeRaw": "0",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "0",
+        "loanPrincipalRaw": "0",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": []
+      },
+      {
+        "id": "f603bdc0-9b47-4d54-b97b-097e56124eb7",
+        "requestId": "f603bdc0-9b47-4d54-b97b-097e56124eb7",
+        "action": "provision",
+        "at": "2026-10-17T07:17:21.983Z",
+        "status": "confirmed",
+        "inferenceCostRaw": "0",
+        "refundsRaw": "0",
+        "taskRevenueRaw": "0",
+        "borrowingFeeRaw": "0",
+        "gameSubsidyRaw": "0",
+        "ownerCapitalRaw": "0",
+        "startupCapitalRaw": "40000",
+        "loanPrincipalRaw": "0",
+        "creditsGranted": 0,
+        "creditsUsed": 0,
+        "reasons": [],
+        "txHash": "0x5b6b50d7d972a1fc2183aee78b1c27823cf1f3e8b24770745a1f3a7dfe6216b5"
+      }
+    ]
+  },
+  "chain": {
+    "contracts": {
+      "identity": "0xF2E246BB76DF876Cef8b38ae84130F4F55De395b",
+      "asset": "0x51a240271AB8AB9f9a21C82d9a85396b704E164d",
+      "manager": "0xB9816fC57977D5A786E654c7CF76767be63b966e",
+      "account": "0x6D411e0A54382eD43F02410Ce1c7a7c122afA6E1",
+      "escrow": "0x5CF7F96627F3C9903763d128A1cc5D97556A6b99"
+    },
+    "latestBlock": 53,
+    "providerPaidEventCount": 5,
+    "finalAgentCashRaw": "146200",
+    "providerNetReceivedRaw": "480000"
+  },
+  "journalSha256": {
+    "provision": "f01a91fcbdd7f4887329794195d4f9c06bd39675badad0a0f42e3e8222b635a3",
+    "rejected": "dd56d90c8b94232170397f5dd97f5bd6f363918a9254ca441a89f0949757ce7d",
+    "profitable-1": "26dd40775dba0e073493f5f1cfee0895efc2f37c162e36c2f9e21e807ff8ac85",
+    "profitable-2": "2df3bfa97dd7d87138630ae7d27520ecfddec9ab6089b8712256da1ab05750c0",
+    "profitable-3": "314cd577101e32934391e92d2aa861cf6d7b3381237353129844e91b32703bbc",
+    "failed": "52bee45d3c9452113c7c3ec3e7333c590455beed304fad52d669ab6c7000a130",
+    "unknown-refunded": "ea6865332b0e366f80d5109968ebf0f4209ad51a7b175152370223265f457601"
+  },
+  "artifactSha256": {
+    "AgentAccount": "404cf30a8014b2968f514ea0b0c3e5349156ae3d8e46a5fc2f4174d892b5a26d",
+    "CreditManager": "9caed8b54d5e39e5795b61f45638264a881808cd8bdc8eb2f140d1f47422b2a6",
+    "TaskEscrow": "54d52b352d179b625270fb7a89e169578e53fc8e677bac8cabab8d28e879d5b4",
+    "ERC8004Adapter": "0b98004cea7ee7def71e3f0a64edbbe40bd0c57bc53a305ea32939c546b9daa7",
+    "MockERC20": "b344e254307f85c59105ae7d170d421dd10b87d32ae89977dbf3da6803cc9a5d",
+    "MockIdentityRegistry": "be8d3fa38aa2faf23b426df9a69060e5f3b341f916e0e5f075f7865810336539"
+  },
+  "completedAt": "2026-10-17T07:17:57.714Z",
+  "durationMs": 41433,
+  "cleanup": {
+    "privateTempDirectoryRemoved": true,
+    "ownedContainersRemoved": true,
+    "ownedProcessesStopped": true,
+    "ownedIpcDirectoryRemoved": true,
+    "failures": []
+  }
+}
