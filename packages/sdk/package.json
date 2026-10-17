@@ -3,5 +3,6 @@
   "private": true,
   "type": "module",
   "exports": { ".": "./src/index.ts", "./protocol": "./src/protocol.ts" },
+  "scripts": { "pack:standalone": "node scripts/pack.mjs" },
   "dependencies": { "ethers": "^6.0.0" }
 }

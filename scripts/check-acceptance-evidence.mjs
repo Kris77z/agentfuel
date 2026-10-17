@@ -1,17 +1,23 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+import { checkOctober17Evidence } from './acceptance-evidence-20261017.mjs';
 
+export function checkEvidence({ overrides = {} } = {}) {
+  function load(file) {
+    const bytes = readFileSync(new URL(`../${file}`, import.meta.url));
+    return { file, data: overrides[file] ?? JSON.parse(bytes), sha256: createHash('sha256').update(bytes).digest('hex') };
+  }
 // Check consistency of committed summaries only. No RPC, model calls, signing,
 // or claim of independent external provenance is made by this command.
-const directory = new URL('../frontend/acceptance/autonomous-collaboration-20261014/', import.meta.url);
+const localPrefix = 'frontend/acceptance/autonomous-collaboration-20261014/';
 const records = [];
 const raw = (value) => { assert.match(String(value), /^\d+$/); return BigInt(value); };
 const hash = (value) => assert.match(value, /^0x[0-9a-f]{64}$/i);
-function read(name) {
-  const bytes = readFileSync(new URL(name, directory));
-  return { data: JSON.parse(bytes), sha256: createHash('sha256').update(bytes).digest('hex') };
-}
+function read(name) { return load(`${localPrefix}${name}`); }
+
 function record(capability, file, checksum, requestId, facts) {
   records.push({ capability, file, sha256: checksum, requestId, chainId: '31337', modelMode: 'controlled', facts });
 }
@@ -130,8 +136,31 @@ for (const field of ['extraPaymentsOnStop', 'extraModelDispatchesOnStop', 'extra
 record('external-agent-hiring', externalFile, external.sha256, e.requestId,
   { provider: e.discoveredService.provider, chargedRaw: e.chargedRaw, replayAddedCalls: 0, unknownRefundRaw: e.unknownRecovery.refundedRaw });
 
-if (process.argv.includes('--json')) console.log(JSON.stringify({ schemaVersion: 1, scope: 'offline saved-record consistency', records }, null, 2));
-else {
-  for (const r of records) console.log(`PASS ${r.capability}: ${r.file}`);
-  console.log('Saved-record consistency passed. No network, model, or wallet operations were performed.');
+
+const localRecords = records.map(({ capability, file, sha256, requestId, chainId, modelMode, facts }) => ({
+  capability, source: { file: `${localPrefix}${file}`, sha256 }, requestId,
+  environment: { chainId, chain: 'local Anvil', modelMode, observation: 'saved 2026-10-14 report' }, checkedFacts: facts,
+}));
+return {
+  schemaVersion: 2,
+  scope: {
+    mode: 'offline saved-record consistency', externalProvenanceVerified: false,
+    networkOperations: 0, walletOperations: 0,
+    limitations: [
+      'Saved receipt canonical flags are not independently queried.',
+      'Private responses/artifacts and their digests are not independently recomputed.',
+      'No new business execution or live availability is established.',
+    ],
+  },
+  records: [...localRecords, ...checkOctober17Evidence(load)],
+};
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const result = checkEvidence();
+  if (process.argv.includes('--json')) console.log(JSON.stringify(result, null, 2));
+  else {
+    for (const r of result.records) console.log(`PASS ${r.capability}: ${r.source.file} (${r.environment.chainId}; ${r.environment.modelMode})`);
+    console.log('Saved-record consistency passed. No network, model, or wallet operations were performed; external provenance was not verified.');
+  }
 }

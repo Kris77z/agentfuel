@@ -4,9 +4,22 @@
 
 The exported `InferCredit` name and `@agentfuel/sdk` package name remain for code compatibility. The protocol is the project's own **402/receipt scheme**; standard x402 facilitator compatibility has not been validated. This SDK buys provider services. It does not independently evaluate a generated answer, settle a task, verify a model's identity behind a gateway, or authenticate every field returned in a relay receipt; task correctness belongs to the [independent Arena](../../services/arena/README.md).
 
+## Install outside this workspace
+
+The [standalone example](../../examples/sdk-standalone/README.md) builds a local tarball with compiled ESM and declarations, installs it into a separate directory, and exercises the actual exported `InferCredit` client. No npm publication or copy of the full product is needed by the consumer. From this checkout after `npm ci`:
+
+```sh
+npm run pack:standalone --workspace @agentfuel/sdk -- --out-dir /tmp/agentfuel-sdk-package
+node scripts/check-sdk-standalone.mjs
+```
+
+The checker uses an isolated temporary consumer and offline dependency installation, reusing the committed example lock and package archives cached by the root `npm ci`; registry metadata is not required. An explicit archive-preparation command is documented in the example for an otherwise empty cache. Default runtime checks use loopback fixtures, durably save a bound 402 handle, block payment before signing, and resume that same handle against a clearly preset delivery cache. They do not prove a chain payment, model execution, or Arena outcome. The example also includes a separately invoked [real-client template](../../examples/sdk-standalone/real-client.mjs).
+
+The distribution's `@agentfuel/sdk` and `@agentfuel/sdk/protocol` exports resolve `dist/*.js` and `dist/*.d.ts`; source workspace exports stay unchanged. The generated package remains private at development version `0.0.0`. See [distribution notes](DISTRIBUTION.md).
+
 ## Use a browser signer
 
-Requirements: Node 22 or newer for Node usage; an ethers `Signer` for a browser wallet. Next.js consumers must configure `transpilePackages: ["@agentfuel/sdk"]` because the workspace exports TypeScript source.
+Requirements: Node 22 or newer for Node usage; an ethers `Signer` for a browser wallet. Next.js consumers of the source workspace must configure `transpilePackages: ["@agentfuel/sdk"]` because that workspace exports TypeScript source.
 
 ```ts
 import { InferCredit, type PaymentHandle } from "@agentfuel/sdk";

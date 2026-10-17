@@ -1,10 +1,35 @@
 # Tabby verification guide
 
-This is an index of reviewable acceptance evidence, updated on **2026-10-15**. Historical claims **A–E** preserve the source revision `0526070` and the real-network runs recorded on **2026-10-12 and 2026-10-13**. Claims **F–H** retain their separate **2026-10-14 local controlled** reports. Fresh [Oct 15 public Monad collaboration](monad-collaboration-live-20261015.md) has passed external hiring, a model-downgrade recheck and a separately prepared automatic token-funded task loop; original failures/defaults and explicit operator remediation remain recorded. Historical balances and reputation are snapshots, not assertions about current live state.
+This is an index of reviewable acceptance evidence, updated on **2026-10-17**. The newest public Monad business runs are listed first. Historical claims **A–E** preserve source revision `0526070` and their **Oct 12–13** real-network scope; **F–H** preserve their **Oct 14 local controlled** scope. [Oct 15 outcomes](monad-collaboration-live-20261015.md), failures/defaults and operator remediation remain recorded. Balances and reputation are dated snapshots, not assertions about current live state.
 
 All linked evidence files are included in the repository. This guide does not require private runtime directories, supplier credentials, signed raw transactions, or the original operators' wallets. It reuses the published acceptance records rather than copying them into a second evidence set.
 
 The [Oct 14 public deployment checks](monad-vps-20261014.md) separately establish HTTPS availability, signature authentication and preservation of the migrated runtime. They add no new paid model or chain execution to the historical cases below.
+
+## Latest public Monad execution · 2026-10-17
+
+The [dated report](monad-hackathon-live-20261017.md) and [public evidence index](../frontend/acceptance/monad-hackathon-20261017/README.md) record real Kimi, public owner authentication and Monad Testnet `10143` execution. Amounts below are six-decimal test-USDC raw units. These post-submission runs do not backdate the original submission or establish that organizers accepted later work for judging; the [Oct 15 video record](video-update-20261015.md) preserves the locked submission fields and original overview.
+
+| Case | Recorded result and limits | Public summary |
+| --- | --- | --- |
+| Consecutive credit-funded work | Agent `2367`, tasks `20/21`: two explicit requests spend `240000`; cash/credit payments are `40000+80000`, then `58000+62000`. Each `150000` reward repays principal plus fees; final cash `78700`, debt `0`, score `640/B`. This is sequential operator-directed work, with no autonomous planner/game. | [Credit loop](../frontend/acceptance/monad-hackathon-20261017/credit-loop-public-summary.json): payments, independent Docker `5/5` per task, canonical settlement, model usage, before/after finance and unchanged replay. |
+| Presenter-wallet execution | Agent `2371`, tasks `24/25`, independently repeats the two-request credit loop: `240000` charged, `78700` final cash and zero debt. | [Presenter credit loop](../frontend/acceptance/monad-hackathon-20261017/presenter-credit-loop-public-summary.json). |
+| Original settlement recovery | Task `21` first encountered `SETTLEMENT_UNAVAILABLE` because verifier gas was insufficient. Explicit `0.4 MON` top-up allowed the same saved settlement transaction to confirm; no new inference payment/model request. Legacy Docker evaluation reran because its HTTP evaluation was not persisted. | [Recovery](../frontend/acceptance/monad-hackathon-20261017/settlement-recovery-public-summary.json), cross-bound to task `21` in the credit loop. This is recorded operator recovery, not fully automatic recovery. |
+| External hiring and revision | Agent `2368` pays `50000` across five K2.6 calls within `60000`. A distinct provider/registered Agent `1999` produces the external phase; its first review fails, one revision and final review pass. Replay adds no transaction or model request. | [External hiring](../frontend/acceptance/monad-hackathon-20261017/external-public-summary.json): service/identity/payment bindings, failed first review, answer digests and replay. |
+| Same-goal budget downgrade | Agent `2369`: `K3 → K2.6 → K2.6 → K2.6`, total `50000` within the unchanged `50000` reserve. Earlier outputs remain available and separate review passes. | [Fresh fallback](../frontend/acceptance/monad-hackathon-20261017/fallback-fresh-public-summary.json): actual per-call models, usage, payments, phase outputs and replay. |
+| Zero-cash automatic game/task | Fresh Agent `2370` starts at zero cash/tokens, receives native gas but no USDC seed/freeze remedy, wins `100000` USDC, spends `10000` on planning, and buys a `120000` package with `90000` cash + `30000` credit. Task `22` passes independent `5/5`, repays `34500`, ends with `115500` cash and zero debt, then stops for no available tasks. | [Fresh automatic loop](../frontend/acceptance/monad-hackathon-20261017/automatic-fresh-public-summary.json): original parent/children, game usage, physical metered response, saved receipts, terminal state and replay. A win is not guaranteed. |
+| Subsequent token-funded task | The same Agent `2370` separately plays one token game, wins `4096`, consumes `222` for task `23`, and receives `150000`. No new loan or inference payment; final cash `265500`, zero debt, score `600/B`. This supplements the finished automatic parent through explicit game/task requests. | [Token supplement](../frontend/acceptance/monad-hackathon-20261017/token-supplement-public-summary.json): original game/grant/redemption/task bindings, independent settlement, finance and unchanged replay. |
+
+[Resource readiness](../frontend/acceptance/monad-hackathon-20261017/resources-public-summary.json) is a separate read-only snapshot of budgets, gas and credit liquidity; it adds no business execution. Deployment, browser and health summaries in the evidence index describe their own observation windows and are not a fresh execution of every business path. The stored canonical receipt flags and model mappings above reflect the original observers' reports; an offline check does not independently attest them.
+
+For the short source-to-evidence route, see [REVIEW](REVIEW.md). After `npm ci --ignore-scripts` with Node.js 22+, run:
+
+```sh
+npm run review:check
+node scripts/check-acceptance-evidence.mjs --json
+```
+
+`review:check` runs local link checking, saved-record checks and negative cases, root/frontend typechecking, selected controlled autonomy/reconciliation/model-fallback tests, and an isolated standalone SDK consumer using the npm cache. It requires no keys, wallet, Docker or Foundry and makes no external business calls. It does not invoke the historical network-read example below. The JSON checker retains the Oct 14 cases and adds eight Oct 17 summaries; each record exposes `source.file`, `source.sha256`, `environment`, original request and `checkedFacts`, with `scope.externalProvenanceVerified=false`. Assertions cover raw-unit conservation, loan fees, model usage, provider/request bindings, saved receipt references, cross-summary recovery links and unchanged replay snapshots. Neither a checksum nor a successful assertion proves an external transaction or private response. Full chain/vendor reproduction remains a separate opt-in exercise.
 
 ## Scope of the evidence
 
@@ -102,7 +127,7 @@ These are zero-value wallet self-transfers signed at the same nonce as the origi
 
 ### 1. Inspect the committed records without running a service
 
-Run from the repository root. Use Node.js 22 or newer; `npm ci` installs the locked dependencies once. The following command reads historical A–D JSON and recomputes the research digests. It does not contact a network or dispatch an inference call. It checks consistency of the saved records, not their external provenance. For F–H, inspect the report fields and matching test source above; the [local acceptance guide](autonomous-collaboration-20261014.md) provides their reproduction path.
+Run from the repository root. Use Node.js 22 or newer; `npm ci` installs the locked dependencies once. The following command reads historical A–D JSON and recomputes the research digests. It does not contact a network or dispatch an inference call. It checks consistency of the saved records, not their external provenance. The one-command checker above additionally checks F–H and the selected Oct 17 summaries; for full execution, the [local acceptance guide](autonomous-collaboration-20261014.md) provides their reproduction path.
 
 ```bash
 node --input-type=module <<'JS'

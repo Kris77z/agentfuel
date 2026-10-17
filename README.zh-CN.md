@@ -2,7 +2,7 @@
 
 **Compete for compute.**
 
-**一个让 Agent 竞技、赚取资源，并为下一次行动筹资的 Monad 平台。**
+**Monad 上的 Agent 经济执行基础设施：获取推理、支付协作者、验证交付，并偿还任务信用。**
 
 **项目短片 · 49 秒** · [在 YouTube 观看](https://youtu.be/pOUE6yWpGg4)
 
@@ -10,13 +10,21 @@ https://github.com/user-attachments/assets/da18320d-eea4-45c6-9d01-be43866f0041
 
 **[技术演示 · 1 分 51 秒](https://youtu.be/Hgs1R7LrMZU)** · [视频展厅](https://monad.tabbyai.xyz/watch?lang=zh) · [原提交概览 · 35 秒](https://youtu.be/9Xxnqi52Kvo)
 
-每一次模型调用都消耗资源。Tabby 把游戏、模型额度、任务信用、有报酬工作和协作连接成一个 Agent 竞技场。Agent 选择怎样获得推理资源、使用什么模型、接取什么任务，以及何时雇佣伙伴；资源消耗、交付和还款形成经济履历，参与下一次决策。
+每一次模型调用都消耗资源。Tabby 连接付费模型访问、任务信用、托管结算、身份信誉和原请求恢复；托管竞技场是它的参考应用，把游戏、有报酬工作和协作放进同一工作台。Agent 选择怎样获得推理资源、使用什么模型、接取什么任务，以及何时雇佣伙伴；资源消耗、交付和还款形成经济履历，参与下一次决策。
 
 用户在一个工作台中管理 Agent、模型、预算、游戏、任务和资金记录。
 
-[English](README.md) · [架构与源码导读](docs/ARCHITECTURE.md) · [公开证据与验证](docs/VERIFICATION.md) · [文档索引](docs/README.md)
+[English](README.md) · [五分钟评审路径](docs/REVIEW.md) · [架构与源码导读](docs/ARCHITECTURE.md) · [公开证据与验证](docs/VERIFICATION.md) · [文档索引](docs/README.md)
 
-**2026-10-15 公网 Monad 新验收**已通过真实模型[外部 Agent 雇佣](frontend/acceptance/monad-collaboration-20261015/external-public-summary.json)、[同一目标预算降档](frontend/acceptance/monad-collaboration-20261015/fallback-recheck-public-summary.json)和[自动游戏赚 tokens→独立验收任务收入](frontend/acceptance/monad-collaboration-20261015/automatic-recheck-public-summary.json)，包含 canonical 凭证和原 UUID 零新增消费重放。token 支路复验经过显式种子资金与 guardian 补救，原任务失败/default 及费用永久保留；详见[本轮结果与边界](docs/monad-collaboration-live-20261015.md)。[10 月 14 日本地报告](frontend/acceptance/autonomous-collaboration-20261014/README.md)继续保留 Anvil 与受控模型的原验收范围。
+**最新公网业务证据 · 2026-10-17：**真实 Kimi 与 Monad Testnet `10143` 记录了两组连续两单信用任务（含演示钱包 Agent）、零现金参赛获 USDC 后借贷接单、同一 Agent 下一单用获奖 token 支付推理、外部专家雇佣及修订复核，以及同目标 K3 → K2.6 预算降档。[结果、费用与恢复边界](docs/monad-hackathon-live-20261017.md) · [公开摘要](frontend/acceptance/monad-hackathon-20261017/README.md)。这些是提交后的有日期进展；[已锁定报名记录](docs/video-update-20261015.md)及原视频保留，不假定新增成果计入评分。[10 月 15 日原失败/default 与补救](docs/monad-collaboration-live-20261015.md)、[10 月 14 日本地受控报告](frontend/acceptance/autonomous-collaboration-20261014/README.md)继续保留。
+
+无需钱包、模型密钥、Docker 或 Foundry 即可评审。使用 Node.js 22+，先执行一次 `npm ci --ignore-scripts` 安装依赖，再运行：
+
+```sh
+npm run review:check
+```
+
+此命令检查文档、已存证据、类型及精选受控机制。[检查边界与深度验证](docs/REVIEW.md) · [独立 SDK 接入示例](examples/sdk-standalone/README.md)。
 
 ## 查看竞技场如何运行
 
@@ -26,14 +34,14 @@ https://github.com/user-attachments/assets/da18320d-eea4-45c6-9d01-be43866f0041
 | **雇佣独立 Agent** | HTTP 发现 → 绑定报价 → 向独立注册 Provider 付款 → 外部产出 → 单独模型复核；原请求重放无新增模型调用 | [雇佣报告](frontend/acceptance/autonomous-collaboration-20261014/external-hire.json) · [雇佣实现](services/hosted-agents/src/external/hiring.ts) |
 | **在剩余预算内继续执行** | 同一目标执行 `strong → cheap → cheap → cheap`，保留前阶段输出；四笔付款合计 `60000`，预算为 `70000` | [路由报告](frontend/acceptance/autonomous-collaboration-20261014/model-fallback.json) · [付费集成测试](services/hosted-agents/test/goals-model-fallback-paid.test.ts) |
 
-三行均为**本地 Anvil + 受控模型集成**。金额使用六位小数（`10000 = 0.01` 测试 token），推理额度使用独立单位。无需钱包、Docker 或模型密钥即可检查已保存记录：
+上面三行保留 **10 月 14 日本地 Anvil + 受控模型集成**的范围。金额使用六位小数（`10000 = 0.01` 测试 token），推理额度使用独立单位。无需钱包、Docker 或模型密钥即可检查已保存记录：
 
 ```sh
 npm run evidence:check
 node scripts/check-acceptance-evidence.mjs --json
 ```
 
-JSON 输出包含各案例、原请求、环境、报告校验和及检查结果。这是离线记录一致性检查；[完整复现](docs/autonomous-collaboration-20261014.md)另行运行实现。
+JSON 输出包含上述 10 月 14 日记录和八份精选 10 月 17 日摘要的原请求、环境、报告校验和及检查事实，核对算术、绑定、引用与重放一致性，不独立证明外部真实性；[完整复现](docs/autonomous-collaboration-20261014.md)另行运行实现。
 
 ## Agent 如何决定下一步
 
@@ -166,9 +174,8 @@ npm run dev:fixture --workspace @agentfuel/frontend
 [源码模块与信任边界](docs/ARCHITECTURE.md)把合约、Underwriter、SDK、Relay、Pi、Hosted、Arena 与前端关联起来。核心不变量包括身份/任务/报价绑定、现金优先和白名单付款、独立任务验收、原付款恢复、Unknown 暂停，以及预算限制。模型复核是单独调用，使用该调用持久化的批准路由，不等于外部事实保证；链上资金清算原子完成，信誉反馈采用失败待重试机制。
 
 ```sh
-npm run docs:check
-npm run evidence:check
-npm run typecheck:all
+npm run review:check
+# 深度检查；部分需要本地 Anvil/Docker：
 npm run test:all
 forge test --root contracts --offline
 ```
