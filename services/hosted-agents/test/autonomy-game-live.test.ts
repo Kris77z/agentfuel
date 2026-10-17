@@ -1,10 +1,14 @@
-import test from "node:test";
+import test, { after } from "node:test";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { createServer } from "node:http";
-import { mkdtemp, realpath, readFile, writeFile, rm, mkdir } from "node:fs/promises";
+import { mkdtemp, realpath, readFile, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+
+// Test runs must never replace the repository's dated acceptance evidence.
+const summaryDirectory = mkdtemp(join(tmpdir(), "af-autonomy-game-summary-"));
+after(async () => { await rm(await summaryDirectory, { recursive: true, force: true }); });
 import { Wallet, Transaction } from "ethers";
 import { DockerExecutor } from "../../arena/src/docker.js";
 import { replayHand, type PlayerView } from "../../arena/src/holdem/engine.js";
@@ -144,11 +148,9 @@ for (const rewardKind of ["usdc", "llm-credits"] as const) test(`automatic ${rew
     const counts = t.requests.length, nonces = await Promise.all([actor.wallet.address, sponsor].map(address => t.f.fx.f.provider.getTransactionCount(address)));
     assert.deepEqual(await executor.execute({ ...parent, recover: true }), result);
     assert.equal(t.requests.length, counts); assert.deepEqual(await Promise.all([actor.wallet.address, sponsor].map(address => t.f.fx.f.provider.getTransactionCount(address))), nonces);
-    const summaryDirectory = new URL("../../../frontend/acceptance/autonomous-collaboration-20261014/", import.meta.url).pathname;
-    await mkdir(summaryDirectory, { recursive: true });
-    const summaryPath = join(summaryDirectory, "automatic-game.json");
+    const summaryPath = join(await summaryDirectory, "automatic-game.json");
     let summaries: any[] = [];
-    try { summaries = JSON.parse(await readFile(summaryPath, "utf8")).cases ?? []; } catch { /* First successful case creates the public evidence file. */ }
+    try { summaries = JSON.parse(await readFile(summaryPath, "utf8")).cases ?? []; } catch { /* First successful case creates this run's temporary summary. */ }
     const loop = JSON.parse(await readFile(join(parent.directory, "autonomy-loop", "session.json"), "utf8"));
     const plannerPayments = [];
     for (const step of loop.steps.filter((step: any) => BigInt(step.decisionChargedRaw ?? "0") > 0n)) {
@@ -286,8 +288,21 @@ test("real service replenishes an exhausted autonomous reward child through a ma
     const data = JSON.parse(await readFile(join(service.config.directory, "database", "session.json"), "utf8")); assert.equal(data.sponsoredOwners[owner], 3);
     assert.equal(data.fundingRoutes[gameId].childId, target.childId); assert.equal(data.fundingRoutes[gameId].parentRequestId, parentId);
     assert.equal(await read(t.f.fx.f.account, "cash", [agent.binding!.agentId]), 150000n);
-    const summaryPath = new URL("../../../frontend/acceptance/autonomous-collaboration-20261014/automatic-game.json", import.meta.url).pathname;
-    const summary = JSON.parse(await readFile(summaryPath, "utf8"));
+    const databasePath = join(service.config.directory, "database", "session.json"), databaseBefore = await readFile(databasePath, "utf8");
+    const accounting = await service.accounting(owner, agent.id);
+    assert.equal(accounting.status, "complete", JSON.stringify(accounting.coverage));
+    assert.equal(accounting.totals.taskRevenueRaw, "150000");
+    assert.equal(accounting.totals.inferenceCostRaw, "0");
+    assert.equal(accounting.totals.gameSubsidyRaw, "0", "token awards are not USDC revenue or subsidies");
+    assert.equal(accounting.totals.creditsGranted, 8192);
+    assert.equal(accounting.totals.creditsUsed, taskAfter.creditsUsed, "only hosted recorded usage is covered, not direct ledger calls");
+    assert.equal(accounting.totals.netOperatingRaw, "150000");
+    assert.equal(accounting.entries.filter(entry => entry.taskId === taskAfter.taskId).length, 1);
+    assert.equal(await readFile(databasePath, "utf8"), databaseBefore, "accounting does not rewrite retained runs");
+    assert.equal(await t.f.fx.f.provider.getTransactionCount(agent.wallet), beforeNonce, "accounting never sends a transaction");
+    const summaryPath = join(await summaryDirectory, "automatic-game.json");
+    let summary: any = { version: 1, chainId: "31337", cases: [] };
+    try { summary = JSON.parse(await readFile(summaryPath, "utf8")); } catch { /* The focused test can run without earlier cases. */ }
     const receipt = (await t.f.fx.f.provider.getTransactionReceipt(taskAfter.settlement.txHash))!;
     summary.manualRefuel = { chainId: "31337", modelMode: "controlled-loopback-http", parentRequestId: parentId, childRequestId: target.childId, manualGameRequestId: gameId,
       originalTaskId: taskBefore.taskId, originalAcceptTxHash: taskBefore.acceptTxHash,

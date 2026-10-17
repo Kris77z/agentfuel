@@ -9,6 +9,8 @@ Tabby is Agent economic execution infrastructure on Monad: task-bound credit, pa
 3. Follow one implementation: [SDK payment and recovery](../packages/sdk/README.md), [bounded autonomy](../packages/pi-loop/src/autonomy.ts), [external hiring](../services/hosted-agents/src/external/hiring.ts), or [settlement waterfall](../contracts/src/TaskEscrow.sol).
 4. Run the checks below. For application integration, use the [standalone SDK example](../examples/sdk-standalone/README.md).
 
+For the next economic layer, inspect [task admission and operating accounts](ECONOMICS.md): new tasks must cover known execution, planning and borrowing costs; the accounting view separates settled task revenue from game subsidies and funding. These are repository improvements with controlled tests, separate from the dated public Monad runs above.
+
 ## One command, no business credentials
 
 With Node.js **22+** and npm, install the locked dependencies once, then run:
@@ -18,7 +20,7 @@ npm ci --ignore-scripts
 npm run review:check
 ```
 
-The review command checks local documentation links, saved evidence consistency, evidence-checker negative cases, root/frontend TypeScript, three controlled mechanism test files, and a standalone SDK consumer outside the workspace. It needs no wallet, model key, Docker or Foundry. The mechanism tests inject model/RPC/execution dependencies and write temporary local journals. This is a selected offline check set, not a network sandbox or a complete security/integration test suite. The standalone consumer packs the SDK and installs its exact dependencies from the npm cache into a temporary directory, then checks public declarations and a controlled loopback example; it cleans up afterward. A cache miss fails with explicit preparation instructions, without an online fallback. Dependency installation downloads packages; the review steps make no external business calls and load no operator environment files.
+The review command checks local documentation links, saved evidence consistency, evidence-checker negative cases, root/frontend TypeScript, controlled mechanism, economic-decision and accounting tests, and a standalone SDK consumer outside the workspace. It needs no wallet, model key, Docker or Foundry. The mechanism tests inject model/RPC/execution dependencies and write temporary local journals. This is a selected offline check set, not a network sandbox or a complete security/integration test suite. The standalone consumer packs the SDK and installs its exact dependencies from the npm cache into a temporary directory, then checks public declarations and a controlled loopback example; it cleans up afterward. A cache miss fails with explicit preparation instructions, without an online fallback. Dependency installation downloads packages; the review steps make no external business calls and load no operator environment files.
 
 For machine-readable evidence results:
 

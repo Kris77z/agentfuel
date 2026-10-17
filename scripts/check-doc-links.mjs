@@ -6,10 +6,11 @@ import { spawnSync } from 'node:child_process';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const guides = [
   'README.md', 'README.zh-CN.md', 'CONTRIBUTING.md',
-  'docs/README.md', 'docs/REVIEW.md', 'examples/sdk-standalone/README.md', 'docs/ARCHITECTURE.md', 'docs/VERIFICATION.md', 'docs/ATTRIBUTION.md', 'docs/local-hosted-testing.md',
+  'docs/README.md', 'docs/REVIEW.md', 'docs/ECONOMICS.md', 'examples/sdk-standalone/README.md', 'docs/ARCHITECTURE.md', 'docs/VERIFICATION.md', 'docs/ATTRIBUTION.md', 'docs/local-hosted-testing.md',
   'docs/autonomous-collaboration-20261014.md', 'frontend/acceptance/autonomous-collaboration-20261014/README.md',
   'docs/monad-collaboration-live-20261015.md', 'frontend/acceptance/monad-collaboration-20261015/README.md',
   'docs/monad-demo-readiness-20261016.md',
+  'docs/economics-local-20261017.md',
   'docs/monad-hackathon-live-20261017.md', 'frontend/acceptance/monad-hackathon-20261017/README.md',
   'deploy/monad-vps/README.md', 'docs/monad-vps-20261014.md', 'AGENTS.md',
   'contracts/README.md', 'services/underwriter/README.md', 'services/provider-relay/README.md',

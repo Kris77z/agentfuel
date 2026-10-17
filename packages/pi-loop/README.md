@@ -4,6 +4,8 @@
 
 ## Implementation map
 
+The optional host-owned [economic policy](src/economics.ts), enabled for new hosted tasks, filters selection using escrow-backed revenue and execution/planning/borrowing costs. The [economic guide](../../docs/ECONOMICS.md) defines raw units, fee rounding, the successful-completion assumption, unpriced costs, and preservation of legacy recovery snapshots.
+
 | Entry | Responsibility | Read next |
 | --- | --- | --- |
 | [Task workflow](src/workflow.ts) | Bind configured task/provider selection, journal acceptance, retain the original payment/child session, submit to independent Arena and verify final task/loan state. | [Workflow runbook](WORKFLOW.md), [hosted adapter](../../services/hosted-agents/src/task-executor.ts) |

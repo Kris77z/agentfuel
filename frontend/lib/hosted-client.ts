@@ -1,6 +1,6 @@
 import { validGoal } from "../../services/hosted-agents/src/goal-types";
-import type { AgentCreation, AgentSettings, HostedAction, HostedAgent, HostedRun, HostedCatalogModel, HostedFinance, HostedCapabilities } from "../../services/hosted-agents/src/types";
-export type { AgentCreation, AgentSettings, HostedAction, HostedAgent, HostedRun, HostedCatalogModel, HostedFinance, HostedCapabilities };
+import type { AgentCreation, AgentSettings, HostedAction, HostedAgent, HostedRun, HostedCatalogModel, HostedFinance, HostedCapabilities, HostedAccounting } from "../../services/hosted-agents/src/types";
+export type { AgentCreation, AgentSettings, HostedAction, HostedAgent, HostedRun, HostedCatalogModel, HostedFinance, HostedCapabilities, HostedAccounting };
 export type { HostedActivity, HostedActivityInput, HostedActivityEvidence, HostedActivityState, HostedScene, HostedRequiredAction } from "../../services/hosted-agents/src/scene-types";
 export interface HostedSnapshot { owner?: string; capabilities?: HostedCapabilities; agents: HostedAgent[]; runs: HostedRun[]; models: HostedCatalogModel[] }
 export interface RunInput { requestId: string; action: HostedAction; rewardKind?: "usdc" | "llm-credits"; amountRaw?: string; goal?: string }
@@ -39,6 +39,12 @@ export async function hostedRequest<T>(path: string, method = "GET", body?: unkn
 }
 
 const messages: Record<string, string> = {
+  ECONOMICS_NOT_WORTHWHILE: "按当前收益与费用上界，经营净回报不足，未接单。",
+  ECONOMICS_REVENUE_UNKNOWN: "尚未核验任务收益，未接单。",
+  ECONOMICS_ESCROW_UNFUNDED: "任务托管资金不足，未接单。",
+  ECONOMICS_BORROWER_FEE_CHANGED: "借款费超过已核对上界，已暂停新付款。",
+  ECONOMICS_EXECUTION_PRICE_CHANGED: "执行报价发生变化，已暂停新付款。",
+  ECONOMICS_OBSERVATION_UNCONFIRMED: "收益观察区块尚未确认，已停止接单。",
   HOSTED_GOAL_MODEL_DOWNGRADED: "剩余预算不足，后续调用已切换到批准的低价模型。",
   GATEWAY_MODEL_DOWNGRADED: "本轮改用低价模型，原任务与已有结果已保留。",
   AUTONOMY_GAME_LIMIT: "已达到自动参赛次数上限，原任务和奖励记录已保留。",

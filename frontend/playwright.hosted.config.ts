@@ -4,7 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
 // Empty hosted configuration also prevents a missed route from reaching an executor.
 export default defineConfig({
   testDir: "./test/browser",
-  testMatch: ["hosted-agents.spec.ts", "hosted-financial.spec.ts", "hosted-onboarding.spec.ts"],
+  testMatch: ["hosted-agents.spec.ts", "hosted-financial.spec.ts", "hosted-accounting.spec.ts", "hosted-onboarding.spec.ts"],
   fullyParallel: false,
   workers: 1,
   retries: 0,

@@ -5,8 +5,9 @@ import { open } from "node:fs/promises";
 import { Wallet, getAddress, verifyMessage } from "ethers";
 import { SessionStore } from "../../../packages/pi-loop/src/session.js";
 import { taskPrivateDirectory } from "../../../packages/pi-loop/src/task-runner/config.js";
-import { HostedError, type AgentCreation, type AgentSettings, type HostedAgent, type HostedConfig, type HostedExecutor, type HostedExecution, type HostedFinance, type HostedResult, type HostedRun } from "./types.js";
+import { HostedError, type AgentCreation, type AgentSettings, type HostedAgent, type HostedConfig, type HostedExecutor, type HostedExecution, type HostedFinance, type HostedAccounting, type HostedResult, type HostedRun } from "./types.js";
 import { validateHostedFinance } from "./finance-projection.js";
+import { readHostedAccounting } from "./accounting.js";
 import { HOSTED_ACTIVITY_LIMIT, validateHostedActivity, type HostedActivityInput } from "./scene-types.js";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -156,6 +157,13 @@ export class HostedService {
     })();
     this.financeReads.set(key, operation);
     try { return structuredClone(await operation); } finally { this.financeReads.delete(key); }
+  }
+  async accounting(who: string, agentId: string): Promise<HostedAccounting> {
+    // Copy all retained runs, including history omitted by the browser's latest-100 list.
+    // Disk reads remain outside serial admission and never depend on the chain finance reader.
+    const snapshot = await this.serial(async () => ({ agent: structuredClone(this.agent(who, agentId)),
+      runs: structuredClone(this.state.runs.filter(run => run.agentId === agentId)), fundingRoutes: structuredClone(this.state.fundingRoutes ?? {}) }));
+    return readHostedAccounting({ directory: this.config.directory, ...snapshot });
   }
   mayContinue(agentId: string) { return this.serial(async () => this.state.agents.some(agent => agent.id === agentId && agent.status === "Ready")); }
   /** Daemon-only durable admission. There is deliberately no HTTP command for selecting a child ID. */

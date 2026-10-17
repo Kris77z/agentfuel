@@ -1,6 +1,7 @@
 import { validateGoalView, validateExternalService } from "../../services/hosted-agents/src/goal-types.js";
 import { HOSTED_ACTIVITY_LIMIT, validateHostedActivity } from "../../services/hosted-agents/src/scene-types.js";
 import { getAddress } from "ethers";
+import { projectHostedAccounting } from "./hosted-accounting.js";
 const COOKIE = "agentfuel_hosted_session";
 const responseHeaders = { "cache-control": "private, no-store", "x-content-type-options": "nosniff" };
 const settings = ["name", "modelId", "strategy", "perRunBudgetRaw", "totalBudgetRaw", "allowCredit"];
@@ -108,7 +109,7 @@ export async function hostedAgentsRequest(request: Request, config: { upstreamUr
     const url = new URL(request.url); if (url.search) fail("HOSTED_QUERY_INVALID");
     path = url.pathname.slice("/api/hosted".length);
     if (!url.pathname.startsWith("/api/hosted/")) fail("HOSTED_ROUTE_NOT_FOUND", 404);
-    const match = /^\/agents\/([a-zA-Z0-9_-]{1,80})(?:\/(pause|runs|finance|cancel))?$/.exec(path);
+    const match = /^\/agents\/([a-zA-Z0-9_-]{1,80})(?:\/(pause|runs|finance|accounting|cancel))?$/.exec(path);
     let allowed: string[] | undefined;
     if (["/auth/challenge", "/auth/login", "/auth/logout"].includes(path)) {
       if (request.method !== "POST") fail("HOSTED_METHOD_NOT_ALLOWED", 405);
@@ -117,8 +118,8 @@ export async function hostedAgentsRequest(request: Request, config: { upstreamUr
       if (!["GET", "POST"].includes(request.method)) fail("HOSTED_METHOD_NOT_ALLOWED", 405);
       if (request.method === "POST") allowed = ["requestId", ...settings];
     } else if (match) {
-      if (request.method !== (match[2] === "finance" ? "GET" : match[2] ? "POST" : "PATCH")) fail("HOSTED_METHOD_NOT_ALLOWED", 405);
-      allowed = match[2] === "finance" ? undefined : match[2] === "pause" ? ["paused"] : match[2] === "cancel" ? ["requestId"] : match[2] === "runs" ? ["action", "requestId", "rewardKind", "amountRaw", "goal"] : settings;
+      if (request.method !== (["finance", "accounting"].includes(match[2]) ? "GET" : match[2] ? "POST" : "PATCH")) fail("HOSTED_METHOD_NOT_ALLOWED", 405);
+      allowed = ["finance", "accounting"].includes(match[2]) ? undefined : match[2] === "pause" ? ["paused"] : match[2] === "cancel" ? ["requestId"] : match[2] === "runs" ? ["action", "requestId", "rewardKind", "amountRaw", "goal"] : settings;
     } else fail("HOSTED_ROUTE_NOT_FOUND", 404);
     const publicAuth = ["/auth/challenge", "/auth/login"].includes(path), token = publicAuth ? undefined : session(request);
     let input;
@@ -170,7 +171,7 @@ export async function hostedAgentsRequest(request: Request, config: { upstreamUr
         }
         value = { ...value, capabilities } as typeof value;
       }
-    } else value = match?.[2] === "finance" ? finance(payload) : ["runs", "cancel"].includes(match?.[2] ?? "") ? run(payload) : agent(payload);
+    } else value = match?.[2] === "finance" ? finance(payload) : match?.[2] === "accounting" ? projectHostedAccounting(payload) : ["runs", "cancel"].includes(match?.[2] ?? "") ? run(payload) : agent(payload);
     return Response.json(value, { status: upstream.status, headers: responseHeaders });
   } catch (error) {
     return Response.json({ error: error instanceof BridgeError ? error.code : "HOSTED_UNAVAILABLE" }, { status: error instanceof BridgeError ? error.status : 503,
