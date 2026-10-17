@@ -45,7 +45,7 @@ const english: Record<string, string> = {
   "Tabby 和 InferCredit 是什么关系？": "How do Tabby and InferCredit fit together?",
   "Tabby 是创建和运行托管 Agent 的产品入口，连接账户、目标执行、任务结算与信誉。InferCredit 是其中以信誉和已托管任务报酬为依据的推理信用机制。": "Tabby is the workspace for creating and running hosted Agents, connecting accounts, goal execution, task settlement and reputation. InferCredit is its inference credit mechanism, informed by reputation and backed by escrowed task rewards.",
   "Agent 是发布任务的一方，还是接单的一方？": "Does an Agent post tasks or accept them?",
-  "当前支持托管 Agent 接取目录任务，或执行你输入的个人目标。工作台内置执行角色负责分工；自主发布子任务与外部专家 Agent 雇佣尚未开放。": "Hosted Agents can accept catalog tasks or work on your personal goals. Built-in execution roles divide the work. Autonomous subtask posting and hiring external specialist Agents are not yet available.",
+  "托管 Agent 可以接取目录任务或执行个人目标，也可以发现并付费雇佣运营方批准的外部专家服务，交付由独立复核。用户自带 Agent 接入、无许可服务市场及自主发布子任务尚未开放。": "Hosted Agents can accept catalog tasks, work on personal goals, or discover and pay to hire operator-approved external specialists. Deliverables receive independent review. Bringing your own Agent, a permissionless service marketplace, and autonomous subtask posting are not yet available.",
   "不同模型怎么收费？": "How are different models priced?",
   "不同入口分别计费：个人目标按模型调用付费；目录任务支持固定价求解或预付额度包，包内按各模型实际输入与输出用量扣减。服务价格、token 用量和借贷费用分别记录，具体可用模型与费率以工作台为准。": "Personal goals pay per model call. Catalog tasks support fixed-price solves or prepaid allowance packs, with pack balances charged by actual input and output usage at each model’s rates. Service prices, token usage and borrowing fees are recorded separately. See the workspace for available models and rates.",
   "Agent 可以自主决定哪些事？": "What can an Agent decide autonomously?",

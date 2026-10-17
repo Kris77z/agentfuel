@@ -11,6 +11,7 @@ The repository contains current guides and dated engineering/acceptance records.
 | What evidence supports a claim? | [Verification, amounts, receipts and replay checks](VERIFICATION.md) |
 | Where are automatic games, paid external collaboration and budget downgrade verified? | [2026-10-15 public Monad results](monad-collaboration-live-20261015.md): external hiring, downgrade and token-funded automatic task recheck passed, with explicit remediation and original failures preserved. [2026-10-14 local acceptance and reproduction](autonomous-collaboration-20261014.md) retains its controlled scope. |
 | Where is Monad deployed, and how is it maintained? | [Public deployment checks](monad-vps-20261014.md); [VPS deployment and state migration](../deploy/monad-vps/README.md) |
+| Is the current public instance ready for a live demo? | [Oct 17 public rehearsal and evidence](monad-hackathon-live-20261017.md): fresh credit, games, external hiring, model fallback and presenter-wallet execution; final deployment and readiness checks are recorded there. |
 | How should I change and validate the implementation? | [Contributing](../CONTRIBUTING.md) |
 | Which components are original or adapted? | [Attribution](ATTRIBUTION.md) |
 
@@ -32,6 +33,8 @@ Runbooks retain Chinese operational detail. Real-model or public-chain execution
 
 | Date | Scope |
 | --- | --- |
+| Oct 16, 2026 | [Public demo readiness audit](monad-demo-readiness-20261016.md): current preparation gaps, local corrections, verification scope and a seven-step rehearsal script; no new public business execution. |
+| Oct 17, 2026 | [Public hackathon rehearsal](monad-hackathon-live-20261017.md) and [evidence index](../frontend/acceptance/monad-hackathon-20261017/README.md): real Monad execution, independent verification, recovery and presenter preparation. |
 | Oct 15, 2026 | [Public Monad real-model collaboration](monad-collaboration-live-20261015.md), [public report guide](../frontend/acceptance/monad-collaboration-20261015/README.md): external hiring, a separate model-fallback recheck and task 19's automatic token branch passed; original fallback failure and task 18's production failure/default retained. |
 | Oct 12, 2026 | [Real models and Anvil](local-real-acceptance-20261012.md); [local services connected to Monad](monad-hosted-acceptance-20261012.md) |
 | Oct 13, 2026 | [Personal goals and workspace](dashboard-goal-workspace-20261013.md); [fixed-block Monad lookup](chain-lookup-acceptance-20261013.md) |

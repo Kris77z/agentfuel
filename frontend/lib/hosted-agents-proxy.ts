@@ -1,11 +1,16 @@
 import { validateGoalView, validateExternalService } from "../../services/hosted-agents/src/goal-types.js";
 import { HOSTED_ACTIVITY_LIMIT, validateHostedActivity } from "../../services/hosted-agents/src/scene-types.js";
+import { getAddress } from "ethers";
 const COOKIE = "agentfuel_hosted_session";
 const responseHeaders = { "cache-control": "private, no-store", "x-content-type-options": "nosniff" };
 const settings = ["name", "modelId", "strategy", "perRunBudgetRaw", "totalBudgetRaw", "allowCredit"];
 class BridgeError extends Error { constructor(readonly code: string, readonly status = 400) { super(code); } }
 function fail(code: string, status = 400): never { throw new BridgeError(code, status); }
 function object(value: unknown): value is Record<string, any> { return !!value && typeof value === "object" && !Array.isArray(value); }
+function ownerAddress(value: unknown) {
+  if (typeof value !== "string") fail("HOSTED_UNAVAILABLE", 503);
+  try { return getAddress(value); } catch { return fail("HOSTED_UNAVAILABLE", 503); }
+}
 function select(value: unknown, fields: string[]) {
   if (!object(value)) fail("HOSTED_UNAVAILABLE", 503);
   return Object.fromEntries(fields.filter(key => value[key] !== undefined).map(key => [key, value[key]]));
@@ -143,7 +148,13 @@ export async function hostedAgentsRequest(request: Request, config: { upstreamUr
     if (path === "/auth/challenge") value = select(payload, ["id", "message", "expiresAt"]);
     else if (path === "/agents" && request.method === "GET") {
       if (!object(payload) || !Array.isArray(payload.agents) || !Array.isArray(payload.runs) || !Array.isArray(payload.models)) fail("HOSTED_UNAVAILABLE", 503);
-      value = { agents: payload.agents.map(agent), runs: payload.runs.map(run), models: payload.models.map((model: unknown) => select(model, ["id", "label"])) };
+      // Identity comes only from this cookie-authenticated, fixed upstream.
+      // Older services omit owner; their Agents must still have one consistent
+      // owner, and the client may restore that legacy nonempty snapshot.
+      const authenticatedOwner = payload.owner === undefined ? undefined : ownerAddress(payload.owner);
+      const expectedOwner = authenticatedOwner ?? (payload.agents[0] ? ownerAddress(payload.agents[0].owner) : undefined);
+      if (payload.agents.some((item: unknown) => !object(item) || ownerAddress(item.owner) !== expectedOwner)) fail("HOSTED_UNAVAILABLE", 503);
+      value = { ...(authenticatedOwner ? { owner: authenticatedOwner } : {}), agents: payload.agents.map(agent), runs: payload.runs.map(run), models: payload.models.map((model: unknown) => select(model, ["id", "label"])) };
       if (object(payload.capabilities)) {
         const capabilities: Record<string, unknown> = {};
         if (object(payload.capabilities.inference) && Array.isArray(payload.capabilities.inference.models)) capabilities.inference = {

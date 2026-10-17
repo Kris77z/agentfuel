@@ -19,6 +19,7 @@ interface State {
   version: 1; runtime: string; origin: string; bootstrap: string; owner: string;
   createdAt: string; createId: string; parentId: string; agentId?: string;
   parentSubmitted?: boolean; before?: unknown; after?: unknown;
+  fresh?: { version: 1; gasFunding?: AutonomyGasBinding; ownerAdmission?: { checkedAt: string; ownerAgents: number; sponsoredOwnerSlots: number; sponsoredTotal: number }; protocolBefore?: RecheckFreezeSnapshot };
   task?: { taskId: string; deadline: number; rewardRaw: string; problemId: "sum-integers"; creditLimit: "80000"; poster: string; escrow: string };
   gasTarget?: string;
   recheckOf?: { directory: string; parentId: string; agentId: string; taskId: string; owner: string; sourceSessionDigest: string };
@@ -69,8 +70,50 @@ const publicRun = (run?: JsonObject) => run && ({ requestId: run.requestId, agen
     chargedRaw: run.result.chargedRaw, refundedRaw: run.result.refundedRaw, reason: run.result.reason,
     autonomousGames: run.result.autonomousGames, autonomousTasks: run.result.autonomousTasks } });
 
-export interface AutonomyAcceptanceOptions { runtime: string; output?: string; bootstrap?: string; gasSourceKeyFile?: string; recover?: boolean; recheckOf?: string }
+export function assertFreshAutonomyOwner(input: { ownerAgents: number; sponsoredOwnerSlots: number; sponsoredTotal: number }) {
+  invariant(input.ownerAgents === 0 && input.sponsoredOwnerSlots === 0, "AUTONOMY_FRESH_UNUSED_OWNER_REQUIRED");
+  invariant(Number.isSafeInteger(input.sponsoredTotal) && input.sponsoredTotal >= 0 && input.sponsoredTotal + 2 <= 100, "AUTONOMY_FRESH_GLOBAL_QUOTA_INSUFFICIENT");
+}
+export function assertFreshAutonomyBaseline(input: { agent: JsonObject; finance: JsonObject; protocol: RecheckFreezeSnapshot;
+  sponsoredOwnerSlots: number; sponsoredTotal: number; openTaskIds: string[]; taskId: string; seedPresent: boolean; recheckPresent: boolean }) {
+  assertFreshAutonomyOwner({ ownerAgents: 0, sponsoredOwnerSlots: input.sponsoredOwnerSlots, sponsoredTotal: input.sponsoredTotal });
+  invariant(!input.seedPresent && !input.recheckPresent, "AUTONOMY_FRESH_SEED_OR_REMEDY_FORBIDDEN");
+  invariant(input.agent.spentRaw === "0" && BigInt(input.agent.reservedRaw ?? "0") === 0n && input.agent.totalBudgetRaw === "130000"
+    && input.agent.perRunBudgetRaw === "120000" && input.agent.allowCredit === true && input.agent.modelId === "kimi-k2.6"
+    && input.agent.strategy === "balanced", "AUTONOMY_FRESH_SETTINGS_CHANGED");
+  invariant(input.finance.status === "confirmed" && input.finance.cashRaw === "0" && input.finance.debtRaw === "0"
+    && input.finance.counts?.defaults === "0" && input.protocol.defaultsRaw === "0" && !input.protocol.managerFrozen && !input.protocol.accountFrozen,
+    "AUTONOMY_FRESH_HEALTHY_IDENTITY_REQUIRED");
+  invariant(input.openTaskIds.length === 1 && input.openTaskIds[0] === input.taskId, "AUTONOMY_FRESH_OTHER_OPEN_TASKS");
+}
+export interface AutonomyGasBinding { amountWei: string; journalId: "fund-agent-gas" | "fund-agent-gas-0.6" }
+function validateAutonomyGasWei(amount: string) {
+  invariant(/^[1-9][0-9]{0,17}$/.test(amount) && BigInt(amount) <= 600000000000000000n, "AUTONOMY_GAS_WEI_OUT_OF_RANGE");
+}
+/** Bind before signing. Saved intents also preserve older signed/default gas
+ * transfers without changing their journal ID or creating another nonce. */
+export function autonomyGasBinding(input: { fresh: boolean; requestedWei?: string; saved?: AutonomyGasBinding;
+  intents?: JsonObject; legacySigned?: boolean; currentSigned?: boolean }): AutonomyGasBinding {
+  if (input.requestedWei !== undefined) { validateAutonomyGasWei(input.requestedWei); invariant(input.fresh, "AUTONOMY_GAS_WEI_FRESH_ONLY"); }
+  invariant(!(input.legacySigned && input.currentSigned), "AUTONOMY_GAS_JOURNAL_CONFLICT");
+  const legacy = input.intents?.["fund-agent-gas-0.6"], current = input.intents?.["fund-agent-gas"];
+  invariant(!legacy || !current, "AUTONOMY_GAS_JOURNAL_CONFLICT");
+  invariant(!input.legacySigned || legacy, "AUTONOMY_GAS_ORIGINAL_INTENT_REQUIRED");
+  invariant(!input.currentSigned || current, "AUTONOMY_GAS_ORIGINAL_INTENT_REQUIRED");
+  const existing = legacy ?? current;
+  const binding = input.saved ?? { amountWei: String(existing?.value ?? input.requestedWei ?? "600000000000000000"),
+    journalId: legacy || !input.fresh ? "fund-agent-gas-0.6" : "fund-agent-gas" };
+  validateAutonomyGasWei(binding.amountWei);
+  invariant(["fund-agent-gas", "fund-agent-gas-0.6"].includes(binding.journalId)
+    && (input.requestedWei === undefined || binding.amountWei === input.requestedWei)
+    && (!existing || binding.amountWei === String(existing.value) && binding.journalId === (legacy ? "fund-agent-gas-0.6" : "fund-agent-gas")),
+    "AUTONOMY_GAS_BINDING_CHANGED");
+  return binding;
+}
+export interface AutonomyAcceptanceOptions { runtime: string; output?: string; bootstrap?: string; gasSourceKeyFile?: string; gasWei?: string; recover?: boolean; recheckOf?: string; fresh?: boolean }
 export async function monadCollaborationAutonomyAcceptance(mode: AutonomyAcceptanceMode, options: AutonomyAcceptanceOptions) {
+  invariant(!options.fresh || options.output && !options.recheckOf, "AUTONOMY_FRESH_EXPLICIT_DIRECTORY_REQUIRED");
+  if (options.gasWei !== undefined) { validateAutonomyGasWei(options.gasWei); invariant(!options.recheckOf, "AUTONOMY_GAS_WEI_FRESH_ONLY"); }
   const runtime = resolve(options.runtime), output = resolve(options.output ?? join(runtime, "collaboration-autonomy-20261015"));
   const ready = await optional<JsonObject>(join(runtime, "ready.json"));
   const bootstrapFile = resolve(options.bootstrap ?? ready?.bootstrapFile ?? join(runtime, "..", "bootstrap.json"));
@@ -84,6 +127,9 @@ export async function monadCollaborationAutonomyAcceptance(mode: AutonomyAccepta
     const provider = connection.provider; invariant(BigInt(await provider.send("eth_chainId", [])) === 10143n, "MONAD_NETWORK_MISMATCH");
     const recorded = await optional<State>(join(output, "session.json"));
     const journal = new DemoJournal(provider, join(output, "transactions.json")); await journal.load();
+    const gasIntents = await optional<JsonObject>(join(output, "intents.json"));
+    let selectedGas = autonomyGasBinding({ fresh: Boolean(recorded?.fresh || options.fresh), requestedWei: options.gasWei,
+      saved: recorded?.fresh?.gasFunding, intents: gasIntents, legacySigned: journal.has("fund-agent-gas-0.6"), currentSigned: journal.has("fund-agent-gas") });
     const taskContract = new Contract(bootstrap.contracts.escrow, [...ESCROW_ABI,
       "function nextTaskId() view returns(uint256)", "function createTask(uint256,uint256)",
       "event TaskCreated(uint256 indexed taskId,address indexed poster,uint256 reward,uint256 deadline)"], provider);
@@ -91,8 +137,47 @@ export async function monadCollaborationAutonomyAcceptance(mode: AutonomyAccepta
     if (mode === "inspect") {
       const next = await taskContract.nextTaskId();
       const task = recorded?.task ? await taskContract.getTask(recorded.task.taskId) : undefined;
+      const taskFunded = Boolean(recorded?.task && task?.reward === 150000n && getAddress(task.poster) === recorded.task.poster);
+      const database = await optional<JsonObject>(join(runtime, "hosted", "database", "session.json"));
+      const hosted = ready && await optional<JsonObject>(ready.hostedConfigFile);
+      const taskConfig = hosted?.executor?.taskConfigFile && await optional<JsonObject>(hosted.executor.taskConfigFile);
+      const template = taskConfig?.models?.find((model: JsonObject) => model.id === "kimi-k2.6")?.templates?.balanced;
+      const block = await provider.getBlock("latest"); invariant(block?.hash, "MONAD_LATEST_BLOCK_REQUIRED");
+      const catalog = [];
+      for (const entry of template?.tasks ?? []) {
+        const value = await taskContract.getTask(entry.taskId, { blockTag: block.number });
+        catalog.push({ taskId: String(entry.taskId), status: String(value.status), assignedAgentId: String(value.agentId),
+          deadline: String(value.deadline), rewardRaw: String(value.reward), escrowBalanceRaw: String(value.escrowBalance),
+          openAndUnassigned: value.status === 1n && value.agentId === 0n && Number(value.deadline) > block.timestamp });
+      }
+      const token = new Contract(bootstrap.asset.address, ["function balanceOf(address) view returns(uint256)"], provider);
+      const resources: JsonObject = {};
+      for (const role of ["guardian", "underwriter", "verifier", "sponsor", "opponent"]) {
+        const wallet = new Wallet((await readFile(bootstrap.roleKeyFiles[role], "utf8")).trim());
+        resources[role] = { address: wallet.address, nativeWei: String(await provider.getBalance(wallet.address, block.number)),
+          testUsdcRaw: String(await token.balanceOf(wallet.address, { blockTag: block.number })) };
+      }
+      if (options.gasSourceKeyFile) {
+        const wallet = new Wallet((await readFile(options.gasSourceKeyFile, "utf8")).trim());
+        resources.gasSource = { address: wallet.address, nativeWei: String(await provider.getBalance(wallet.address, block.number)) };
+      }
+      const requiredByAddress: Record<string, { address: string; testUsdcRaw: string; availableTestUsdcRaw: string; sufficient: boolean }> = {};
+      for (const [role, amount] of [["guardian", taskFunded ? 0n : 150000n], ["sponsor", 200000n]] as const) {
+        const address = resources[role].address, previous = requiredByAddress[address]?.testUsdcRaw ?? "0", required = BigInt(previous) + amount;
+        requiredByAddress[address] = { address, testUsdcRaw: String(required), availableTestUsdcRaw: resources[role].testUsdcRaw,
+          sufficient: BigInt(resources[role].testUsdcRaw) >= required };
+      }
+      invariant((await provider.getBlock(block.number))?.hash === block.hash, "AUTONOMY_INSPECT_BLOCK_CHANGED");
+      const ownerSlots = recorded ? database?.sponsoredOwners?.[recorded.owner] ?? 0 : undefined;
       return { checkedAt: new Date().toISOString(), readOnly: true, chainId: "10143", origin, stateExists: Boolean(recorded),
         nextTaskId: String(next), templateDeadlineMs: templateDeadline, templateExpired: typeof templateDeadline === "number" && templateDeadline <= Date.now(),
+        fresh: Boolean(recorded?.fresh || options.fresh), block: { number: block.number, hash: block.hash },
+        quota: { globalUsed: database?.sponsoredTotal, globalCap: 100, globalRemaining: database ? Math.max(0, 100 - database.sponsoredTotal) : undefined,
+          ownerUsed: ownerSlots, ownerCap: 3, ownerRemaining: ownerSlots === undefined ? undefined : Math.max(0, 3 - ownerSlots),
+          freshTwoGameCapacity: database ? database.sponsoredTotal + 2 <= 100 && (ownerSlots ?? 0) === 0 : false, noQuotaReset: true },
+        resources, requiredByAddress, required: { newTaskRewardRaw: taskFunded ? "0" : "150000", twoGameSponsorRewardRaw: "200000", agentGasWei: selectedGas.amountWei, agentCashSeedRaw: "0", operatorTransactionGasAdditional: true },
+        currentTemplateDeadlineMs: template?.deadlineMs, currentTemplateExpired: typeof template?.deadlineMs !== "number" || template.deadlineMs <= Date.now(),
+        catalog, otherOpenTasks: catalog.filter(entry => entry.openAndUnassigned && entry.taskId !== recorded?.task?.taskId).map(entry => entry.taskId),
         task: recorded?.task && { ...recorded.task, status: String(task.status), assignedAgentId: String(task.agentId) },
         agentId: recorded?.agentId, parentRequestId: recorded?.parentId,
         recheckOf: recorded?.recheckOf && { parentRequestId: recorded.recheckOf.parentId, taskId: recorded.recheckOf.taskId, sameAgentRequired: true },
@@ -120,16 +205,23 @@ export async function monadCollaborationAutonomyAcceptance(mode: AutonomyAccepta
         const owner = ownerKey ? new Wallet(ownerKey) : Wallet.createRandom();
         if (!ownerKey) await writeFile(join(output, "owner.key"), owner.privateKey + "\n", { mode: 0o600, flag: "wx" });
         state = { version: 1, runtime, origin, bootstrap: bootstrapFile, owner: owner.address, createdAt: new Date().toISOString(), createId: randomUUID(), parentId: randomUUID() };
+        if (options.fresh) state.fresh = { version: 1 };
       }
       await store.write(state);
     }
     const saved = state; invariant(saved.runtime === runtime && saved.origin === origin && saved.bootstrap === bootstrapFile, "AUTONOMY_ACCEPTANCE_BINDING_CHANGED");
+    if (options.fresh) invariant(saved.fresh && !saved.recheckOf && !saved.seed, "AUTONOMY_FRESH_EXISTING_SESSION_FORBIDDEN");
+    selectedGas = autonomyGasBinding({ fresh: Boolean(saved.fresh), requestedWei: options.gasWei, saved: saved.fresh?.gasFunding,
+      intents: gasIntents, legacySigned: journal.has("fund-agent-gas-0.6"), currentSigned: journal.has("fund-agent-gas") });
     if (options.recheckOf) invariant(saved.recheckOf?.directory === resolve(options.recheckOf), "AUTONOMY_RECHECK_SOURCE_CHANGED");
     if (saved.recheckOf) {
       const original = await optional<State>(join(saved.recheckOf.directory, "session.json"));
       invariant(original && sha256(original) === saved.recheckOf.sourceSessionDigest, "AUTONOMY_ORIGINAL_FAILURE_EVIDENCE_CHANGED");
     }
     const save = () => store.write(saved);
+    if (saved.fresh && (saved.fresh.gasFunding || options.gasWei !== undefined || gasIntents?.[selectedGas.journalId])) {
+      saved.fresh.gasFunding = selectedGas; await save();
+    }
     const sharedOperator = async (keyFile: string, action: (wallet: Wallet) => Promise<unknown>) => {
       const wallet = new Wallet((await readFile(keyFile, "utf8")).trim(), provider);
       const lock = new SessionStore<{ directory?: string; hash?: string }>(join(runtime, "wallets", "operator", wallet.address.toLowerCase()));
@@ -215,6 +307,12 @@ export async function monadCollaborationAutonomyAcceptance(mode: AutonomyAccepta
     };
     let snapshot = await api("/agents");
     let agent = snapshot.agents.find((entry: JsonObject) => entry.id === saved.agentId);
+    if (saved.fresh && !saved.fresh.ownerAdmission && !["evidence", "replay"].includes(mode)) {
+      const database = await optional<JsonObject>(join(runtime, "hosted", "database", "session.json")); invariant(database, "AUTONOMY_DATABASE_REQUIRED");
+      const admission = { ownerAgents: snapshot.agents.length, sponsoredOwnerSlots: database.sponsoredOwners?.[owner.address] ?? 0, sponsoredTotal: database.sponsoredTotal };
+      assertFreshAutonomyOwner(admission);
+      saved.fresh.ownerAdmission = { ...admission, checkedAt: new Date().toISOString() }; await save();
+    }
     if (saved.recheckOf) invariant(agent && agent.id === saved.recheckOf.agentId, "AUTONOMY_RECHECK_ORIGINAL_AGENT_REQUIRED");
     if (!agent && !["evidence", "replay"].includes(mode)) {
       const originalCreation = snapshot.runs.find((entry: JsonObject) => entry.requestId === saved.createId);
@@ -232,8 +330,9 @@ export async function monadCollaborationAutonomyAcceptance(mode: AutonomyAccepta
       invariant(original?.status === "Paused" && original.reason === "HOSTED_WALLET_GAS_REQUIRED", "AUTONOMY_INSPECT_ORIGINAL_PROVISION");
       if (!saved.gasTarget) { saved.gasTarget = getAddress(agent.wallet); await save(); }
       invariant(saved.gasTarget === getAddress(agent.wallet), "AUTONOMY_GAS_TARGET_CHANGED");
+      if (saved.fresh) { saved.fresh.gasFunding ??= selectedGas; await save(); }
       await sharedOperator(options.gasSourceKeyFile ?? bootstrap.roleKeyFiles.guardian, async wallet => {
-        await send("fund-agent-gas-0.6", wallet, { to: saved.gasTarget, value: 600000000000000000n }, 21000n);
+        await send(selectedGas.journalId, wallet, { to: saved.gasTarget, value: BigInt(selectedGas.amountWei) }, 21000n);
       });
       await api(`/agents/${agent.id}/runs`, "POST", { action: "provision", requestId: saved.createId });
       invariant((await wait(saved.createId)).status === "Succeeded", "AUTONOMY_PROVISION_INCOMPLETE");
@@ -308,7 +407,7 @@ export async function monadCollaborationAutonomyAcceptance(mode: AutonomyAccepta
     }
     if (mode === "prepare-agent") return { agentPrepared: true, hostedAgentId: agent.id, agentId: agent.binding.agentId, wallet: agent.wallet,
       createRequestId: saved.createId, parentRequestId: saved.parentId, recheck: Boolean(saved.recheckOf), settingsChange: saved.settingsChange,
-      freezeRemedy: saved.freezeRemedy, seedCashRaw: saved.seed?.amountRaw, depositRequestId: saved.seed?.depositId, paidModelsStarted: 0 };
+      freezeRemedy: saved.freezeRemedy, gasFunding: saved.fresh?.gasFunding, seedCashRaw: saved.seed?.amountRaw, depositRequestId: saved.seed?.depositId, paidModelsStarted: 0 };
     let parent = (await api("/agents")).runs.find((entry: JsonObject) => entry.requestId === saved.parentId);
     if (!["evidence", "replay"].includes(mode)) {
       if (!parent) {
@@ -324,6 +423,20 @@ export async function monadCollaborationAutonomyAcceptance(mode: AutonomyAccepta
         const credits = await optional<JsonObject>(join(runtime, "credits", agent.id, "session.json"));
         invariant(!credits || !credits.grants?.length && !credits.redemptions?.length, "AUTONOMY_ZERO_TOKEN_BASELINE_REQUIRED");
         const database = await optional<JsonObject>(join(runtime, "hosted", "database", "session.json"));
+        if (saved.fresh) {
+          invariant(database && saved.fresh.ownerAdmission, "AUTONOMY_FRESH_OWNER_ADMISSION_REQUIRED");
+          const openTaskIds: string[] = [];
+          for (const entry of template.tasks) {
+            const value = await taskContract.getTask(entry.taskId);
+            if (value.status === 1n && value.agentId === 0n && Number(value.deadline) * 1000 > Date.now()) openTaskIds.push(String(entry.taskId));
+          }
+          const protocol = await readRecheckFreezeSnapshot(provider, bootstrap.contracts.manager, bootstrap.contracts.account, agent.binding.agentId, saved.task.taskId);
+          assertFreshAutonomyBaseline({ agent, finance, protocol, sponsoredOwnerSlots: database.sponsoredOwners?.[agent.owner] ?? 0,
+            sponsoredTotal: database.sponsoredTotal, openTaskIds, taskId: saved.task.taskId, seedPresent: Boolean(saved.seed), recheckPresent: Boolean(saved.recheckOf || saved.freezeRemedy) });
+          invariant(hosted.autonomy.plannerPriceRaw === "10000" && hosted.autonomy.games.maxSpendPerGameRaw === "0"
+            && hosted.autonomy.games.maxGames === 2, "AUTONOMY_FRESH_RUNTIME_BOUNDS_CHANGED");
+          saved.fresh.protocolBefore = protocol;
+        }
         saved.before ??= { finance, rewardTokens: 0, sponsoredOwnerSlots: database?.sponsoredOwners?.[agent.owner] ?? 0, sponsoredTotal: database?.sponsoredTotal ?? 0,
           settings: { perRunBudgetRaw: agent.perRunBudgetRaw, totalBudgetRaw: agent.totalBudgetRaw, spentRaw: agent.spentRaw, allowCredit: agent.allowCredit },
           configuration: { ...hosted.autonomy, plannerRelayUrl: undefined }, walletNonce: await provider.getTransactionCount(agent.wallet) }; await save();
@@ -423,7 +536,8 @@ export async function collectAutonomyEvidence(input: { runtime: string; output: 
     const plan = await optional<JsonObject>(join(parentDirectory, "planner", step.decisionId, "session.json"));
     const receipt = plan?.inference?.receipt; if (receipt?.txHash) hashes.add(receipt.txHash);
     planner.push({ decisionId: step.decisionId, chargedRaw: step.decisionChargedRaw, paymentId: receipt?.paymentId, txHash: receipt?.txHash,
-      physicalModel: receipt?.model, usage: plan?.inference?.result?.usage, resultDigest: plan?.inference?.result && sha256(plan.inference.result) });
+      physicalModel: receipt?.model, physicalResponseModel: plan?.inference?.result?.model, usage: plan?.inference?.result?.usage,
+      resultDigest: plan?.inference?.result && sha256(plan.inference.result) });
   }
   const receipts = [];
   for (const hash of hashes) {
@@ -509,25 +623,55 @@ export async function collectAutonomyEvidence(input: { runtime: string; output: 
         && agent.spentRaw === "130000" && finance.counts?.defaults === "1" && state.seed?.financeBefore?.counts?.defaults === "1"
         && parent.status === "Succeeded" && parent.result?.success === true && !agent.activeRequestId && unfinishedChildren.length === 0 && !loop?.pendingTaskChildId };
   }
-  const complete = baseComplete && (!recheck || recheck.sameAgentRewardLoopAccepted === true);
+  let fresh: JsonObject | undefined;
+  if (state.fresh) {
+    const usagePresent = (usage: JsonObject | undefined) => Boolean(usage && (
+      Number.isSafeInteger(usage.total_tokens) && usage.total_tokens > 0
+      || Number.isSafeInteger(usage.promptTokens) && Number.isSafeInteger(usage.completionTokens) && usage.promptTokens + usage.completionTokens > 0));
+    const physicalGameUsageVerified = games.length > 0 && games.length <= 2 && games.every(game => game.result?.terminal && game.rewardKind === "usdc"
+      && game.hand?.phase === "Complete" && game.physicalAttempts?.length > 0 && game.physicalAttempts.length <= HOLDEM_LIVE_LIMITS.maxCalls
+      && BigInt(game.result.rewardRaw ?? "0") === (game.hand.result?.winners.includes(0) ? 100000n / BigInt(game.hand.result.winners.length) : 0n)
+      && game.physicalAttempts.every((attempt: JsonObject) => attempt.outcome === "Applied" && attempt.requestedModel === "kimi-k2.6"
+        && attempt.response?.model === "kimi-k2.6" && usagePresent(attempt.response?.usage) && attempt.response.responseDigest));
+    const physicalPlannerUsageVerified = planner.length === 1 && planner.every(plan => plan.physicalModel && plan.physicalResponseModel && plan.resultDigest && plan.txHash && usagePresent(plan.usage));
+    const paidTaskUsageVerified = settled.some(task => task.action === "metered-task" && BigInt(task.result.fromCreditRaw ?? "0") > 0n
+      && task.meteredInferences.length > 0 && task.meteredInferences.every((entry: JsonObject) => entry.state === "Completed"
+        && entry.physicalResponseModel && entry.responseDigest && BigInt(entry.chargedCredits ?? "0") > 0n && usagePresent(entry.usage)));
+    const parentTerminalSuccess = parent.status === "Succeeded" && parent.result?.success === true && !agent.activeRequestId
+      && unfinishedChildren.length === 0 && !loop?.pendingTaskChildId;
+    const defaultPreserved = (state.before as JsonObject)?.finance?.counts?.defaults === "0" && finance.counts?.defaults === "0"
+      && state.fresh.protocolBefore?.defaultsRaw === "0";
+    const borrowedAndRepaid = independent.some(verdict => BigInt(verdict.settlement.event.repaidRaw) > 0n && verdict.settlement.event.slashedRaw === "0");
+    fresh = { ownerAdmission: state.fresh.ownerAdmission, protocolBefore: state.fresh.protocolBefore, gasFunding: state.fresh.gasFunding,
+      initialCashRaw: (state.before as JsonObject)?.finance?.cashRaw, initialRewardTokens: (state.before as JsonObject)?.rewardTokens,
+      agentCashSeedRaw: "0", noSeedOrFreezeRemedy: !state.seed && !state.recheckOf && !state.freezeRemedy,
+      physicalGameUsageVerified, physicalPlannerUsageVerified, paidTaskUsageVerified, parentTerminalSuccess, defaultPreserved, borrowedAndRepaid,
+      currentSpentRaw: agent.spentRaw, terminalReplayVerified: Boolean(state.replay?.verifiedAt),
+      loopAccepted: baseComplete && physicalGameUsageVerified && physicalPlannerUsageVerified && paidTaskUsageVerified && borrowedAndRepaid
+        && parentTerminalSuccess && defaultPreserved && agent.spentRaw === "130000" && Boolean(state.fresh.ownerAdmission)
+        && (state.before as JsonObject)?.finance?.cashRaw === "0" && (state.before as JsonObject)?.rewardTokens === 0
+        && !state.seed && !state.recheckOf && !state.freezeRemedy };
+  }
+  const complete = baseComplete && (!recheck || recheck.sameAgentRewardLoopAccepted === true) && (!fresh || fresh.loopAccepted === true);
   return { version: 1, checkedAt: new Date().toISOString(), chainId: "10143", modelMode: "real-vendor", hostedAgentId: agent.id,
     agentId: agent.binding.agentId, wallet: agent.wallet, parent: publicRun(parent), parentRequestId: state.parentId,
     scope: "Public Next authentication and autonomous real Kimi games; original parent/child tasks; independent Docker verifier and canonical Monad settlement",
     before: state.before, after: { finance, sponsoredOwnerSlots: hostedDatabase?.sponsoredOwners?.[agent.owner], sponsoredTotal: hostedDatabase?.sponsoredTotal },
-    games, tasks, planner, redemptions, rewardGrants, independentVerifier: independent, canonicalReceipts: receipts, recheck,
+    games, tasks, planner, redemptions, rewardGrants, independentVerifier: independent, canonicalReceipts: receipts, recheck, fresh,
     terminalParent: { phase: loop?.phase, reason: loop?.reason, completedTasks: loop?.completedTasks, completedGames: loop?.completedGames,
       pendingTaskChildId: loop?.pendingTaskChildId, unfinishedChildren, activeRequestId: agent.activeRequestId },
     terminalReplay: state.replay && { ...state.replay, originalParentUuid: state.parentId, noNewEffectsVerified: Boolean(state.replay.verifiedAt) },
     automaticGameToSettledTaskAccepted: complete, winnerGuaranteed: false, terminalFailureOrPausePreserved: !complete,
     fullRecheckAccepted: state.recheckOf ? complete && Boolean(state.replay?.verifiedAt) && recheck?.unfreezeAuditVerified === true : undefined,
+    fullFreshAccepted: state.fresh ? complete && Boolean(state.replay?.verifiedAt) : undefined,
     noReplacementUuid: true, noModelResponseText: true };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const [runtime, mode, ...flags] = process.argv.slice(2);
   const argument = (name: string) => { const at = flags.indexOf(name); return at < 0 ? undefined : flags[at + 1]; };
-  if (!runtime || !["inspect", "prepare-task", "prepare-agent", "apply", "recover", "evidence", "replay"].includes(mode)) {
-    console.error("Usage: monad-collaboration-autonomy-acceptance.ts RUNTIME inspect|prepare-task|prepare-agent|apply|recover|evidence|replay [--out DIRECTORY] [--bootstrap FILE] [--gas-source-key-file FILE] [--recheck-of ORIGINAL_DIRECTORY] [--recover]"); process.exitCode = 1;
+  if (!runtime || flags.includes("--gas-wei") && !argument("--gas-wei") || !["inspect", "prepare-task", "prepare-agent", "apply", "recover", "evidence", "replay"].includes(mode)) {
+    console.error("Usage: monad-collaboration-autonomy-acceptance.ts RUNTIME inspect|prepare-task|prepare-agent|apply|recover|evidence|replay [--out DIRECTORY] [--bootstrap FILE] [--gas-source-key-file FILE] [--fresh [--gas-wei WEI] | --recheck-of ORIGINAL_DIRECTORY] [--recover]"); process.exitCode = 1;
   } else monadCollaborationAutonomyAcceptance(mode as AutonomyAcceptanceMode, { runtime, output: argument("--out"), bootstrap: argument("--bootstrap"),
-    gasSourceKeyFile: argument("--gas-source-key-file"), recheckOf: argument("--recheck-of"), recover: flags.includes("--recover") }).then(result => console.log(JSON.stringify(result))).catch(error => { reportDemoFailure(error); process.exitCode = 1; });
+    gasSourceKeyFile: argument("--gas-source-key-file"), gasWei: argument("--gas-wei"), recheckOf: argument("--recheck-of"), recover: flags.includes("--recover"), fresh: flags.includes("--fresh") }).then(result => console.log(JSON.stringify(result))).catch(error => { reportDemoFailure(error); process.exitCode = 1; });
 }

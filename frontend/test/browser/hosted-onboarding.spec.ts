@@ -33,16 +33,22 @@ test("onboarding: source terminal signs in, creates by name before configuring e
   await page.screenshot({ path: resolve(directory, `synthetic-terminal-review-${info.project.name}.png`), fullPage: true, style: "nextjs-portal { display:none !important; }" });
   await page.getByRole("button", { name: "确认创建", exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByLabel("当前 Agent", { exact: true })).toHaveValue(agentId);
+  await expect(page.getByTestId(`hosted-agent-${agentId}`)).toHaveCount(1);
+  await page.reload(); await expect(page.getByTestId(`hosted-agent-${agentId}`)).toHaveCount(1);
   expect(harness.commands.filter(command => command.path === "/api/hosted/agents" && command.method === "POST").map(command => command.body))
     .toEqual([{ name: settings.name, requestId: expect.stringMatching(uuid) }]);
-  await expect(page.getByText("Agent 已创建。首次运行前，请设置模型、推理预算和借贷权限。", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "设置运行配置", exact: true }).first().click();
+  await expect(page.getByRole("button", { name: "设置模型与预算 →", exact: true }).first()).toBeVisible();
+  await page.getByRole("button", { name: "设置模型与预算 →", exact: true }).first().click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog.getByLabel("模型", { exact: true })).toHaveValue("");
+  await expect(dialog.getByRole("combobox", { name: "模型", exact: true })).toContainText("选择运行模型");
+  await expect(dialog).toContainText("保存后才允许运行。预算不是充值，借贷默认关闭。");
   await expect(dialog.getByLabel("允许任务授信", { exact: true })).not.toBeChecked();
-  await dialog.getByLabel("模型", { exact: true }).selectOption("synthetic-model");
-  await dialog.getByLabel("策略", { exact: true }).selectOption("conservative");
+  await dialog.getByRole("combobox", { name: "模型", exact: true }).click();
+  await page.getByRole("listbox", { name: "模型", exact: true }).getByRole("option", { name: "Synthetic Model", exact: true }).click();
+  await expect(dialog.getByRole("combobox", { name: "模型", exact: true })).toContainText("Synthetic Model");
+  await dialog.getByRole("combobox", { name: "策略", exact: true }).click();
+  await page.getByRole("listbox", { name: "策略", exact: true }).getByRole("option", { name: "保守", exact: true }).click();
+  await expect(dialog.getByRole("combobox", { name: "策略", exact: true })).toContainText("保守");
   await dialog.getByRole("button", { name: "保存设置", exact: true }).click();
   await expect(dialog).toBeHidden();
   expect(harness.commands.filter(command => command.method === "PATCH").map(command => command.body)).toEqual([
@@ -67,7 +73,7 @@ test("onboarding: an uncertain create reloads and confirms the original UUID and
   await expect(page.getByRole("button", { name: "确认创建", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "继续确认原请求", exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByLabel("当前 Agent", { exact: true })).toHaveValue(agentId);
+  await expect(page.getByTestId(`hosted-agent-${agentId}`)).toHaveCount(1);
   expect(harness.commands.filter(command => command.path === "/api/hosted/agents" && command.method === "POST").map(command => command.body)).toEqual([original, original]);
   expect(await page.evaluate(key => localStorage.getItem(key), pendingKey)).toBeNull();
 });
@@ -77,7 +83,7 @@ test("onboarding: an unconfigured service never offers a model, fake registratio
   await page.goto("/onboarding");
   await page.getByRole("button", { name: "开始创建 ↵", exact: true }).click();
   await expect(page.getByRole("button", { name: "签名登录", exact: true })).toBeDisabled();
-  await expect(page.getByRole("alert").filter({ hasText: "托管服务尚未配置" })).toBeVisible();
+  await expect(page.getByTestId("onboarding-terminal-shell").getByRole("alert").filter({ hasText: "托管服务尚未配置" })).toBeVisible();
   await expect(page.getByLabel("模型", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "确认创建", exact: true })).toHaveCount(0);
   expect(harness.commands.filter(command => command.method !== "GET")).toEqual([]); expect(harness.rpcCalls).toEqual([]);
@@ -104,9 +110,9 @@ test("onboarding: leaving an in-flight create keeps the destination and stops ho
     // The same provider continues to notice wallet changes outside the hosted routes.
     await page.evaluate(() => (window as unknown as { ethereum: { __emit(event: string, payload: unknown): void } }).ethereum.__emit("accountsChanged", []));
     await expect.poll(() => harness.commands.filter(command => command.path === "/api/hosted/auth/logout").length).toBe(1);
-    await page.getByRole("link", { name: "进入工作台", exact: true }).first().click();
+    await page.getByRole("link", { name: "WORKSPACE", exact: true }).first().click();
     await expect(page.getByRole("button", { name: "签名登录", exact: true })).toBeEnabled();
-    await expect(page.getByLabel("当前 Agent", { exact: true })).toHaveCount(0);
+    await expect(page.getByRole("combobox", { name: "切换 Agent", exact: true })).toHaveCount(0);
   } finally { release(); }
 });
 
@@ -124,4 +130,78 @@ test("onboarding: changing to another owner clears transcript, review and all dr
   await expect(page.getByTestId("onboarding-transcript")).toContainText(other.address);
   await expect(page.getByRole("button", { name: "确认创建", exact: true })).toHaveCount(0);
   expect(harness.commands.filter(command => command.path === "/api/hosted/agents" && command.method === "POST")).toEqual([]);
+});
+
+test("authenticated snapshot: zero-Agent cookie survives onboarding reload without another wallet signature", async ({ page }) => {
+  const harness = await syntheticHosted(page, { agents: [] });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.route("**/api/hosted/agents", route => route.request().method() === "GET"
+    ? route.fulfill({ json: { owner: owner.address, agents: [], runs: [], models: [] } }) : route.fallback());
+  await page.goto("/onboarding");
+  await page.getByRole("button", { name: "开始创建 ↵", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "名称", exact: true })).toBeEnabled();
+  await expect(page.getByTestId("onboarding-transcript")).toContainText(owner.address);
+  await expect(page.getByRole("button", { name: "签名登录", exact: true })).toHaveCount(0);
+  await page.reload(); await page.getByRole("button", { name: "开始创建 ↵", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "名称", exact: true })).toBeEnabled();
+  await expect(page.getByTestId("onboarding-transcript")).toContainText(owner.address);
+  expect(harness.signed).toEqual([]); expect(harness.rpcCalls).toEqual([]);
+  expect(harness.commands.filter(command => command.method !== "GET")).toEqual([]);
+});
+
+test("authenticated snapshot: zero-Agent account switch restores only that owner's pending request and logout stays cleared after reload", async ({ page }) => {
+  const harness = await syntheticHosted(page, { agents: [] }), other = new Wallet("0x" + "4".repeat(64));
+  let snapshotOwner = owner.address, validSession = true;
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.route("**/api/hosted/agents", route => route.request().method() === "GET" ? route.fulfill(validSession
+    ? { json: { owner: snapshotOwner, agents: [], runs: [], models: [] } }
+    : { status: 401, json: { error: "HOSTED_AUTH_REQUIRED" } }) : route.fallback());
+  await page.addInitScript(({ first, second }) => {
+    for (const [address, name, requestId] of [
+      [first, "A owner pending", "11111111-1111-4111-8111-111111111111"],
+      [second, "B owner pending", "22222222-2222-4222-8222-222222222222"],
+    ]) localStorage.setItem(`agentfuel:hosted:pending:${address.toLowerCase()}`, JSON.stringify({ owner: address, kind: "create", input: { name, requestId } }));
+  }, { first: owner.address, second: other.address });
+  await page.goto("/onboarding");
+  const review = page.getByRole("region", { name: "确认创建 Agent" });
+  await expect(review).toContainText("A owner pending"); await expect(review).not.toContainText("B owner pending");
+  harness.useOwner(other); snapshotOwner = other.address;
+  await page.evaluate(address => (window as unknown as { ethereum: { __emit(event: string, payload: unknown): void } }).ethereum.__emit("accountsChanged", [address]), other.address);
+  await expect(review).toHaveCount(0);
+  await page.getByRole("button", { name: "签名登录", exact: true }).click();
+  await expect(review).toContainText("B owner pending"); await expect(review).not.toContainText("A owner pending");
+  expect(harness.signed).toHaveLength(1); expect(harness.signed[0].wallet.toLowerCase()).toBe(other.address.toLowerCase());
+  await page.getByTestId("onboarding-terminal-header").getByRole("link", { name: /^进入工作台/ }).click();
+  await page.getByRole("button", { name: "账户菜单", exact: true }).click(); validSession = false;
+  await page.getByRole("menuitem", { name: "退出登录", exact: true }).click();
+  await expect(page.getByRole("button", { name: "签名登录", exact: true })).toBeEnabled();
+  await page.reload(); await expect(page.getByRole("button", { name: "签名登录", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "账户菜单", exact: true })).toHaveCount(0);
+  expect(harness.commands.filter(command => command.path === "/api/hosted/agents" && command.method === "POST")).toEqual([]);
+});
+
+test("authenticated snapshot: a delayed zero-Agent response cannot restore identity after logout", async ({ page }) => {
+  const harness = await syntheticHosted(page, { agents: [] });
+  let reads = 0, validSession = true, release!: () => void, arrived!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; }), accepted = new Promise<void>(resolve => { arrived = resolve; });
+  await page.route("**/api/hosted/agents", async route => {
+    if (route.request().method() !== "GET") return route.fallback();
+    const admitted = validSession;
+    if (++reads === 2) { arrived(); await gate; }
+    return route.fulfill(admitted ? { json: { owner: owner.address, agents: [], runs: [], models: [] } }
+      : { status: 401, json: { error: "HOSTED_AUTH_REQUIRED" } });
+  });
+  try {
+    await page.goto("/dashboard"); await page.getByRole("button", { name: "账户菜单", exact: true }).click();
+    await page.getByRole("menuitem", { name: "刷新数据", exact: true }).click(); await accepted;
+    await page.getByRole("button", { name: "账户菜单", exact: true }).click(); validSession = false;
+    await page.getByRole("menuitem", { name: "退出登录", exact: true }).click();
+    await expect(page.getByRole("button", { name: "签名登录", exact: true })).toBeEnabled();
+    release(); await expect.poll(() => reads).toBe(2);
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    await expect(page.getByRole("button", { name: "账户菜单", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "签名登录", exact: true })).toBeEnabled();
+    await page.reload(); await expect(page.getByRole("button", { name: "签名登录", exact: true })).toBeEnabled();
+    expect(harness.signed).toEqual([]); expect(harness.rpcCalls).toEqual([]);
+  } finally { release(); }
 });

@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { Wallet, Transaction, keccak256 } from "ethers";
 import { fundMonadCollaborationGoals, validateSignedGoalFunding } from "../monad-collaboration-fund-goals.js";
-import { collaborationCases, collaborationOrigin } from "../monad-collaboration-goal-acceptance.js";
+import { collaborationCases, collaborationOrigin, prepareCollaborationCase, type Journal } from "../monad-collaboration-goal-acceptance.js";
 import { fixture, key, startAnvil, stopAnvil } from "../../services/underwriter/test/fixture.js";
 import { SessionStore } from "../../packages/pi-loop/src/session.js";
 
@@ -21,7 +21,7 @@ test("funding rejects a changed signed recipient, amount or fee before replay", 
   assert.throws(() => validateSignedGoalFunding(entry, plan, signer.address, 10143n, 99n), /FUND_GOALS_SIGNED_FEE_CHANGED/);
 });
 
-test("original goal wallets are funded once; inspect is read-only, same-signature recovery is canonical, and another guardian intent blocks funding", { timeout: 120000 }, async () => {
+test("legacy and fresh goal wallets are funded once with isolated intents, canonical same-signature recovery and no transfer to old fallback", { timeout: 120000 }, async () => {
   const root = await realpath(await mkdtemp(join(tmpdir(), "tabby-fund-goals-"))), anvil = await startAnvil();
   const f = await fixture(anvil.rpc, join(root, "credit"), 6), runtime = join(root, "runtime"), output = join(runtime, "collaboration-goals-20261015");
   await mkdir(join(runtime, "hosted", "database"), { recursive: true, mode: 0o700 }); await mkdir(output, { mode: 0o700 });
@@ -88,6 +88,43 @@ test("original goal wallets are funded once; inspect is read-only, same-signatur
     assert.equal(await f.provider.getTransactionCount(guardian.address), before + 5); assert.equal(await readFile(databaseFile, "utf8"), databaseBeforeRecheck);
     assert.equal(await readFile(transactionFile, "utf8"), originalSigned); assert.equal(await readFile(join(output, "funding/session.json"), "utf8"), initialFundingState);
     assert.equal(Object.keys(JSON.parse(await readFile(join(output, "funding-fallback-recheck/transactions.json"), "utf8"))).length, 1);
+    // A fresh batch has its own owner, two new wallets and explicitly approved
+    // native/cash amounts. It must never fund the retained failed fallback.
+    const freshOutput = join(runtime, "collaboration-goals-20261017"), freshOwner = new Wallet(key(10)); await mkdir(freshOutput, { mode: 0o700 });
+    await write(join(freshOutput, "owner.key"), key(10));
+    const freshJournal: Journal = { version: 1, origin: collaborationOrigin, chainId: "10143", runtime, owner: freshOwner.address, startedAt: "2026-10-17T00:00:00.000Z", cases: {} };
+    for (const [index, name] of (["external", "fallback-fresh"] as const).entries()) {
+      const entry = prepareCollaborationCase(freshJournal, name), agent = { id: randomUUID(), owner: freshOwner.address, wallet: new Wallet(key(index + 7)).address, modelId: collaborationCases[name].modelId };
+      entry.agent = agent as any; agents.push(agent); creations.push({ owner: freshOwner.address, requestId: entry.create.requestId, agentId: agent.id });
+    }
+    const freshJournalFile = join(freshOutput, "journal.json"); await write(freshJournalFile, freshJournal); await write(databaseFile, { agents, creations });
+    const freshOptions = { runtime, output: freshOutput, caseName: "fallback-fresh" as const, nativeAmountWei: "20000000000000000", externalUsdcRaw: "60000", fallbackUsdcRaw: "50000" };
+    const freshNonce = await f.provider.getTransactionCount(guardian.address), freshDatabase = await readFile(databaseFile, "utf8"), freshJournalBytes = await readFile(freshJournalFile, "utf8");
+    const oldBalances = await Promise.all([f.provider.getBalance(prior.agent.wallet), f.token!.getFunction("balanceOf").staticCall(prior.agent.wallet)]);
+    await assert.rejects(fundMonadCollaborationGoals({ runtime, output: freshOutput, caseName: "fallback-fresh" }, deps), /FUND_GOALS_FRESH_EXPLICIT_AMOUNTS_REQUIRED/);
+    await assert.rejects(fundMonadCollaborationGoals({ runtime, output: freshOutput }, deps), /FUND_GOALS_FRESH_REQUIRES_EXPLICIT_CASE/);
+    await assert.rejects(fundMonadCollaborationGoals({ ...freshOptions, fallbackUsdcRaw: "60000" }, deps), /FUND_GOALS_FALLBACK_CASH_CHANGED/);
+    const mixed = structuredClone(freshJournal); mixed.cases.fallback = structuredClone(updatedJournal.cases.fallback); mixed.cases.fallback!.agent!.owner = freshOwner.address; await write(freshJournalFile, mixed);
+    await assert.rejects(fundMonadCollaborationGoals(freshOptions, deps), /FUND_GOALS_FRESH_DIRECTORY_MUST_EXCLUDE_OLD_CASES/); await write(freshJournalFile, freshJournalBytes);
+    assert.equal(await f.provider.getTransactionCount(guardian.address), freshNonce);
+    const freshInspect = await fundMonadCollaborationGoals(freshOptions, deps);
+    assert.deepEqual(freshInspect.plans!.map(plan => [plan.case, plan.asset, plan.amount]), [["external", "MON", freshOptions.nativeAmountWei], ["external", "test-USDC", "60000"], ["fallback-fresh", "MON", freshOptions.nativeAmountWei], ["fallback-fresh", "test-USDC", "50000"]]);
+    await assert.rejects(stat(join(freshOutput, "funding-fresh")), { code: "ENOENT" });
+    f.provider.broadcastTransaction = async () => { throw new Error("controlled fresh acknowledgement lost before broadcast"); };
+    await assert.rejects(fundMonadCollaborationGoals({ ...freshOptions, mode: "apply" }, deps), /RECORDED_TRANSACTION_UNCONFIRMED_USE_SAME_OUTPUT/); f.provider.broadcastTransaction = broadcast;
+    const freshSignedFile = join(freshOutput, "funding-fresh/transactions.json"), freshSignedBefore = JSON.parse(await readFile(freshSignedFile, "utf8")); assert.equal(Object.keys(freshSignedBefore).length, 1);
+    const freshFunded = await fundMonadCollaborationGoals({ ...freshOptions, mode: "recover" }, deps); assert.equal(freshFunded.chainWrites, 3); assert.equal(freshFunded.receipts!.length, 4);
+    const freshSignedAfter = JSON.parse(await readFile(freshSignedFile, "utf8")); assert.deepEqual(freshSignedAfter[Object.keys(freshSignedBefore)[0]], Object.values(freshSignedBefore)[0]);
+    for (const name of ["external", "fallback-fresh"] as const) {
+      assert.equal(await f.provider.getBalance(freshJournal.cases[name]!.agent!.wallet), BigInt(freshOptions.nativeAmountWei));
+      assert.equal(await f.token!.getFunction("balanceOf").staticCall(freshJournal.cases[name]!.agent!.wallet), BigInt(collaborationCases[name].depositRaw));
+    }
+    const freshReplay = await fundMonadCollaborationGoals({ ...freshOptions, mode: "recover" }, deps); assert.equal(freshReplay.chainWrites, 0); assert.deepEqual(freshReplay.receipts, freshFunded.receipts);
+    await assert.rejects(fundMonadCollaborationGoals({ ...freshOptions, mode: "recover", nativeAmountWei: "30000000000000000" }, deps), /FUND_GOALS_FROZEN_INTENT_CHANGED/);
+    assert.equal(await f.provider.getTransactionCount(guardian.address), freshNonce + 4);
+    assert.deepEqual(await Promise.all([f.provider.getBalance(prior.agent.wallet), f.token!.getFunction("balanceOf").staticCall(prior.agent.wallet)]), oldBalances);
+    assert.equal(await readFile(databaseFile, "utf8"), freshDatabase); assert.equal(await readFile(freshJournalFile, "utf8"), freshJournalBytes);
+    assert.equal(await readFile(transactionFile, "utf8"), originalSigned); assert.equal(await readFile(join(output, "funding/session.json"), "utf8"), initialFundingState);
     const changed = JSON.parse(await readFile(databaseFile, "utf8")); changed.agents[0].wallet = new Wallet(key(8)).address; await write(databaseFile, changed);
     await assert.rejects(fundMonadCollaborationGoals(options, deps), /FUND_GOALS_ORIGINAL_AGENT_BINDING_CHANGED/);
   } finally { await f.close(); await stopAnvil(anvil.child); await rm(root, { recursive: true, force: true }); }

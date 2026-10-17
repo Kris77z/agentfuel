@@ -42,12 +42,34 @@ export async function submitProgrammingCandidate(state: SubmissionState, config:
     } catch { state.reason = "SUBMISSION_UNCERTAIN"; await save(); return; }
   }
   const until = Date.now() + (options.pollTimeoutMs ?? 30000);
+  let recoveredOriginalRun = false;
   do {
     try {
       const response = await fetch(config.arenaUrl.replace(/\/$/, "") + "/runs/" + encodeURIComponent(submission.runId), { signal: AbortSignal.timeout(options.timeoutMs ?? 10000) });
-      const run = await response.json() as { status?: string; result?: Json };
+      const run = await response.json() as { runId?: string; taskId?: string; status?: string; result?: Json };
       if (!response.ok) { state.reason = "ARENA_RUN_UNAVAILABLE"; await save(); return; }
-      if (run.status === "error") { state.phase = "SubmissionPending"; state.reason = "ARENA_SETTLEMENT_UNCERTAIN"; await save(); return; }
+      if (run.runId !== undefined && run.runId !== submission.runId || run.taskId !== undefined && run.taskId !== config.taskId) stop("ARENA_RESULT_MISMATCH");
+      if (run.status === "error") {
+        state.phase = "SubmissionPending";
+        if (recoveredOriginalRun) { state.reason = "ARENA_SETTLEMENT_UNCERTAIN"; await save(); return; }
+        recoveredOriginalRun = true;
+        // Arena may resume an interrupted accepted run. Reuse the exact saved
+        // signature/payload, including its old deadline; never sign a new one.
+        // At most one recovery POST is allowed in this invocation.
+        try {
+          const recovery = await fetch(config.arenaUrl.replace(/\/$/, "") + "/submissions", { method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify(submission.payload), signal: AbortSignal.timeout(options.timeoutMs ?? 10000) });
+          const body = await recovery.json() as { runId?: string; taskId?: string };
+          if (!recovery.ok) {
+            const rejected = recovery.status >= 400 && recovery.status < 500 && recovery.status !== 409 && recovery.status !== 429;
+            state.reason = rejected ? "ARENA_SUBMISSION_REJECTED" : recovery.status === 409 ? "SUBMISSION_CONFLICT_UNCERTAIN" : "SUBMISSION_UNCERTAIN";
+            await save(); return;
+          }
+          if (body.runId !== submission.runId || body.taskId !== config.taskId) { state.reason = "ARENA_RESULT_MISMATCH"; await save(); return; }
+          delete state.reason; await save();
+        } catch { state.reason = "SUBMISSION_UNCERTAIN"; await save(); return; }
+        continue;
+      }
       if (run.status === "settled") {
         const result = run.result as { verdict?: { taskId?: string; agentId?: string; runId?: string; passed?: boolean; mode?: string; chainId?: string; escrowAddress?: string; problemId?: string }; settlement?: { taskId?: string; runId?: string; passed?: boolean; txHash?: string } };
         const verdict = result?.verdict, settlement = result?.settlement;

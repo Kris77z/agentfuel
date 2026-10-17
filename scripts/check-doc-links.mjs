@@ -9,6 +9,8 @@ const guides = [
   'docs/README.md', 'docs/ARCHITECTURE.md', 'docs/VERIFICATION.md', 'docs/ATTRIBUTION.md', 'docs/local-hosted-testing.md',
   'docs/autonomous-collaboration-20261014.md', 'frontend/acceptance/autonomous-collaboration-20261014/README.md',
   'docs/monad-collaboration-live-20261015.md', 'frontend/acceptance/monad-collaboration-20261015/README.md',
+  'docs/monad-demo-readiness-20261016.md',
+  'docs/monad-hackathon-live-20261017.md', 'frontend/acceptance/monad-hackathon-20261017/README.md',
   'deploy/monad-vps/README.md', 'docs/monad-vps-20261014.md', 'AGENTS.md',
   'contracts/README.md', 'services/underwriter/README.md', 'services/provider-relay/README.md',
   'services/hosted-agents/README.md', 'services/arena/README.md',

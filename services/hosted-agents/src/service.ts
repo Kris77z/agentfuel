@@ -186,7 +186,7 @@ export class HostedService {
       .sort((a, b) => b.run.updatedAt.localeCompare(a.run.updatedAt) || b.index - a.index);
     // Keep unfinished requests reachable, and a recovered result in the latest updated history.
     const runs = ownedRuns.filter(({ run }, index) => index < 100 || activeRequestIds.has(run.requestId) || !["Succeeded", "Failed"].includes(run.status)).map(({ run }) => run);
-    return structuredClone({ agents, runs, models: this.config.models, ...(this.executor.capabilities ? { capabilities: this.executor.capabilities } : {}) });
+    return structuredClone({ owner: address, agents, runs, models: this.config.models, ...(this.executor.capabilities ? { capabilities: this.executor.capabilities } : {}) });
   }); }
   async create(who: string, input: AgentCreation & { requestId: string }) {
     const agent = await this.serial(async () => {

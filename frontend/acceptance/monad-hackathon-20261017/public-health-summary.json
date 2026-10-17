@@ -1,0 +1,165 @@
+{
+  "observedAt": "2026-10-17T03:47:57.541Z",
+  "readOnly": true,
+  "modelRequests": 0,
+  "transactionsSent": 0,
+  "pages": [
+    {
+      "route": "/",
+      "status": 200,
+      "bytes": 178526,
+      "finalUrl": "https://monad.tabbyai.xyz/"
+    },
+    {
+      "route": "/?lang=zh",
+      "status": 200,
+      "bytes": 157524,
+      "finalUrl": "https://monad.tabbyai.xyz/?lang=zh"
+    },
+    {
+      "route": "/onboarding",
+      "status": 200,
+      "bytes": 9963,
+      "finalUrl": "https://monad.tabbyai.xyz/onboarding"
+    },
+    {
+      "route": "/dashboard",
+      "status": 200,
+      "bytes": 26452,
+      "finalUrl": "https://monad.tabbyai.xyz/dashboard"
+    },
+    {
+      "route": "/arena",
+      "status": 200,
+      "bytes": 20407,
+      "finalUrl": "https://monad.tabbyai.xyz/arena"
+    },
+    {
+      "route": "/finance",
+      "status": 200,
+      "bytes": 27048,
+      "finalUrl": "https://monad.tabbyai.xyz/dashboard?panel=finance"
+    },
+    {
+      "route": "/watch?video=technical-demo",
+      "status": 200,
+      "bytes": 15010,
+      "finalUrl": "https://monad.tabbyai.xyz/watch?video=technical-demo"
+    }
+  ],
+  "anonymousStatus": 401,
+  "zeroAgentOwnerRestored": true,
+  "foreignOriginStatus": 403,
+  "logoutInvalidatesSession": true,
+  "originalBusinessUnchanged": true,
+  "noNewEffectsVerified": true,
+  "counters": {
+    "acceptedRequests": 138,
+    "nonces": [
+      {
+        "address": "0xe2b56B1aaf8dc6B287f682709F5C7144468400c1",
+        "latest": 37,
+        "pending": 37
+      },
+      {
+        "address": "0xaCdE52184B7db806DeC982afBa7D4b4B114286E6",
+        "latest": 24,
+        "pending": 24
+      },
+      {
+        "address": "0x3616A1998046c15AEbf7A7eeE61D902175B4DaE3",
+        "latest": 23,
+        "pending": 23
+      },
+      {
+        "address": "0x4ff7899F974eC321A0e87826a2308a8c892C11C3",
+        "latest": 0,
+        "pending": 0
+      },
+      {
+        "address": "0xbA6737b0bc5404439ba51483CdAAa20c483402f2",
+        "latest": 0,
+        "pending": 0
+      },
+      {
+        "address": "0xe6CF66cfC6B35020969E45AfC276c2d07ADAfD9b",
+        "latest": 0,
+        "pending": 0
+      },
+      {
+        "address": "0xD079CA683FC595819fcd85583E60Cd9ea79bc2Af",
+        "latest": 7,
+        "pending": 7
+      },
+      {
+        "address": "0xC656F809a178C90D868e0440E17f54776FCdE74C",
+        "latest": 14,
+        "pending": 14
+      },
+      {
+        "address": "0xbBde5B9B44C83c2f316c2d60b4A8200eBC214a7e",
+        "latest": 10,
+        "pending": 10
+      },
+      {
+        "address": "0x99dE74f18Ae036fc2D62556CA9574FccfB803C20",
+        "latest": 8,
+        "pending": 8
+      },
+      {
+        "address": "0xA04e769F32fADdF205E65811B19CFedad1c53BC1",
+        "latest": 9,
+        "pending": 9
+      },
+      {
+        "address": "0x3EF6445c2bAcb06500C6cA1909E5B160959aab15",
+        "latest": 8,
+        "pending": 8
+      },
+      {
+        "address": "0x7efBa6e41fB631E5bEcCAA5904623A10368E6ad6",
+        "latest": 8,
+        "pending": 8
+      },
+      {
+        "address": "0x74E7836593cd63Dc5E64bcFd279D1600fb211669",
+        "latest": 8,
+        "pending": 8
+      },
+      {
+        "address": "0x752EAb56684458CF5e0F55532B4Bd9BeD090885f",
+        "latest": 113,
+        "pending": 113
+      },
+      {
+        "address": "0xdA52b4bA2d9B70441C75861F44Fedaf263a500d9",
+        "latest": 0,
+        "pending": 0
+      },
+      {
+        "address": "0x2481251a15b8Ed31e158aA0C561295f9A05D0CF6",
+        "latest": 22,
+        "pending": 22
+      },
+      {
+        "address": "0x5C08F50F20609E4CF4ccD2Caf185F03F9BF09ceD",
+        "latest": 6,
+        "pending": 6
+      },
+      {
+        "address": "0x48aEd9c702B97A18A520edA3BB04d959453f0B80",
+        "latest": 43,
+        "pending": 43
+      }
+    ]
+  },
+  "originalBaselinePreserved": {
+    "agents": 9,
+    "runs": 48,
+    "pausedRequestIds": [
+      "5e90e756-4b31-4744-8ec8-df57c3c75789",
+      "7ab60770-f2f7-4bbe-9790-61be0375c9fe",
+      "970d1d89-ec4b-4b0c-a15c-c91cb38cb7e8"
+    ]
+  }
+}

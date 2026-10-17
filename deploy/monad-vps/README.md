@@ -2,7 +2,7 @@
 
 Target: Ubuntu 24.04, `154.12.34.51`, **https://monad.tabbyai.xyz**, Monad Testnet **10143 / USDC**. Tempo remains its own application at `tempo.tabbyai.xyz`, with separate Unix user, services, code, model journals, wallets, sessions and chain configuration.
 
-The instance was deployed on **2026-10-14**; [the dated deployment checks](../../docs/monad-vps-20261014.md) record public availability, authentication and state preservation. This runbook does not establish a new public-chain/model execution.
+The instance was deployed on **2026-10-14**; [the original deployment checks](../../docs/monad-vps-20261014.md) record public availability, authentication and state preservation. [The 2026-10-17 release and business acceptance](../../docs/monad-hackathon-live-20261017.md) records subsequent changes and each execution's actual completion status. This runbook alone does not establish a new public-chain/model execution.
 
 ## Files and ports
 
@@ -17,7 +17,7 @@ The instance was deployed on **2026-10-14**; [the dated deployment checks](../..
 
 Internal Relay, Underwriter, Arena and external-specialist ports are retained from the Monad runtime journal. Only nginx listens publicly on 80/443. Its new site explicitly forwards the Monad host and HTTPS headers to Next; it does not proxy Hosted, wallets, suppliers or Magpie directly. [The Hosted bridge](../../frontend/lib/hosted-agents-proxy.ts) requires `HOSTED_FRONTEND_TRUST_PROXY=1` and exact matching headers. Cookies remain host-only, `HttpOnly`, `Secure`, and `SameSite=Strict`.
 
-The frontend uses `FRONTEND_RPC_URL_FILE` for the private operator endpoint without putting its value in public metadata. `FRONTEND_LOG_PAGE_BLOCKS=10` accommodates the current provider's log-range cap while retaining all 2000 recent blocks. Its direct RPC honors the configured pacing, call gas cap and existing read-only 503 retry policy. The current frontend output is `.next-monad-vps-rpcfix`; for subsequent releases, build into a fresh output directory, then set the production env's `NEXT_DIST_DIR` to that completed build before restarting the frontend.
+The frontend uses `FRONTEND_RPC_URL_FILE` for the private operator endpoint without putting its value in public metadata. `FRONTEND_LOG_PAGE_BLOCKS=10` accommodates the current provider's log-range cap while retaining all 2000 recent blocks. Its direct RPC honors the configured pacing, call gas cap and existing read-only 503 retry policy. The frontend output activated on 2026-10-17 is `.next-monad-vps-demo-ready-20261017`; for subsequent releases, build into a fresh output directory, then set the production env's `NEXT_DIST_DIR` to that completed build before restarting the frontend.
 
 ## Preserve the existing state
 

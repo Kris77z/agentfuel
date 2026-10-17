@@ -9,6 +9,9 @@ import { atomicJson } from "../services/arena/src/protocol.js";
 import { validateGoalView, type GoalView } from "../services/hosted-agents/src/goal-types.js";
 import type { HostedAgent, HostedFinance, HostedRun } from "../services/hosted-agents/src/types.js";
 import type { GoalCall, GoalModelRoute, GoalState } from "../services/hosted-agents/src/goals/executor.js";
+import { parseMissionReview } from "../services/hosted-agents/src/goals/commander.js";
+import { inspectGoalArtifact } from "../services/hosted-agents/src/goals/acceptance.js";
+import { normalizeSpecialistOutput } from "../services/hosted-agents/src/specialists/execution.js";
 import type { PaymentRecord } from "../services/provider-relay/src/store.js";
 import { externalResultBinding } from "../services/hosted-agents/src/external/hiring.js";
 import { monadProvider, readRpcUrlFile, type RpcTransport } from "./demo-rpc.js";
@@ -17,11 +20,15 @@ import { monadProvider, readRpcUrlFile, type RpcTransport } from "./demo-rpc.js"
  * UUIDs, owner wallet, goal text, Agent and budget are frozen before submission.
  * No direct model calls and no funding transaction are made by this script. */
 export const collaborationOrigin = "https://monad.tabbyai.xyz";
-export const collaborationCases = {
+const recordedCollaborationCases = {
   external: { modelId: "kimi-k2.6", budgetRaw: "60000", depositRaw: "60000", goal: "请由写作专家完成一份可以直接发给团队的中文产品更新，正文不超过220字。只使用以下我提供的事实：Tabby 工作台支持任务执行、独立复核以及付款凭证查看；这次验收发生在 Monad 测试网；用户可以在同一个工作台选择模型。请用一个标题、一个短段落和三项功能列表呈现。不得补充用户数量、收益、安全保证、发布日期或已经上线主网等信息。只需要一个写作专家阶段，之后由平台独立复核。" },
   fallback: { modelId: "kimi-k3", budgetRaw: "50000", depositRaw: "50000", goal: "请完成两个不同专家的顺序交付物，必须分为两个阶段：第一阶段由 analyst 分析，第二阶段由 writer 使用第一阶段的计算结果写给团队的简报，不要再添加第三个专家阶段。平台会另外独立复核。唯一数据：A 产品17单，每单10元；B 产品29单，每单10元。第一阶段计算总订单、两产品收入、总收入和B与A的订单差，并给出计算式；第二阶段保留这些准确结果，写一个不超过200字的中文简报，包含标记 TABBY-SAME-GOAL-20261015。不要声称联网、执行代码或发消息，不编造原因、趋势、日期与其他数据。" },
   "fallback-recheck": { modelId: "kimi-k3", budgetRaw: "50000", depositRaw: "50000", goal: "请完成恰好两个不同专家的顺序交付物：第一阶段 analyst，第二阶段 writer，不增加第三个专家；平台会另行独立复核。唯一原始数据：A产品17单，每单10元；B产品29单，每单10元。analyst需要计算并展示计算式：总订单46单，A收入170元，B收入290元，总收入460元，B与A的订单差12单。writer必须使用前一阶段结果并核对这些数值，只返回下面的极简简报模板，不添加标题、解释、计算式或Markdown装饰。第二阶段最终文本目标80–120个Unicode字符，总计不超过160字，标点、空格、换行和标记均计入；这只限制第二阶段最终文本，不限制第一阶段分析。模板如下：\nTABBY-SAME-GOAL-20261015\n订单合计46单；A收入170元，B收入290元，合计460元；B比A多12单。数据仅支持这些计算，不代表趋势或原因。以上结果已根据前一阶段计算整理，可供团队核对。\n不要声称联网、执行代码或发消息，不编造原因、趋势、日期或其他数据。" },
 } as const;
+/** A new acceptance may reuse the successful bounded prompt without first
+ * creating a failed run. Its marker identifies the frozen prompt fixture;
+ * request UUIDs, journal startedAt and fresh receipts identify the new run. */
+export const collaborationCases = { ...recordedCollaborationCases, "fallback-fresh": recordedCollaborationCases["fallback-recheck"] } as const;
 type CaseName = keyof typeof collaborationCases;
 type Mode = "prepare" | "prepare-recheck" | "run" | "recover" | "audit" | "audit-failed";
 interface PreviousFailed { requestId: string; reason: "HOSTED_GOAL_REVIEW_FAILED"; chargedRaw: "50000"; paymentIds: string[]; txHashes: string[] }
@@ -43,6 +50,16 @@ export function verifyCollaborationJournal(journal: Journal, runtime: string, ow
     assert.equal(entry.deposit.amountRaw, spec.depositRaw); assert.equal(entry.deposit.action, "deposit");
     for (const id of [entry.create.requestId, entry.goal.requestId, entry.deposit.requestId]) assert.match(id, /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/);
     if (entry.agent) { assert.ok(same(entry.agent.owner, owner)); assert.equal(entry.agent.modelId, spec.modelId); }
+    if (name === "fallback-fresh") {
+      assert.equal(entry.retryOf, undefined, "FRESH_FALLBACK_IS_NOT_A_RECHECK"); assert.equal(entry.previousFailed, undefined, "FRESH_FALLBACK_IS_NOT_A_RECHECK");
+      assert.equal(new Set([entry.create.requestId, entry.deposit.requestId, entry.goal.requestId]).size, 3, "FRESH_FALLBACK_UUID_COLLISION");
+      assert.equal(entry.create.totalBudgetRaw, spec.budgetRaw, "FRESH_FALLBACK_CUMULATIVE_BUDGET_CHANGED");
+      assert.equal(entry.create.allowCredit, false, "FRESH_FALLBACK_CASH_ONLY_REQUIRED");
+      for (const [otherName, other] of Object.entries(journal.cases)) if (otherName !== name && other) {
+        assert.ok(![other.create.requestId, other.deposit.requestId, other.goal.requestId].some(id => [entry.create.requestId, entry.deposit.requestId, entry.goal.requestId].includes(id)), "FRESH_FALLBACK_ORIGINAL_UUID_COLLISION");
+        if (other.agent && entry.agent) { assert.notEqual(other.agent.id, entry.agent.id, "FRESH_FALLBACK_ORIGINAL_AGENT_COLLISION"); assert.ok(!same(other.agent.wallet, entry.agent.wallet), "FRESH_FALLBACK_ORIGINAL_WALLET_COLLISION"); }
+      }
+    }
     if (name === "fallback-recheck") {
       const original = journal.cases.fallback; assert.ok(original?.agent && entry.agent, "RECHECK_ORIGINAL_AGENT_REQUIRED");
       assert.equal(entry.retryOf, original.goal.requestId); assert.deepEqual(entry.create, original.create);
@@ -62,25 +79,73 @@ export function verifyCollaborationMission(name: CaseName, run: HostedRun): Goal
   assert.equal(mission.stage, "completed"); assert.equal(mission.review?.passed, true);
   assert.ok(mission.answer?.trim()); assert.ok(mission.phases.every(phase => phase.output?.trim()), "EXPERT_OUTPUT_REQUIRED");
   assert.ok(mission.calls.length >= 3 && mission.calls.every(call => call.promptTokens > 0 && call.completionTokens > 0));
-  assert.equal(mission.calls[0].stage, "plan"); assert.equal(mission.calls.at(-1)?.stage, "review");
-  assert.ok(!mission.calls.at(-1)?.external, "INDEPENDENT_HOST_REVIEW_REQUIRED");
+  if (name.startsWith("fallback")) assert.equal(mission.phases.length, 2, "TWO_SEQUENTIAL_CONTEXT_PHASES_REQUIRED");
+  const stages = ["plan", ...mission.phases.map((_, index) => `phase-${index}`), "review"];
+  const revised = mission.calls.some(call => call.stage === "revision" || call.stage === "revision-review");
+  assert.deepEqual(mission.calls.map(call => call.stage), revised ? [...stages, "revision", "revision-review"] : stages, "COLLABORATION_CALL_SEQUENCE_CHANGED");
+  if (name.startsWith("fallback")) assert.deepEqual(mission.calls.map(call => call.stage), ["plan", "phase-0", "phase-1", "review"], "FALLBACK_ORIGINAL_FOUR_CALLS_REQUIRED");
+  assert.ok(mission.calls.filter(call => !call.stage.startsWith("phase-")).every(call => !call.external), "INDEPENDENT_HOST_REVIEW_REQUIRED");
+  assert.ok(mission.calls.every(call => call.paymentId && call.txHash && call.requestDigest), "ORIGINAL_PAID_CALL_PROOFS_REQUIRED");
+  assert.equal(new Set(mission.calls.map(call => call.paymentId)).size, mission.calls.length, "DUPLICATE_GOAL_PAYMENT");
+  assert.equal(new Set(mission.calls.map(call => call.txHash)).size, mission.calls.length, "DUPLICATE_GOAL_TRANSACTION");
+  if (!revised) assert.equal(mission.answer, mission.phases.at(-1)?.output, "ORIGINAL_ARTIFACT_CHANGED");
   const external = mission.calls.filter(call => call.external);
   assert.ok(external.length > 0, "REAL_EXTERNAL_HIRE_REQUIRED");
   for (const call of external) { assert.equal(call.external!.service.identity?.chainId, "10143"); assert.equal(call.external!.service.identity?.agentId, "1999"); }
   const charged = mission.calls.reduce((sum, call) => sum + BigInt(call.chargedRaw), 0n);
-  assert.equal(charged.toString(), run.result!.chargedRaw); assert.ok(charged <= BigInt(collaborationCases[name].budgetRaw));
+  assert.equal(charged.toString(), run.result!.chargedRaw); assert.equal(charged.toString(), run.chargedRaw); assert.ok(charged <= BigInt(collaborationCases[name].budgetRaw));
   if (name.startsWith("fallback")) {
     assert.equal(mission.calls[0].model, "kimi-k3"); assert.equal(mission.calls[0].chargedRaw, "20000");
-    assert.equal(mission.phases.length, 2, "TWO_SEQUENTIAL_CONTEXT_PHASES_REQUIRED");
     assert.equal(mission.phases[0].taskType, "analyst"); assert.equal(mission.phases[1].taskType, "writer");
     assert.ok(mission.calls.slice(1).every(call => call.model === "kimi-k2.6" && call.chargedRaw === "10000"), "SAME_GOAL_BUDGET_DOWNGRADE_REQUIRED");
     assert.equal(charged, 50000n); assert.match(mission.answer!, /TABBY-SAME-GOAL-20261015/);
-    if (name === "fallback-recheck") {
+    if (name === "fallback-recheck" || name === "fallback-fresh") {
       const characters = Array.from(mission.answer!).length; assert.ok(characters >= 80 && characters <= 120 && characters <= 160, "RECHECK_FINAL_CHARACTER_LIMIT_REQUIRED");
       for (const number of ["46", "170", "290", "460", "12"]) assert.ok(mission.answer!.includes(number), "RECHECK_REQUIRED_CALCULATION_MISSING");
     }
   }
   return mission;
+}
+
+/** Bind a permitted revision to the original artifact, failed first review and
+ * independently reviewed final output. Public evidence contains only digests;
+ * original outputs and physical responses remain in their existing journals. */
+export function collaborationRevisionEvidence(mission: GoalView, saved: Pick<GoalState, "calls" | "input" | "research">) {
+  assert.deepEqual(saved.calls.map(call => call.stage), mission.calls.map(call => call.stage), "PRIVATE_GOAL_CALL_SEQUENCE_CHANGED");
+  const revision = saved.calls.find(call => call.stage === "revision");
+  if (!revision) return { performed: false as const };
+  const original = mission.phases.at(-1)!.output!, final = mission.answer!, originalReview = saved.calls.find(call => call.stage === "review")!, finalReview = saved.calls.find(call => call.stage === "revision-review")!;
+  assert.ok(originalReview?.response && revision.response && finalReview?.response, "REVISION_DELIVERY_PROOFS_REQUIRED");
+  const initialInput = JSON.parse(originalReview.messages[1].content), revisionInput = JSON.parse(revision.messages[1].content), finalInput = JSON.parse(finalReview.messages[1].content);
+  for (const input of [initialInput, revisionInput, finalInput]) assert.equal(input.originalGoal, saved.input.goal, "REVISION_ORIGINAL_GOAL_CHANGED");
+  assert.equal(initialInput.artifact, original, "INITIAL_REVIEW_ARTIFACT_CHANGED");
+  assert.equal(revisionInput.artifact, original, "REVISION_ORIGINAL_ARTIFACT_CHANGED");
+  const firstReview = parseMissionReview(originalReview.response.text), measurement = inspectGoalArtifact(saved.input.goal, original, saved.research?.evidence.observedAt);
+  if (measurement.failures.length) {
+    firstReview.passed = false; firstReview.summary = `验收未通过：${measurement.failures.join(" ")}`.slice(0, 4000);
+    firstReview.checks = [...measurement.failures, ...firstReview.checks].slice(0, 20).map(check => check.slice(0, 1000));
+  }
+  assert.equal(firstReview.passed, false, "REVISION_REQUIRES_FAILED_FIRST_REVIEW");
+  assert.deepEqual(revisionInput.review, firstReview, "REVISION_REVIEW_FEEDBACK_CHANGED");
+  assert.equal(normalizeSpecialistOutput(mission.phases.at(-1)!.taskType, revision.response.text), final, "REVISION_FINAL_OUTPUT_CHANGED");
+  assert.equal(finalInput.artifact, final, "REVISION_REVIEW_ARTIFACT_CHANGED");
+  assert.deepEqual(parseMissionReview(finalReview.response.text), mission.review, "REVISION_INDEPENDENT_REVIEW_CHANGED");
+  assert.deepEqual(inspectGoalArtifact(saved.input.goal, final, saved.research?.evidence.observedAt).failures, [], "REVISION_FINAL_CONSTRAINT_FAILED");
+  return { performed: true as const, count: 1, original: { stage: `phase-${mission.phases.length - 1}`, sha256: sha(original), characters: original.length },
+    revised: { stage: revision.stage, sha256: sha(final), characters: final.length },
+    firstReview: { stage: originalReview.stage, passed: false, checkCount: firstReview.checks.length },
+    finalReview: { stage: finalReview.stage, passed: true, checkCount: mission.review!.checks.length } };
+}
+
+/** Freeze a new preparation before any create POST; repeated preparation uses
+ * the same three IDs. Old journals and their original failed goal stay intact. */
+export function prepareCollaborationCase(journal: Journal, name: Exclude<CaseName, "fallback-recheck">): SavedCase {
+  verifyCollaborationJournal(journal, journal.runtime, journal.owner);
+  const existing = journal.cases[name]; if (existing) return existing;
+  const date = new Date(journal.startedAt); assert.ok(Number.isFinite(date.getTime()), "ACCEPTANCE_STARTED_AT_INVALID");
+  const spec = collaborationCases[name], label = date.toISOString().slice(0, 10).replaceAll("-", "");
+  const entry: SavedCase = { create: { requestId: randomUUID(), name: `Tabby Monad ${name} ${label}`, modelId: spec.modelId, strategy: "balanced", perRunBudgetRaw: spec.budgetRaw, totalBudgetRaw: name === "fallback-fresh" ? spec.budgetRaw : "200000", allowCredit: false }, deposit: { requestId: randomUUID(), action: "deposit", amountRaw: spec.depositRaw }, goal: { requestId: randomUUID(), action: "goal", goal: spec.goal } };
+  journal.cases[name] = entry; verifyCollaborationJournal(journal, journal.runtime, journal.owner); return entry;
 }
 
 /** A rejected, fully paid original run is retained as a failed acceptance,
@@ -199,10 +264,9 @@ export async function runMonadCollaborationGoalAcceptance(options: Collaboration
   for (const name of names) {
     const spec = collaborationCases[name]; let entry = state.cases[name];
     if (!entry) {
-      assert.notEqual(name, "fallback-recheck", "USE_PREPARE_RECHECK_NO_NEW_AGENT");
+      if (name === "fallback-recheck") throw new Error("USE_PREPARE_RECHECK_NO_NEW_AGENT");
       assert.equal(options.mode, "prepare", "PREPARE_REQUIRED_NO_REPLACEMENT_UUID");
-      entry = { create: { requestId: randomUUID(), name: `Tabby Monad ${name} 20261015`, modelId: spec.modelId, strategy: "balanced", perRunBudgetRaw: spec.budgetRaw, totalBudgetRaw: "200000", allowCredit: false }, deposit: { requestId: randomUUID(), action: "deposit", amountRaw: spec.depositRaw }, goal: { requestId: randomUUID(), action: "goal", goal: spec.goal } };
-      state.cases[name] = entry; await save();
+      entry = prepareCollaborationCase(state, name); await save();
     }
     if (options.mode === "prepare") {
       // A lost create response is replayed with its original creation UUID.
@@ -234,6 +298,11 @@ export async function runMonadCollaborationGoalAcceptance(options: Collaboration
       if (!original) {
         // Save financial and model boundaries before the first paid submission.
         entry.financeBefore ??= await api(`/agents/${agent.id}/finance`); assert.equal(entry.financeBefore!.status, "confirmed");
+        if (name === "fallback-fresh") {
+          const healthy = current.agents.find(value => value.id === agent.id); assert.ok(healthy && healthy.status === "Ready" && !healthy.activeRequestId, "FRESH_FALLBACK_AGENT_NOT_READY");
+          assert.equal(healthy.spentRaw, "0", "FRESH_FALLBACK_AGENT_ALREADY_SPENT"); assert.equal(healthy.totalBudgetRaw, spec.budgetRaw, "FRESH_FALLBACK_CUMULATIVE_BUDGET_CHANGED"); assert.equal(healthy.allowCredit, false, "FRESH_FALLBACK_CASH_ONLY_REQUIRED");
+          assert.equal((entry.financeBefore as Extract<HostedFinance, { status: "confirmed" }>).debtRaw, "0", "FRESH_FALLBACK_AGENT_HAS_DEBT");
+        }
         const before = await getGateway(); entry.gatewayBefore ??= { offset: before.lines.length, acceptedRequests: before.health.acceptedRequests };
         entry.submittedAt ??= new Date().toISOString(); await save();
         await api(`/agents/${agent.id}/runs`, "POST", entry.goal);
@@ -257,6 +326,7 @@ export async function runMonadCollaborationGoalAcceptance(options: Collaboration
     assert.equal(savedMission.input.goal, entry.goal.goal); assert.equal(savedMission.input.agentId, agent.id); assert.ok(same(savedMission.input.wallet, agent.wallet));
     assert.equal(savedMission.input.reservedRaw, spec.budgetRaw); assert.equal(savedMission.route.id, spec.modelId);
     assert.deepEqual(savedMission.view, mission);
+    const revision = collaborationRevisionEvidence(mission, savedMission);
     let previousOutputPreserved = !name.startsWith("fallback");
     if (name.startsWith("fallback")) {
       const second = savedMission.calls.find(call => call.stage === "phase-1"); assert.ok(second);
@@ -327,7 +397,7 @@ export async function runMonadCollaborationGoalAcceptance(options: Collaboration
       assert.equal(entry.financeBefore?.status, "confirmed"); assert.equal(entry.financeAfter?.status, "confirmed");
       const financeBefore = entry.financeBefore as Extract<HostedFinance, { status: "confirmed" }>, financeAfter = entry.financeAfter as Extract<HostedFinance, { status: "confirmed" }>;
       assert.equal(BigInt(financeBefore.cashRaw) - BigInt(financeAfter.cashRaw), BigInt(original.result!.chargedRaw)); assert.equal(financeAfter.debtRaw, "0");
-      const summary = { schemaVersion: 1, observedAt: new Date().toISOString(), case: name, status: original.status, acceptancePassed: mission.review!.passed, ...(original.reason ? { reason: original.reason } : {}), ...(entry.retryOf ? { retryOf: entry.retryOf, previousFailed: entry.previousFailed, combinedGoalChargedRaw: (BigInt(entry.previousFailed!.chargedRaw) + BigInt(original.result!.chargedRaw)).toString() } : {}), origin: collaborationOrigin, chainId: "10143", modelSource: "Real Kimi K2.6/K3 through deployed Magpie gateway", requestId: original.requestId, agentId: agent.id, chainAgentId: entry.agent!.binding!.agentId, wallet: agent.wallet, goalDigest: sha(entry.goal.goal), selectedModel: spec.modelId, reservedRaw: spec.budgetRaw, chargedRaw: original.result!.chargedRaw, modelSequence: mission.calls.map(call => call.model), previousOutputPreserved, discovery: { serviceCount: savedMission.externalServices?.length ?? 0, registryDigests: [...new Set(savedMission.externalServices?.map(service => service.registryDigest) ?? [])], selectedServiceIds: mission.calls.flatMap(call => call.external ? [call.external.service.id] : []) }, phases: mission.phases.map(phase => ({ name: phase.name, taskType: phase.taskType, outputDigest: sha(phase.output!), outputCharacters: phase.output!.length, ...(phase.external ? { external: phase.external } : {}) })), answer: { sha256: sha(mission.answer!), characters: mission.answer!.length }, independentReview: { passed: mission.review!.passed, stage: mission.calls.at(-1)!.stage, checkCount: mission.review!.checks.length, external: false }, finance: { cashBeforeRaw: financeBefore.cashRaw, cashAfterRaw: financeAfter.cashRaw, debtAfterRaw: financeAfter.debtRaw }, externalIdentity: { ...bootstrap.externalProvider, walletVerifiedOnChain: true }, payments, replay: { sameRequestId: true, sameResult: true, noNewTransactions: true, noNewModelRequests: true, nonceBefore: beforeNonce, nonceAfter: beforeNonce, modelRequestsBefore: beforeGateway.health.acceptedRequests, modelRequestsAfter: afterGateway.health.acceptedRequests } };
+      const summary = { schemaVersion: 1, observedAt: new Date().toISOString(), case: name, status: original.status, acceptancePassed: mission.review!.passed, ...(original.reason ? { reason: original.reason } : {}), ...(entry.retryOf ? { retryOf: entry.retryOf, previousFailed: entry.previousFailed, combinedGoalChargedRaw: (BigInt(entry.previousFailed!.chargedRaw) + BigInt(original.result!.chargedRaw)).toString() } : {}), origin: collaborationOrigin, chainId: "10143", modelSource: "Real Kimi K2.6/K3 through deployed Magpie gateway", requestId: original.requestId, agentId: agent.id, chainAgentId: entry.agent!.binding!.agentId, wallet: agent.wallet, goalDigest: sha(entry.goal.goal), selectedModel: spec.modelId, reservedRaw: spec.budgetRaw, chargedRaw: original.result!.chargedRaw, modelSequence: mission.calls.map(call => call.model), callStages: mission.calls.map(call => call.stage), revision, previousOutputPreserved, discovery: { serviceCount: savedMission.externalServices?.length ?? 0, registryDigests: [...new Set(savedMission.externalServices?.map(service => service.registryDigest) ?? [])], selectedServiceIds: mission.calls.flatMap(call => call.external ? [call.external.service.id] : []) }, phases: mission.phases.map(phase => ({ name: phase.name, taskType: phase.taskType, outputDigest: sha(phase.output!), outputCharacters: phase.output!.length, ...(phase.external ? { external: phase.external } : {}) })), answer: { sha256: sha(mission.answer!), characters: mission.answer!.length }, independentReview: { passed: mission.review!.passed, stage: mission.calls.at(-1)!.stage, checkCount: mission.review!.checks.length, external: false }, finance: { cashBeforeRaw: financeBefore.cashRaw, cashAfterRaw: financeAfter.cashRaw, debtAfterRaw: financeAfter.debtRaw }, externalIdentity: { ...bootstrap.externalProvider, walletVerifiedOnChain: true }, payments, replay: { sameRequestId: true, sameResult: true, noNewTransactions: true, noNewModelRequests: true, nonceBefore: beforeNonce, nonceAfter: beforeNonce, modelRequestsBefore: beforeGateway.health.acceptedRequests, modelRequestsAfter: afterGateway.health.acceptedRequests } };
       entry.audit = summary; await save();
       await atomicJson(join(output, options.mode === "audit-failed" ? "fallback-failed-public-summary.json" : `${name}-public-summary.json`), summary); publicResults.push(summary);
       console.log(JSON.stringify({ audited: name, requestId: original.requestId, chargedRaw: original.result!.chargedRaw, modelSequence: summary.modelSequence, canonicalPayments: payments.length, realModelResponses: usedAttempts.size, noNewTransactionsOnReplay: true, noNewModelRequestsOnReplay: true }));
@@ -338,8 +408,9 @@ export async function runMonadCollaborationGoalAcceptance(options: Collaboration
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const args = process.argv.slice(2), value = (flag: string) => { const index = args.indexOf(flag); return index < 0 ? undefined : args[index + 1]; };
-  const mode = value("--mode"), caseName = value("--case"), runtime = value("--runtime"), output = value("--out");
-  if (!runtime || !output || !["prepare", "prepare-recheck", "run", "recover", "audit", "audit-failed"].includes(mode ?? "") || caseName !== undefined && !["external", "fallback", "fallback-recheck"].includes(caseName)) throw new Error("Usage: monad-collaboration-goal-acceptance.ts --runtime ABS_PRIVATE_RUNTIME --out ABS_PRIVATE_ACCEPTANCE --mode prepare|prepare-recheck|run|recover|audit|audit-failed [--case external|fallback|fallback-recheck] [--rpc-url-file ABS_PRIVATE_RPC] [--rpc-transport direct|system-https-proxy]");
+  const mode = value("--mode"), caseName = value("--case"), runtime = value("--runtime"), output = value("--out") ?? value("--output");
+  if (value("--out") && value("--output")) assert.equal(resolve(value("--out")!), resolve(value("--output")!), "ACCEPTANCE_OUTPUT_ALIAS_CONFLICT");
+  if (!runtime || !output || !["prepare", "prepare-recheck", "run", "recover", "audit", "audit-failed"].includes(mode ?? "") || caseName !== undefined && !["external", "fallback", "fallback-recheck", "fallback-fresh"].includes(caseName)) throw new Error("Usage: monad-collaboration-goal-acceptance.ts --runtime ABS_PRIVATE_RUNTIME --out|--output ABS_PRIVATE_ACCEPTANCE --mode prepare|prepare-recheck|run|recover|audit|audit-failed [--case external|fallback|fallback-recheck|fallback-fresh] [--rpc-url-file ABS_PRIVATE_RPC] [--rpc-transport direct|system-https-proxy]");
   runMonadCollaborationGoalAcceptance({ runtime: resolve(runtime), output: resolve(output), mode: mode as Mode, caseName: caseName as CaseName | undefined, rpcUrlFile: value("--rpc-url-file"), rpcTransport: value("--rpc-transport") as RpcTransport | undefined }).catch(error => {
     // Assert actual/expected fields can contain private model output. Log only
     // the first, deliberately constructed diagnostic line and never the error.

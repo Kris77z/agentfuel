@@ -1,0 +1,68 @@
+{
+  "observedAt": "2026-10-17T03:52:18.497Z",
+  "readOnly": true,
+  "chainId": "10143",
+  "block": {
+    "number": 71718723,
+    "hash": "0xded83b94107d7aaf92b8a5b15b86a7ed85220f0d6ecec8908ba90fe3b4f4c139",
+    "timestamp": 1792209135
+  },
+  "agentId": "cbbd1a13-17db-49f8-8895-5439739de407",
+  "chainAgentId": "2371",
+  "owner": "0x48aEd9c702B97A18A520edA3BB04d959453f0B80",
+  "wallet": "0x74E7836593cd63Dc5E64bcFd279D1600fb211669",
+  "status": "Ready",
+  "cashRaw": "78700",
+  "perRunBudgetRaw": "120000",
+  "totalBudgetRaw": "500000",
+  "spentRaw": "240000",
+  "remainingBudgetRaw": "260000",
+  "allowCredit": true,
+  "roles": [
+    {
+      "role": "presenter",
+      "address": "0x74E7836593cd63Dc5E64bcFd279D1600fb211669",
+      "nativeWei": "384606192000000000",
+      "latestNonce": 8,
+      "pendingNonce": 8
+    },
+    {
+      "role": "verifier",
+      "address": "0x2481251a15b8Ed31e158aA0C561295f9A05D0CF6",
+      "nativeWei": "825548200000000000",
+      "latestNonce": 22,
+      "pendingNonce": 22
+    },
+    {
+      "role": "sponsor",
+      "address": "0x752EAb56684458CF5e0F55532B4Bd9BeD090885f",
+      "nativeWei": "391495994000000000",
+      "latestNonce": 113,
+      "pendingNonce": 113
+    },
+    {
+      "role": "operator",
+      "address": "0x48aEd9c702B97A18A520edA3BB04d959453f0B80",
+      "nativeWei": "1500205770000000000",
+      "latestNonce": 43,
+      "pendingNonce": 43
+    }
+  ],
+  "creditVault": {
+    "vaultBalanceRaw": "10167006",
+    "totalOutstandingRaw": "0",
+    "remainingGlobalDrawRaw": "50000000",
+    "epoch": "20743",
+    "remainingEpochDrawRaw": "19686000",
+    "drawPaused": false
+  },
+  "sponsorship": {
+    "ownerUsed": 0,
+    "globalUsed": 6,
+    "sponsorUsdcRaw": "399500"
+  },
+  "twoTaskGasAndCreditHeadroomVerified": true,
+  "chainWrites": 0,
+  "businessPosts": 0,
+  "modelCalls": 0
+}

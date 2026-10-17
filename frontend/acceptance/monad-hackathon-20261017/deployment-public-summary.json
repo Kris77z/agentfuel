@@ -1,0 +1,102 @@
+{
+  "observedAt": "2026-10-17T03:49:14Z",
+  "origin": "https://monad.tabbyai.xyz",
+  "chainId": "10143",
+  "dist": ".next-monad-vps-demo-ready-20261017",
+  "activatedAt": "2026-10-17T03:47:01Z",
+  "sourceFilesVerified": 18,
+  "sourceHashes": {
+    "frontend/components/hosted/hosted-app.tsx": "e750edaa30b143dacb9e3eed4e8db6916415443f8ff71984a02eb5db0c879e87",
+    "frontend/components/hosted/mission-chat.tsx": "cd6a1bc21d6d8a152a59c6b54c59f5b468893a0c9d06db14fe645c1be5c88cf2",
+    "frontend/components/landing/landing-locale.ts": "3875a754d654d78faedad6b1f8d71f56e96784cf52bd6d80c5b5f9c08fbf5779",
+    "frontend/components/landing/landing-page.tsx": "360600a4b249b811a657bdc12622476acc7997403b929779517fc24520d02663",
+    "frontend/lib/hosted-agents-proxy.ts": "9172b8cdb76102f3b77536cad1bebd323903d148b929f09c3c1b6baf96930be9",
+    "frontend/lib/hosted-client.ts": "1330b19b352bf31a7581f8907865c7987593283238b6b30b0df32d45196cea2a",
+    "frontend/lib/tabby-scenes.ts": "89207f0431759e99def7fec78463dcd1439efab9e3ad86944a7c2afa60ec60a0",
+    "frontend/lib/use-hosted-agents.ts": "f0d9bbf9175a410162d8e3450237db116323a7f373e84358db7bd85c0aa35aaa",
+    "services/hosted-agents/src/autonomy-executor.ts": "5cf0148533d129b8fe713d886d2a6ec3eb9a801388893abdfe6668a8349f9d87",
+    "services/hosted-agents/src/service.ts": "0897dfd298d1be7359eccf0c1461c8176d5758048d51ad17505219c603c7e7aa",
+    "packages/pi-loop/src/submission.ts": "ce4f65da39ce491a4d6b844bb589ca3ead26de31ba931b023cfd5615405c58bc",
+    "services/arena/src/controller.ts": "ad536520feef0d7c9e0fe77f1a80fb311bdfac749775238b1fc7c54614ccbd1f",
+    "services/arena/src/http.ts": "e72e21885fdc135f5df79b7c96663d205419d11be8de3f718033477a20ec3db4",
+    "services/arena/src/ipc.ts": "ef03547448b8a545310c889555c894c5286563de602dac9cba633a8abd2970f6",
+    "services/arena/src/protocol.ts": "bcd714d92f701e518eb7822f858c726606eac66c01aa13a457b7ff52280213b3",
+    "services/arena/src/settler.ts": "ba08a58910be3939d0eda516e4a674b6c698022f4b2674151eb499246c6bf42e",
+    "frontend/components/hosted/workspace-notifications.tsx": "2af5b302257a371ef78980b5fd0f27f50cbd419fe72a7bd5bafbaf885c194628",
+    "frontend/components/onboarding/terminal-onboarding.tsx": "9b348a958a454abe318254d2d9f3a89cf9c5400edc1ce95f9c5ee7333c5d3b6b"
+  },
+  "allUnitsActive": true,
+  "units": {
+    "tabby-monad-gateway": {
+      "MainPID": "214521",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "tabby-monad-runtime": {
+      "MainPID": "214569",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "tabby-monad-frontend": {
+      "MainPID": "214752",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "tabby-tempo-gateway": {
+      "MainPID": "184731",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "tabby-tempo-runtime": {
+      "MainPID": "184785",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "tabby-tempo-frontend": {
+      "MainPID": "184967",
+      "ActiveState": "active",
+      "SubState": "running"
+    }
+  },
+  "tempoOriginalPidsPreserved": true,
+  "businessDbUnchangedDuringEachFrontendRelease": true,
+  "frontendReleases": [
+    {
+      "activatedAt": "2026-10-17T02:25:25Z",
+      "builtDist": ".next-monad-vps-demo-20261017",
+      "buildExit": 0,
+      "beforeDbHash": "3ca329ff1c3ba283cbd7e84c66be1b954e630c34c144f13dc7d314d086a50d41",
+      "afterDbHash": "3ca329ff1c3ba283cbd7e84c66be1b954e630c34c144f13dc7d314d086a50d41",
+      "tempoPreserved": true
+    },
+    {
+      "activatedAt": "2026-10-17T03:27:34Z",
+      "builtDist": ".next-monad-vps-demo-network-20261017",
+      "buildExit": 0,
+      "beforeDbHash": "2457db98766397d773709253713cf2f232b208c5242dcad6cea5fb07220c23a1",
+      "afterDbHash": "2457db98766397d773709253713cf2f232b208c5242dcad6cea5fb07220c23a1",
+      "tempoPreserved": true
+    },
+    {
+      "activatedAt": "2026-10-17T03:47:01Z",
+      "builtDist": ".next-monad-vps-demo-ready-20261017",
+      "buildExit": 0,
+      "beforeDbHash": "d9c50ac057d5458c694e3d574655fd0fae8a3ab450a861e2e8dc956798aaf563",
+      "afterDbHash": "d9c50ac057d5458c694e3d574655fd0fae8a3ab450a861e2e8dc956798aaf563",
+      "tempoPreserved": true
+    }
+  ],
+  "standbyCatalogAppend": {
+    "applied": true,
+    "cached": false,
+    "migrationId": "86382d230ce704ba1d2ab7b9c3b87a3d9edc36b87748c8864717db20eb5ead22",
+    "taskIds": [
+      "26",
+      "27"
+    ],
+    "chainWrites": 0,
+    "next": "start the same runtime with --recover; original ports, old run snapshots and settlement journal remain intact"
+  },
+  "originalRuntimeAndWalletPathsPreserved": true,
+  "nginxConfigurationChanged": false
+}

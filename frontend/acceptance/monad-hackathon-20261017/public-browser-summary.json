@@ -1,0 +1,55 @@
+{
+  "observedAt": "2026-10-17T03:53:57.921Z",
+  "origin": "https://monad.tabbyai.xyz",
+  "dist": ".next-monad-vps-demo-ready-20261017",
+  "accountShown": "0x48aE…0B80",
+  "agentName": "Tabby credit loop 2026-10-17",
+  "chainAgentId": "2371",
+  "wallet": "0x74E7836593cd63Dc5E64bcFd279D1600fb211669",
+  "walletPersonalSignatureCompletedByUser": true,
+  "selectedAgentRestoredAfterReload": true,
+  "financePanelRestoredAfterReload": true,
+  "latestOriginalTaskRestoredAfterReload": true,
+  "score": "640",
+  "tier": "B",
+  "cashRaw": "78700",
+  "debtRaw": "0",
+  "profileRepayments": "2",
+  "profileDefaults": "0",
+  "profileTransactionLinks": 11,
+  "perRunBudgetUsdc": "0.12",
+  "totalBudgetUsdc": "0.5",
+  "creditEnabled": true,
+  "embeddedGames": [
+    "poker",
+    "gomoku",
+    "chess",
+    "balatro"
+  ],
+  "externalWriter": {
+    "chainAgentId": "1999",
+    "wallet": "0x5C08F50F20609E4CF4ccD2Caf185F03F9BF09ceD",
+    "model": "kimi-k2.6",
+    "priceUsdc": "0.01",
+    "unrated": true,
+    "noCallsForThisAgent": true
+  },
+  "browserAcceptanceBusinessPosts": 0,
+  "browserAcceptanceTransactionsSent": 0,
+  "browserAcceptanceModelCalls": 0,
+  "viewed": [
+    "mission",
+    "finance",
+    "games",
+    "settings",
+    "agent-evidence",
+    "external-expert-evidence"
+  ],
+  "screenshots": [
+    "public-task.jpg",
+    "public-finance.jpg",
+    "public-games.jpg",
+    "public-agent-evidence.jpg",
+    "public-expert-evidence.jpg"
+  ]
+}

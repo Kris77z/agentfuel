@@ -12,10 +12,10 @@ import { monadProvider, readRpcUrlFile, type RpcTransport } from "./demo-rpc.js"
 import { collaborationCases, collaborationOrigin, verifyCollaborationJournal } from "./monad-collaboration-goal-acceptance.js";
 
 type FundingMode = "inspect" | "apply" | "recover";
-interface FundingPlan { id: string; case: "external" | "fallback" | "fallback-recheck"; asset: "MON" | "test-USDC"; to: string; amount: string; target: string; data: string; value: string }
+interface FundingPlan { id: string; case: "external" | "fallback" | "fallback-recheck" | "fallback-fresh"; asset: "MON" | "test-USDC"; to: string; amount: string; target: string; data: string; value: string }
 interface FundingReceipt { id: string; case: string; asset: string; from: string; to: string; amount: string; txHash: string; blockNumber: number; blockHash: string; status: 1 }
 interface FundingState { version: 1; binding: string; plans: FundingPlan[]; receipts: Record<string, FundingReceipt>; status: "Intent" | "Applied" }
-export interface CollaborationFundingOptions { runtime: string; output: string; mode?: FundingMode; rpcTransport?: RpcTransport; caseName?: "fallback-recheck" }
+export interface CollaborationFundingOptions { runtime: string; output: string; mode?: FundingMode; rpcTransport?: RpcTransport; caseName?: "fallback-recheck" | "fallback-fresh"; nativeAmountWei?: string; externalUsdcRaw?: string; fallbackUsdcRaw?: string }
 export interface CollaborationFundingDependencies { provider: JsonRpcProvider; allowLocalChain?: boolean }
 const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const same = (a: string, b: string) => getAddress(a) === getAddress(b);
@@ -28,7 +28,14 @@ async function optionalJson(file: string): Promise<any> { try { await stat(file)
 export async function fundMonadCollaborationGoals(options: CollaborationFundingOptions, deps?: CollaborationFundingDependencies) {
   const runtime = absolute(options.runtime), output = absolute(options.output), mode = options.mode ?? "inspect";
   assert.ok(["inspect", "apply", "recover"].includes(mode), "FUND_GOALS_MODE_INVALID");
-  assert.ok(options.caseName === undefined || options.caseName === "fallback-recheck", "FUND_GOALS_CASE_INVALID");
+  assert.ok(options.caseName === undefined || options.caseName === "fallback-recheck" || options.caseName === "fallback-fresh", "FUND_GOALS_CASE_INVALID");
+  const fresh = options.caseName === "fallback-fresh", recheck = options.caseName === "fallback-recheck";
+  if (fresh) assert.ok(options.nativeAmountWei !== undefined && options.externalUsdcRaw !== undefined && options.fallbackUsdcRaw !== undefined, "FUND_GOALS_FRESH_EXPLICIT_AMOUNTS_REQUIRED");
+  const nativeAmountWei = options.nativeAmountWei ?? (recheck ? "0" : "350000000000000000");
+  assert.match(nativeAmountWei, /^(0|[1-9][0-9]{0,18})$/, "FUND_GOALS_NATIVE_AMOUNT_INVALID"); assert.ok(BigInt(nativeAmountWei) <= 1000000000000000000n, "FUND_GOALS_NATIVE_AMOUNT_INVALID");
+  if (recheck) assert.equal(nativeAmountWei, "0", "FUND_GOALS_RECHECK_NATIVE_NOT_ALLOWED");
+  if (options.externalUsdcRaw !== undefined) assert.equal(options.externalUsdcRaw, collaborationCases.external.depositRaw, "FUND_GOALS_EXTERNAL_CASH_CHANGED");
+  if (options.fallbackUsdcRaw !== undefined) assert.equal(options.fallbackUsdcRaw, collaborationCases.fallback.depositRaw, "FUND_GOALS_FALLBACK_CASH_CHANGED");
   if (options.rpcTransport) assert.ok(["direct", "system-https-proxy"].includes(options.rpcTransport), "FUND_GOALS_TRANSPORT_INVALID");
   const bootstrap = JSON.parse(await taskPrivateFile(join(runtime, "..", "bootstrap.json")));
   assert.ok(bootstrap.chainId === "10143" || deps?.allowLocalChain && bootstrap.chainId === "31337", "FUND_GOALS_CHAIN_INVALID");
@@ -39,21 +46,23 @@ export async function fundMonadCollaborationGoals(options: CollaborationFundingO
   const journal = JSON.parse(await taskPrivateFile(join(output, "journal.json")));
   const owner = new Wallet((await taskPrivateFile(join(output, "owner.key"))).trim());
   verifyCollaborationJournal(journal, runtime, owner.address);
+  if (fresh) assert.deepEqual(Object.keys(journal.cases).sort(), ["external", "fallback-fresh"], "FUND_GOALS_FRESH_DIRECTORY_MUST_EXCLUDE_OLD_CASES");
+  else assert.equal(journal.cases["fallback-fresh"], undefined, "FUND_GOALS_FRESH_REQUIRES_EXPLICIT_CASE");
   const hosted = JSON.parse(await taskPrivateFile(join(runtime, "hosted", "database", "session.json")));
   const plans: FundingPlan[] = [];
-  const names = options.caseName ? ["fallback-recheck"] as const : ["external", "fallback"] as const;
+  const names = fresh ? ["external", "fallback-fresh"] as const : recheck ? ["fallback-recheck"] as const : ["external", "fallback"] as const;
   for (const name of names) {
     const entry = journal.cases[name], spec = collaborationCases[name]; assert.ok(entry?.agent, `FUND_GOALS_PREPARE_${name.toUpperCase()}_FIRST`);
     const agent = hosted.agents.find((value: any) => value.id === entry.agent.id), creation = hosted.creations.find((value: any) => value.requestId === entry.create.requestId);
     assert.ok(agent && creation && creation.agentId === agent.id && same(agent.wallet, entry.agent.wallet) && same(agent.owner, owner.address) && same(creation.owner, owner.address), "FUND_GOALS_ORIGINAL_AGENT_BINDING_CHANGED");
     assert.ok(!same(agent.wallet, source.address), "FUND_GOALS_SOURCE_TARGET_COLLISION");
     const to = getAddress(agent.wallet);
-    if (name !== "fallback-recheck") plans.push({ id: `${name}-MON-350000000000000000`, case: name, asset: "MON", to, amount: "350000000000000000", target: to, data: "0x", value: "350000000000000000" });
+    if (BigInt(nativeAmountWei) > 0n) plans.push({ id: `${name}-MON-${nativeAmountWei}`, case: name, asset: "MON", to, amount: nativeAmountWei, target: to, data: "0x", value: nativeAmountWei });
     plans.push({ id: `${name}-USDC-${spec.depositRaw}`, case: name, asset: "test-USDC", to, amount: spec.depositRaw, target: getAddress(bootstrap.asset.address), data: tokenInterface.encodeFunctionData("transfer", [to, spec.depositRaw]), value: "0" });
   }
-  assert.equal(new Set(plans.map(plan => plan.to)).size, options.caseName ? 1 : 2, "FUND_GOALS_DUPLICATE_AGENT_WALLET");
-  if (options.caseName) { assert.equal(plans.length, 1); assert.equal(plans[0].asset, "test-USDC"); assert.equal(plans[0].amount, "50000"); assert.equal(plans[0].value, "0"); }
-  const fundingDirectory = join(output, options.caseName ? "funding-fallback-recheck" : "funding"), binding = hash({ runtime, output, chainId: bootstrap.chainId, source: source.address, token: getAddress(bootstrap.asset.address), maxFeePerGas: bootstrap.maxFeePerGas, plans });
+  assert.equal(new Set(plans.map(plan => plan.to)).size, recheck ? 1 : 2, "FUND_GOALS_DUPLICATE_AGENT_WALLET");
+  if (recheck) { assert.equal(plans.length, 1); assert.equal(plans[0].asset, "test-USDC"); assert.equal(plans[0].amount, "50000"); assert.equal(plans[0].value, "0"); }
+  const fundingDirectory = join(output, fresh ? "funding-fresh" : recheck ? "funding-fallback-recheck" : "funding"), binding = hash({ runtime, output, chainId: bootstrap.chainId, source: source.address, token: getAddress(bootstrap.asset.address), maxFeePerGas: bootstrap.maxFeePerGas, plans });
   let connection: Awaited<ReturnType<typeof monadProvider>> | undefined;
   const stateStore = new SessionStore<FundingState>(fundingDirectory);
   const operator = new SessionStore<{ directory?: string; hash?: string }>(join(runtime, "wallets", "operator", source.address.toLowerCase()));
@@ -145,6 +154,6 @@ export function validateSignedGoalFunding(entry: { from: string; txHash: string;
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const args = process.argv.slice(2), value = (flag: string) => { const i = args.indexOf(flag); return i < 0 ? undefined : args[i + 1]; };
   const runtime = value("--runtime"), output = value("--out"), mode = value("--mode") ?? "inspect", caseName = value("--case");
-  if (!runtime || !output || !["inspect", "apply", "recover"].includes(mode) || caseName !== undefined && caseName !== "fallback-recheck") throw new Error("Usage: monad-collaboration-fund-goals.ts --runtime ABS_PRIVATE_RUNTIME --out ABS_ORIGINAL_GOAL_ACCEPTANCE --mode inspect|apply|recover [--case fallback-recheck] [--rpc-transport direct|system-https-proxy]");
-  fundMonadCollaborationGoals({ runtime: resolve(runtime), output: resolve(output), mode: mode as FundingMode, rpcTransport: value("--rpc-transport") as RpcTransport | undefined, caseName: caseName as "fallback-recheck" | undefined }).then(summary => console.log(JSON.stringify(summary))).catch(error => { reportDemoFailure(error); process.exitCode = 1; });
+  if (!runtime || !output || !["inspect", "apply", "recover"].includes(mode) || caseName !== undefined && !["fallback-recheck", "fallback-fresh"].includes(caseName)) throw new Error("Usage: monad-collaboration-fund-goals.ts --runtime ABS_PRIVATE_RUNTIME --out ABS_ORIGINAL_GOAL_ACCEPTANCE --mode inspect|apply|recover [--case fallback-recheck|fallback-fresh] [--native-wei WEI_PER_AGENT --external-usdc-raw 60000 --fallback-usdc-raw 50000] [--rpc-transport direct|system-https-proxy]");
+  fundMonadCollaborationGoals({ runtime: resolve(runtime), output: resolve(output), mode: mode as FundingMode, rpcTransport: value("--rpc-transport") as RpcTransport | undefined, caseName: caseName as CollaborationFundingOptions["caseName"], nativeAmountWei: value("--native-wei"), externalUsdcRaw: value("--external-usdc-raw"), fallbackUsdcRaw: value("--fallback-usdc-raw") }).then(summary => console.log(JSON.stringify(summary))).catch(error => { reportDemoFailure(error); process.exitCode = 1; });
 }
